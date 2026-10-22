@@ -2,8 +2,8 @@
 
 Juego de Halloween para el **Halloween Challenge de Lenslist**, hecho como **Snap Web Lens** sobre la misma base
 que *Cruise Rush* (PlayCanvas + Vite + `@snap/web-lens-api`). Tu Bitmoji recorre un pueblo embrujado de cuento
-gótico, golpea puertas (*¡dulce o truco!*), junta caramelos, esquiva fantasmas y zombies y, en el último minuto,
-sobrevive a la **Monster Madness**. Gana quien tenga más caramelos a los 180 segundos.
+gótico, golpea puertas (*¡dulce o truco!*), junta caramelos, esquiva fantasmas y zombies (o los espanta con una gema)
+y, en el último minuto, sobrevive a la **Monster Madness**. Gana quien tenga más caramelos a los 180 segundos.
 
 ## Cómo correrlo
 
@@ -53,17 +53,32 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Sistema | Detalle |
 |---|---|
 | Ronda | 3-2-1-GO, **180 s exactos** (reloj real del anfitrión), últimos 60 s **Monster Madness**, fin compartido y puntajes bloqueados |
+| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). Hard es la primera versión del juego; Medium y Easy tienen menos monstruos, más lentos, que ven menos y se rinden antes, y más protección tras un golpe |
 | Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (sale un fantasma o te atrapa una telaraña), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
-| Monstruos | fantasma: −10 caramelos y protección de 2,5 s; zombie: te frena 5 s; patrulla → detección → persecución → ataque → retirada → retorno; zombies rodean paredes, fantasmas las atraviesan; **fantasma gigante** en la Madness que persigue al líder |
+| Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2,5 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan |
+| Gemas | aparecen cada 20–30 s con un haz de luz; **gema gigante** (roja, 8 s): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven 5 s después); **gema ladrona** (verde, 10 s): los fantasmas huyen y al atraparlos les robás lo que te quitaron + 10 |
 | Power-ups | velocidad ×2 (8 s), escudo mágico (para un ataque), imán de caramelos (8 s), caramelos dobles (10 s); un orbe por vez en la ranura, botón POWER-UP; indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
-| Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos ×1,35, caramelos especiales, fantasma gigante |
+| Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,35), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
-| Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr), mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD + Shift, E, Espacio, C |
+| Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr), **SPRINT** (mantener: ~3 s más rápido que cualquier monstruo, se recarga en 4,5 s), mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD + Shift, Q (sprint), E, Espacio, C |
+
+## Dificultad medida
+
+Choques de monstruos por ronda de 3 minutos, con un jugador simulado que junta caramelos y huye corriendo cuando
+un monstruo se acerca (30 rondas por nivel, simulación de la autoridad en Node):
+
+| Nivel | sin sprint | con sprint |
+|---|---|---|
+| Hard | 15,8 | 5,8 |
+| Medium | 3,8 | 1,5 |
+| Easy | 0,4 | 0,3 |
 
 ## Arte
 
-Todo el pueblo se genera por código en el arranque (sin modelos que descargar): casas altas y torcidas que se
+La noche tiene volumen: niebla de distancia liviana más tres capas de bruma rasante que derivan con el viento
+(los pies, las tumbas y las calabazas se hunden en ella) y halos cálidos en cada farol. Todo el pueblo se genera
+por código en el arranque (sin modelos que descargar): casas altas y torcidas que se
 inclinan al subir, techos en aguja con punta enroscada, chimeneas curvas, ventanas irregulares encendidas, puertas
 enormes, escalones asimétricos, cercas torcidas, árboles con ramas como manos y raíces grandes, cementerio victoriano
 con reja de lanzas y mausoleo, torre-reloj (sus agujas van de las 11:57 a la medianoche durante la ronda), hongos

@@ -2,7 +2,8 @@
 
 Halloween entry for the **Lenslist Halloween Challenge**, built as a **Snap Web Lens** on the Cruise Rush base
 (PlayCanvas 2 + Vite + `@snap/web-lens-api`). Players' Bitmojis roam a gothic-storybook haunted village for 180 s,
-knock on doors (trick or treat), collect candy, dodge monsters; the last minute is Monster Madness. Most candy wins.
+knock on doors (trick or treat), collect candy, dodge monsters (sprint, or scare them off with a gem); the last minute
+is Monster Madness. Levels: easy, medium, hard (hard = the first tuning). Most candy wins. There is no giant ghost (removed).
 The team talks in Spanish (and French); code, comments and commits are in English.
 
 ## Platform rules (Snap Web Lenses)
@@ -19,10 +20,11 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 
 ## Code map
 
-- `src/game/authority.js` the only place that decides shared state (clock, RNG, houses 70/20/10 + 15 s cooldown,
-  candy, scores, power-ups, monster AI, madness, ranking); emits numbered events + 10 Hz snapshots.
+- `src/game/authority.js` the only place that decides shared state (clock, RNG, level, houses 70/20/10 + 15 s cooldown,
+  candy, scores, power-ups, gems, monster AI incl. flee/scare/loot, madness, ranking); emits numbered events + 10 Hz snapshots.
   `src/game/view.js` each device's mirror (`playerOf(ev)`: `by` for house/candy/orb events, `id` otherwise).
-  `src/game/config.js` every rule number. `src/net/session.js` room, host election, routing; `transport.js`.
+  `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, SPRINT). `src/net/session.js` room, host election, routing; `transport.js`.
+- Fog: light FOG_EXP2 plus three camera-following mist sheets (world-anchored drifting noise) and lamp halos (`village.js`).
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.

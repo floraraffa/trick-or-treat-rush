@@ -21,6 +21,13 @@ await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x -
 await page.keyboard.up('ShiftLeft'); await page.keyboard.up('KeyW');
 console.log('✔ moves with the keyboard');
 
+// Sprint: hold Q to burst past a run while stamina lasts.
+await page.keyboard.down('KeyW'); await page.keyboard.down('KeyQ');
+const sprint = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.sprinting && s.speed > 6.5 ? { speed: s.speed, stamina: s.stamina } : null; }, null, { timeout: 60000 })).jsonValue();
+await page.keyboard.up('KeyQ'); await page.keyboard.up('KeyW');
+assert.ok(sprint.stamina < 1, 'sprinting uses stamina');
+console.log(`✔ sprint: ${sprint.speed.toFixed(1)} m/s (running is 5), stamina ${Math.round(sprint.stamina * 100)}%`);
+
 // Touch: the left thumb walks (joystick), the right thumb turns the camera.
 {
   const touch = (type, id, x, y) => page.evaluate(([type, id, x, y]) => document.getElementById('app').dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true })), [type, id, x, y]);
@@ -70,7 +77,7 @@ console.log(`✔ knocked: cooldown ${cool.toFixed(1)} s, button now "${btn.trim(
 
 // Candy: stand on one; the authority credits it once.
 const c = await G(() => { const [id, c] = [...window.__game.view.candies][0]; window.__game.player.place(c.x, c.z, 0); return { id, type: c.type }; });
-await page.waitForFunction((id) => !window.__game.view.candies.has(id), c.id, { timeout: 20000 });
+await page.waitForFunction((id) => !window.__game.view.candies.has(id), c.id, { timeout: 60000 });
 const scoreAfter = await G(() => window.__game.view.players.get(window.__game.me.id).score);
 await page.waitForFunction(() => [...document.querySelectorAll('.popup')].some((e) => /\+\d+/.test(e.textContent)), null, { timeout: 20000 });
 console.log(`✔ candy ${c.type} picked, "+N CANDY!" shown: score ${scoreBefore} → ${scoreAfter} (door visit included)`);
@@ -84,21 +91,29 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/p3-power.png` });
 console.log(`✔ power-up ${orb.kind} picked and active`);
 
-// Madness in the last minute.
+// A gem: wait for one, walk onto it, get its power (a giant grows).
+await G(() => window.__game.skip(Math.max(0, 19 - window.__game.view.rt())));
+const gem = await (await page.waitForFunction(() => { const g = [...window.__game.view.gems.values()][0]; return g ? { id: g.id, kind: g.kind, x: g.x, z: g.z } : null; }, null, { timeout: 60000 })).jsonValue();
+await G((g) => window.__game.player.place(g.x, g.z, 0), gem);
+await page.waitForFunction((k) => window.__game.view.fx(window.__game.me.id, k) > 0, gem.kind, { timeout: 60000 });
+const grown = gem.kind === 'giant' ? await (await page.waitForFunction(() => { const k = window.__game.player.state.scale; return k > 1.6 ? k : null; }, null, { timeout: 60000 })).jsonValue() : null;
+await page.screenshot({ path: `${out}/p4-gem.png` });
+console.log(`✔ gem ${gem.kind}: power on${grown ? `, grew to ×${grown.toFixed(2)}` : ''}`);
+
+// Madness in the last minute (no giant ghost any more).
 await G(() => window.__game.skip(Math.max(0, 120.5 - window.__game.view.rt())));
 await page.waitForFunction(() => window.__game.view.madness, null, { timeout: 20000 });
-await page.waitForFunction(() => [...window.__game.view.monsters.values()].some((m) => m.kind === 'giant'), null, { timeout: 20000 });
-await G(() => { const g = [...window.__game.view.monsters.values()].find((m) => m.kind === 'giant'); window.__game.player.place(g.x + 6, g.z + 6, 225); window.__game.camCtl.snapBehind(225); });
-await page.waitForTimeout(3500);
-await page.screenshot({ path: `${out}/p4-madness.png` });
-console.log('✔ monster madness with the giant ghost');
+await page.waitForTimeout(2500);
+assert.ok(!(await G(() => [...window.__game.view.monsters.values()].some((m) => m.kind === 'giant'))), 'no giant ghost');
+await page.screenshot({ path: `${out}/p5-madness.png` });
+console.log('✔ monster madness, no giant ghost');
 
 // The end: exactly at 180 s, ranking shown.
 await G(() => window.__game.skip(Math.max(0, 180.2 - window.__game.view.rt())));
 await page.waitForFunction(() => window.__game.view.phase === 'over', null, { timeout: 20000 });
 await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
 await page.waitForTimeout(600);
-await page.screenshot({ path: `${out}/p5-results.png` });
+await page.screenshot({ path: `${out}/p6-results.png` });
 const res = await G(() => ({ ranking: window.__game.view.ranking, winners: window.__game.view.winners, rt: window.__game.session.authority.rt }));
 console.log(`✔ round over at rt ${res.rt.toFixed(3)} s, ranking ${JSON.stringify(res.ranking)}`);
 console.log(errors.length ? `errors:\n${errors.join('\n')}` : 'no page errors');

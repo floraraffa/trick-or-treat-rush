@@ -2,8 +2,9 @@
 // its clock tower, the eight houses, the cemetery, the woods, the lamps, the sky, and the night's
 // lighting (moonlight with long shadows, warm lamps, violet fog). `setMadness` turns the last
 // minute sinister: thicker fog, a red moon, flickering, brighter lamps.
-import { Color, Entity, FOG_EXP2, Quat, SHADOW_PCF3_32F, Vec3 } from 'playcanvas';
-import { Batches, texturedMaterial } from '../geo.js';
+import { BLEND_ADDITIVEALPHA, BLEND_NORMAL, CULLFACE_NONE, Color, Entity, FOG_EXP2, Mesh, MeshInstance, Quat, SHADOW_PCF3_32F, StandardMaterial, Vec2, Vec3 } from 'playcanvas';
+import { Batches, Geo, texturedMaterial } from '../geo.js';
+import { flat } from './shapes.js';
 import { rng } from '../rng.js';
 import { buildHouse } from './houses.js';
 import { addBush, addCemetery, addClockTower, addFence, addFlowers, addLamp, addMushrooms, addPumpkin, addTree } from './props.js';
@@ -14,8 +15,10 @@ import { BUSHES, FENCES, FLOWERS, HOUSES, LAMPS, MAP_R, MUSHROOMS, PLAZA_R, PUMP
 const D2R = Math.PI / 180;
 export const MOON_DIR = [-0.55, 0.42, -0.72]; // towards the moon: low in the north-west, long shadows
 
-const FOG_CALM = { color: [0.13, 0.11, 0.21], density: 0.024 };
-const FOG_MAD = { color: [0.2, 0.08, 0.17], density: 0.042 };
+// Distance fog is kept light; the low mist layers and lamp halos give the night its volume.
+const FOG_CALM = { color: [0.13, 0.11, 0.21], density: 0.017 };
+const FOG_MAD = { color: [0.2, 0.08, 0.17], density: 0.03 };
+const MIST_CALM = [0.62, 0.62, 0.8], MIST_MAD = [0.62, 0.42, 0.62];
 const AMBIENT_CALM = [0.2, 0.18, 0.32], AMBIENT_MAD = [0.26, 0.14, 0.24];
 const MOON_CALM = [0.62, 0.7, 1], MOON_MAD = [1, 0.48, 0.42];
 
@@ -30,7 +33,7 @@ function noise2(seed) {
   };
 }
 
-export function createVillage(app, tex, { lowFx = false } = {}) {
+export function createVillage(app, tex, { lowFx = false, mist = lowFx ? 1 : 3 } = {}) {
   const root = new Entity('village');
   const N = tex.normals;
   const materials = {
@@ -151,6 +154,61 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
   const sky = createSky(app, tex, MOON_DIR);
   root.addChild(sky.root);
 
+  // Low mist: two wide, soft sheets hugging the ground, following the camera while their wisps stay
+  // put in the world and drift on the wind, each its own way. Feet, graves and pumpkins sink into it.
+  const mistLayers = [
+    { y: 0.22, scale: 1 / 13, drift: [0.012, 0.004], opacity: 0.62 },
+    { y: 0.85, scale: 1 / 19, drift: [-0.006, 0.009], opacity: 0.34 },
+    { y: 1.7, scale: 1 / 27, drift: [0.004, -0.007], opacity: 0.16 },
+  ].slice(0, mist).map((l) => { // weak phones (?lowfx) get the ground layer only
+    const m = new StandardMaterial();
+    m.useLighting = false; m.useSkybox = false;
+    m.diffuse = new Color(0, 0, 0);
+    m.emissive = new Color(...MIST_CALM);
+    m.opacityMap = tex.mist; m.opacityMapChannel = 'a';
+    m.opacityMapTiling = new Vec2(1, 1);
+    m.opacityVertexColor = true; m.opacityVertexColorChannel = 'a';
+    m.opacity = l.opacity;
+    m.blendType = BLEND_NORMAL; m.depthWrite = false; m.cull = CULLFACE_NONE;
+    m.update();
+    const R = 36, rings = 10, segs = 40, pos = [], uv = [], col = [], idx = [];
+    for (let k = 0; k <= rings; k++) {
+      const r = (k / rings) * R;
+      const a = k === rings ? 0 : Math.min(1, r / 2.5) * (1 - Math.max(0, (r - R * 0.55) / (R * 0.45))); // thin at the camera, gone at the rim
+      for (let q = 0; q <= segs; q++) {
+        const t = (q / segs) * Math.PI * 2, x = Math.cos(t) * r, z = Math.sin(t) * r;
+        pos.push(x, 0, z); uv.push(x * l.scale, z * l.scale); col.push(255, 255, 255, Math.round(a * 255));
+      }
+    }
+    for (let k = 0; k < rings; k++) for (let q = 0; q < segs; q++) { const a = k * (segs + 1) + q, b = a + segs + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+    const mesh = new Mesh(app.graphicsDevice);
+    mesh.setPositions(pos); mesh.setUvs(0, uv); mesh.setColors32(col); mesh.setIndices(idx); mesh.update();
+    const e = new Entity('mist-layer');
+    e.addComponent('render', { meshInstances: [new MeshInstance(mesh, m)], castShadows: false, receiveShadows: false });
+    e.render.meshInstances[0].cull = false;
+    root.addChild(e);
+    return { ...l, e, m, off: new Vec2() };
+  });
+
+  // Every lamp glows into the mist: a warm halo turned to the camera.
+  const haloMat = new StandardMaterial();
+  haloMat.useLighting = false; haloMat.useSkybox = false; haloMat.useFog = false;
+  haloMat.diffuse = new Color(0, 0, 0);
+  haloMat.emissive = new Color(1, 0.62, 0.3);
+  haloMat.emissiveMap = tex.glow; haloMat.opacityMap = tex.glow; haloMat.opacityMapChannel = 'a';
+  haloMat.opacity = 0.55;
+  haloMat.blendType = BLEND_ADDITIVEALPHA; haloMat.depthWrite = false; haloMat.cull = CULLFACE_NONE;
+  haloMat.update();
+  const haloGeo = new Geo().add(flat([[-1, -1], [1, -1], [1, 1], [-1, 1]]), null, [1, 1, 1]);
+  const halos = lampSpots.map((sp) => {
+    const e = haloGeo.build(app.graphicsDevice, haloMat, 'lamp-halo');
+    e.render.castShadows = false;
+    e.setLocalPosition(...sp.at);
+    e.setLocalScale(1.7, 1.7, 1.7);
+    root.addChild(e);
+    return e;
+  });
+
   let madness = 0, time = 0;
   const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
   return {
@@ -187,10 +245,23 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       app.scene.ambientLight.set(...lerp(AMBIENT_CALM, AMBIENT_MAD, k));
       moon.light.color = new Color(...lerp(MOON_CALM, MOON_MAD, k));
       sky.setMadness(k);
+      const mc = lerp(MIST_CALM, MIST_MAD, k);
+      for (const l of mistLayers) { l.m.emissive.set(...mc); l.m.opacity = l.opacity * (1 + 0.5 * k); l.m.update(); }
     },
     update(dt, camera) {
       time += dt;
       sky.update(camera);
+      const c = camera.getPosition();
+      for (const l of mistLayers) {
+        l.e.setPosition(c.x, l.y, c.z);
+        l.off.set(c.x * l.scale + time * l.drift[0], c.z * l.scale + time * l.drift[1]);
+        l.m.opacityMapOffset = l.off;
+        l.m.update();
+      }
+      const flick = madness > 0 ? 0.75 + 0.25 * Math.sin(time * 19) : 0.92 + 0.08 * Math.sin(time * 2.3);
+      for (const h of halos) { h.lookAt(c); h.rotateLocal(0, 180, 0); }
+      haloMat.opacity = 0.55 * flick * (1 + 0.4 * madness);
+      haloMat.update();
       for (const l of lamps) {
         const flick = madness > 0 ? (Math.sin(time * 23 + l.phase) * 0.5 + Math.sin(time * 7.3 + l.phase * 2) * 0.5) * 0.6 * madness : Math.sin(time * 2 + l.phase) * 0.08;
         l.e.light.intensity = l.base * (1 + 0.7 * madness) + flick;

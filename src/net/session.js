@@ -10,7 +10,7 @@
 //   start-req       a player asks the host to start (the host decides)
 //   bye             a player is leaving
 import { Authority } from '../game/authority.js';
-import { MAX_PLAYERS } from '../game/config.js';
+import { DEFAULT_LEVEL, LEVELS, MAX_PLAYERS } from '../game/config.js';
 
 const HOST_WAIT = 0.8, TIMEOUT = 4.5;
 
@@ -25,6 +25,8 @@ export class Session {
     this.hostSince = 0;
     this.authority = null;
     this.phase = 'lobby'; // the host's phase as last announced: lobby, countdown, playing, over
+    this.level = DEFAULT_LEVEL; // this player's choice; the host's is the room's
+    this.roomLevel = DEFAULT_LEVEL;
     this.inRound = new Set();
     this.full = false;
     this.lastSeq = 0;
@@ -56,6 +58,7 @@ export class Session {
 
   becomeHost() {
     this.hostId = this.me.id;
+    this.roomLevel = this.level;
     this.hostSince = Date.now();
     this.lastSeq = 0;
     this.seq = 0;
@@ -78,13 +81,20 @@ export class Session {
     this.fire('roster', this.rosterList());
   }
 
+  /** This player's level; the host's choice is the room's (announced in the roster). */
+  setLevel(level) {
+    if (!LEVELS.includes(level)) return;
+    this.level = level;
+    if (this.isHost || this.solo) { this.roomLevel = level; this.broadcastRoster(); }
+  }
+
   rosterList() {
     return [...this.roster.values()].sort((a, b) => a.joined - b.joined).map((p) => ({ id: p.id, name: p.name, costume: p.costume, host: p.id === this.hostId, me: p.id === this.me.id, playing: this.inRound.has(p.id) }));
   }
 
   broadcastRoster() {
     if (!this.isHost) return;
-    this.send({ t: 'roster', host: this.me.id, since: this.hostSince, phase: this.phase, players: [...this.roster.values()].map(({ seen, ...p }) => p), inRound: [...this.inRound] });
+    this.send({ t: 'roster', host: this.me.id, since: this.hostSince, phase: this.phase, level: this.roomLevel, players: [...this.roster.values()].map(({ seen, ...p }) => p), inRound: [...this.inRound] });
   }
 
   // --- the host's side -------------------------------------------------------------------------
@@ -93,7 +103,7 @@ export class Session {
   startRound() {
     if (!this.isHost) { this.send({ t: 'start-req', to: this.hostId }); return; }
     const players = [...this.roster.values()].sort((a, b) => a.joined - b.joined).slice(0, MAX_PLAYERS);
-    this.authority.start(players.map((p) => ({ id: p.id, name: p.name, costume: p.costume })));
+    this.authority.start(players.map((p) => ({ id: p.id, name: p.name, costume: p.costume })), this.level);
   }
 
   hostEmit(ev) {
@@ -170,6 +180,7 @@ export class Session {
         this.waiting = 0;
         if (hostChanged) this.lastSeq = 0;
         this.phase = m.phase;
+        if (LEVELS.includes(m.level)) this.roomLevel = m.level;
         this.inRound = new Set(m.inRound);
         const mine = this.roster.get(this.me.id);
         this.roster = new Map(m.players.map((p) => [p.id, { ...p, seen: this.clock }]));

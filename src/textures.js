@@ -31,7 +31,39 @@ function loadInto(tex, url, pending) {
   }));
 }
 
+/** Tileable fractal value noise over [0,1)², for the mist. */
+function tileNoise(seed, cells = 4) {
+  const r = rng(seed), layers = [];
+  for (let o = 0; o < 4; o++) { const n = cells << o; layers.push({ n, v: Float32Array.from({ length: n * n }, r) }); }
+  const sm = (t) => t * t * (3 - 2 * t);
+  return (x, y) => {
+    let s = 0, a = 1, tot = 0;
+    for (const { n, v } of layers) {
+      const fx = x * n, fy = y * n, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = sm(fx - x0), ty = sm(fy - y0);
+      const at = (i, j) => v[((j % n) + n) % n * n + (((i % n) + n) % n)];
+      s += a * ((at(x0, y0) * (1 - tx) + at(x0 + 1, y0) * tx) * (1 - ty) + (at(x0, y0 + 1) * (1 - tx) + at(x0 + 1, y0 + 1) * tx) * ty);
+      tot += a; a *= 0.55;
+    }
+    return s / tot;
+  };
+}
+
 const PAINTERS = {
+  // Drifting mist: soft white wisps with holes, alpha only (the colour comes from the material).
+  mist() {
+    const [c, g] = canvas(256, 256), n = tileNoise(17);
+    const img = g.createImageData(256, 256);
+    for (let y = 0; y < 256; y++) {
+      for (let x = 0; x < 256; x++) {
+        const v = n(x / 256, y / 256), a = Math.max(0, Math.min(1, (v - 0.36) * 2.6));
+        const i = (y * 256 + x) * 4;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+        img.data[i + 3] = Math.round(a * a * (3 - 2 * a) * 255);
+      }
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  },
   plain() {
     const [c, g] = canvas(4, 4);
     g.fillStyle = '#fff';

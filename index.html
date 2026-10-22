@@ -134,7 +134,17 @@
       .round .i { font-size: 26px; line-height: 1; }
       .round:active { transform: translateY(3px); box-shadow: 0 1px 0 #120a18; }
       #btnCam { width: 58px; height: 58px; grid-column: 2; grid-row: 1; }
-      #btnPower { grid-column: 1; grid-row: 2; position: relative; }
+      #btnPower { grid-column: 1; grid-row: 1; position: relative; }
+      #btnSprint { grid-column: 1; grid-row: 2; width: 84px; height: 84px; font-family: var(--title); font-size: 15px; color: #f3e9d8; touch-action: none;
+        background: radial-gradient(circle at 50% 35%, #2f6a5a, #10261f); border: 3px solid #7fe0b8;
+        box-shadow: 0 4px 0 #0b1a14, 0 0 14px rgba(110,230,180,.35); position: relative; }
+      #btnSprint::before { content: ''; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+        background: conic-gradient(#8dffcf calc(var(--st, 1) * 360deg), rgba(255,255,255,.08) 0); -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%); mask: radial-gradient(circle, transparent 60%, #000 61%); }
+      #btnSprint.on { transform: scale(.94); background: radial-gradient(circle at 50% 35%, #5cc79f, #1b4a3b); }
+      #btnSprint.tired { filter: grayscale(.7) brightness(.7); }
+      .levels { display: flex; justify-content: center; gap: 6px; }
+      .levels button { font: inherit; font-size: 15px; letter-spacing: .08em; padding: 7px 12px; color: var(--lav); background: rgba(0,0,0,.35); border: 2px solid #6d5a87; border-radius: 12px 4px 12px 4px; }
+      .levels button.on { color: #2a0f20; background: linear-gradient(180deg, #ffe0a0, #ff9a3c); border-color: #3a1208; }
       #btnPower.empty { opacity: .45; }
       #btnPower.ready { border-color: var(--gold); animation: glowpulse 1s infinite; }
       @keyframes glowpulse { 50% { box-shadow: 0 4px 0 #120a18, 0 0 26px rgba(240,190,90,.9); } }
@@ -205,6 +215,7 @@
       <div class="pad">
         <button id="btnCam" class="round ui-block" aria-label="camera"><span class="i">👁</span><span id="camLbl">3RD</span></button>
         <button id="btnPower" class="round ui-block empty" aria-label="power-up"><span class="i" id="powerIcon">✦</span><span id="powerLbl">POWER-UP</span></button>
+        <button id="btnSprint" class="round ui-block" aria-label="sprint"><span class="i">💨</span><span id="sprintLbl">SPRINT</span></button>
         <button id="btnKnock" class="ui-block hidden">TRICK OR TREAT!</button>
       </div>
       <div id="banner" class="ink"></div>
@@ -216,6 +227,7 @@
       <img id="portrait" class="portrait" alt="" />
       <div class="costumes" id="costumes"></div>
       <div class="costumeName" id="costumeName"></div>
+      <div class="levels" id="levels"></div>
       <div class="field" id="nameField"><span id="lblName">NAME</span><input id="nameInput" maxlength="12" autocomplete="off" spellcheck="false" /></div>
       <div class="bestLine" id="bestLine"></div>
       <div class="btns"><button class="btn go" id="btnPlay">PLAY</button></div>

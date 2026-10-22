@@ -25,7 +25,7 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
   const st = {
     mode: 'third', yaw: 0, pitch: CAMERA.pitch, dist: distance, wantDist: distance, curDist: distance,
     blend: 0, // 0 third .. 1 first
-    shake: 0, bob: 0,
+    shake: 0, bob: 0, kick: 0,
   };
   const pos = new Vec3(), target = new Vec3();
   const third = { p: new Vec3(), t: new Vec3() }, first = { p: new Vec3(), t: new Vec3() };
@@ -70,12 +70,14 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
       const cy = Math.cos(st.pitch * D2R), sy = Math.sin(st.pitch * D2R);
       const fx = Math.sin(st.yaw * D2R) * cy, fz = Math.cos(st.yaw * D2R) * cy, fy = -sy;
       // Third person: from the shoulders back along the view; stop short of anything solid.
-      const px = pl.x, py = CAMERA.pivot, pz = pl.z;
+      const k = pl.scale ?? 1; // a giant needs the camera further back and higher
+      const px = pl.x, py = CAMERA.pivot * k, pz = pl.z;
       // Walls pull the camera right in; a trunk or lamp post only as far as a shoulder view (if the
       // camera ends up inside a trunk, its inner faces aren't drawn, so the view stays clear).
       const o = [px, py, pz], back = [-fx, -fy, -fz];
-      const wall = raycast(o, back, st.wantDist + 0.3, { big: true }), thin = raycast(o, back, st.wantDist + 0.3, { big: false });
-      const allowed = Math.max(0.7, Math.min(st.wantDist, wall - 0.3, Math.max(2.2, thin - 0.3)));
+      const want = st.wantDist * (1 + (k - 1) * 0.7) + (pl.sprinting ? 0.6 : 0);
+      const wall = raycast(o, back, want + 0.3, { big: true }), thin = raycast(o, back, want + 0.3, { big: false });
+      const allowed = Math.max(0.7, Math.min(want, wall - 0.3, Math.max(2.2, thin - 0.3)));
       st.curDist += (allowed - st.curDist) * Math.min(1, dt * (allowed < st.curDist ? 18 : 3)); // snap in, ease out
       third.p.set(px - fx * st.curDist, Math.max(0.35, py - fy * st.curDist), pz - fz * st.curDist);
       third.t.set(px, py, pz);
@@ -83,7 +85,7 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
       st.bob += dt * (pl.speed > 0.3 ? 2 + pl.speed * 1.4 : 0);
       const bob = pl.speed > 0.3 ? Math.sin(st.bob * Math.PI) * 0.025 * Math.min(1, pl.speed / 3) : 0;
       const hx = Math.sin(pl.yaw * D2R), hz = Math.cos(pl.yaw * D2R);
-      first.p.set(pl.x + hx * 0.14, EYE_HEIGHT + bob, pl.z + hz * 0.14);
+      first.p.set(pl.x + hx * 0.14 * k, EYE_HEIGHT * k + bob, pl.z + hz * 0.14 * k);
       first.t.set(first.p.x + fx * 6, first.p.y + fy * 6, first.p.z + fz * 6);
 
       const b = smooth(st.blend);
@@ -96,7 +98,8 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
       }
       cameraEntity.setPosition(pos);
       cameraEntity.lookAt(target);
-      cameraEntity.camera.fov = CAMERA.fovThird + (CAMERA.fovFirst - CAMERA.fovThird) * b;
+      st.kick += ((pl.sprinting ? 7 : 0) - st.kick) * Math.min(1, dt * 5); // a little speed rush when sprinting
+      cameraEntity.camera.fov = CAMERA.fovThird + (CAMERA.fovFirst - CAMERA.fovThird) * b + st.kick;
       cameraEntity.camera.nearClip = 0.1 - 0.06 * b;
     },
   };

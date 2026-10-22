@@ -1,7 +1,8 @@
 // Touch and keyboard input. Left half of the screen: a floating joystick (a light push walks, a full
 // push runs). Right half: drag to look around, pinch to zoom the third-person camera. Buttons are
 // plain DOM buttons on top and never start a drag. Keyboard: WASD/arrows move (Shift runs), mouse
-// drag looks, wheel zooms, E trick-or-treat, Space/F power-up, C camera.
+// drag looks, wheel zooms, E trick-or-treat, Space/F power-up, C camera, hold Q to sprint (or the
+// on-screen SPRINT button).
 
 export function createInput(el, { joy, knob }) {
   const state = {
@@ -11,6 +12,7 @@ export function createInput(el, { joy, knob }) {
     zoom: 0, // wheel / pinch since last read (positive = closer)
     lastLook: -1e9,
     pressed: new Set(), // one-shot actions: 'knock', 'use', 'camera'
+    sprintHeld: false, // the SPRINT button is down
   };
   const keys = new Set();
   let joyId = null, joyX = 0, joyY = 0;
@@ -99,9 +101,12 @@ export function createInput(el, { joy, knob }) {
     takeLook() { const l = { ...state.look }; state.look.dx = state.look.dy = 0; return l; },
     takeZoom() { const z = state.zoom; state.zoom = 0; return z; },
     take(action) { const had = state.pressed.has(action); state.pressed.delete(action); return had; },
+    /** Sprint is held (button or Q). */
+    sprinting() { return state.sprintHeld || keys.has('KeyQ'); },
+    holdSprint(on) { state.sprintHeld = on; },
     press(action) { state.pressed.add(action); },
     /** Seconds since the player last turned the camera by hand. */
     sinceLook() { return (performance.now() - state.lastLook) / 1000; },
-    reset() { state.move.x = state.move.y = 0; joyId = null; looks.clear(); restJoy(); keys.clear(); state.pressed.clear(); },
+    reset() { state.move.x = state.move.y = 0; joyId = null; looks.clear(); restJoy(); keys.clear(); state.pressed.clear(); state.sprintHeld = false; },
   };
 }

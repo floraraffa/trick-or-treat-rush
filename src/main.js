@@ -20,7 +20,7 @@ import { createInput } from './input.js';
 import { createTransport } from './net/transport.js';
 import { Session } from './net/session.js';
 import { View, playerOf } from './game/view.js';
-import { MADNESS_AT, MIN_PLAYERS, POSE_HZ, ROUND_SECONDS } from './game/config.js';
+import { DEFAULT_LEVEL, GEMS, LEVELS, MADNESS_AT, MIN_PLAYERS, POSE_HZ, ROUND_SECONDS } from './game/config.js';
 import { buzz, music, musicMadness, sfx, suspendAudio, unlockAudio } from './audio.js';
 import { createUI } from './ui/ui.js';
 import { detectLang, setLang, t } from './ui/i18n.js';
@@ -48,6 +48,8 @@ const ui = createUI({
   friends: () => showLeaderboard(),
   menu: () => toMenu(),
   camera: () => input.press('camera'),
+  sprint: (on) => input.holdSprint(on),
+  level: (id) => setLevel(id),
   power: () => input.press('use'),
   knock: () => input.press('knock'),
   resume: () => setPaused(false),
@@ -90,7 +92,7 @@ if (!lowFx) {
 if (!frame) camera.camera.toneMapping = TONEMAP_NEUTRAL;
 
 const tex = createTextures(app.graphicsDevice);
-const village = createVillage(app, tex, { lowFx });
+const village = createVillage(app, tex, { lowFx, ...(params.has('nomist') ? { mist: 0 } : {}) });
 app.root.addChild(village.root);
 const fx = createFx(app, tex.glow, { max: 260 });
 const sparks = createFx(app, tex.glow, { max: 320, additive: true });
@@ -108,7 +110,7 @@ app.start();
 ui.loadProgress(0.2);
 
 // --- profile, session ------------------------------------------------------------------
-const DEFAULT_SAVE = { best: 0, name: '', costume: 'witch', camera: 'third', nights: [], lang: null };
+const DEFAULT_SAVE = { best: 0, bests: {}, level: DEFAULT_LEVEL, name: '', costume: 'witch', camera: 'third', nights: [], lang: null };
 const SPOOKY = ['Pumpkin', 'Raven', 'Moth', 'Wisp', 'Bat', 'Ghoul', 'Hex', 'Toad', 'Newt', 'Crow'];
 let saveData = structuredClone(DEFAULT_SAVE);
 const me = { id: `p${Math.random().toString(36).slice(2, 9)}`, name: params.get('name') || `${SPOOKY[Math.floor(Math.random() * SPOOKY.length)]}${Math.floor(Math.random() * 90 + 10)}`, costume: 'witch' };
@@ -134,11 +136,15 @@ async function boot() {
   ui.loadProgress(0.4);
   saveData = await loadSave(DEFAULT_SAVE);
   if (!COSTUMES.includes(saveData.costume)) saveData.costume = 'witch';
+  if (!LEVELS.includes(saveData.level)) saveData.level = DEFAULT_LEVEL;
+  if (LEVELS.includes(params.get('level'))) saveData.level = params.get('level');
+  saveData.bests ??= {};
   if (saveData.name && !params.get('name')) me.name = saveData.name;
   me.costume = params.get('costume') && COSTUMES.includes(params.get('costume')) ? params.get('costume') : saveData.costume;
   ui.loadProgress(0.55);
 
   session = new Session({ transport, me });
+  session.setLevel(saveData.level);
   session.on('event', onEvent);
   session.on('snapshot', (s) => view.snapshot(s));
   session.on('pose', (id, p) => view.pose(id, p));
@@ -161,7 +167,8 @@ async function boot() {
   ui.setCostume(me.costume);
   ui.setName(me.name);
   ui.showName(!session.solo);
-  ui.setBest(saveData.best);
+  ui.setLevel(saveData.level);
+  ui.setBest(bestFor(saveData.level));
   ui.setModeNote(session.solo ? (caps.isStub ? `${t('soloShort')} · ${t('solo')}` : t('solo')) : `${t('room')}: ${transport.room}`);
   await Promise.race([tex.ready, new Promise((r) => setTimeout(r, 4000))]);
   ui.loadProgress(0.85);
@@ -177,6 +184,16 @@ function setCostume(id) {
   myAvatar?.setCostume(id);
   ui.setCostume(id);
   session?.setProfile(me.name, me.costume);
+}
+/** Best night at a level (nights from before levels existed count as hard: that was the only tuning). */
+const bestFor = (level) => saveData.bests?.[level] ?? (level === 'hard' ? saveData.best : 0);
+function setLevel(id) {
+  saveData.level = id;
+  save(saveData);
+  ui.setLevel(id);
+  ui.setBest(bestFor(id));
+  session?.setLevel(id);
+  renderLobby();
 }
 function setName(n) {
   me.name = (n || '').replace(/[<>]/g, '').trim().slice(0, 12) || me.name;
@@ -206,7 +223,7 @@ function toMenu() {
 
 function renderLobby() {
   if (!session || session.solo) return;
-  ui.lobby({ room: transport.room, roster: session.rosterList(), isHost: session.isHost, phase: session.phase, meInRound: session.inRound.has(me.id), full: session.full });
+  ui.lobby({ room: transport.room, roster: session.rosterList(), isHost: session.isHost, phase: session.phase, meInRound: session.inRound.has(me.id), full: session.full, level: session.roomLevel });
 }
 
 // --- round events (from the authority) ------------------------------------------------------
@@ -225,6 +242,14 @@ function onEvent(ev) {
     case 'power':
       if (mine) { ui.banner(t(`power.${ev.kind}`), '', 1000, 'good'); sfx.power(); buzz(25); }
       break;
+    case 'gem-':
+      if (mine) { ui.banner(t(`gem.${ev.kind}`), t(`gemSub.${ev.kind}`), 1800, 'good'); sfx.jackpot(); buzz(60); }
+      break;
+    case 'scare': {
+      sparks.emit({ x: ev.x, y: 1.2, z: ev.z }, { x: 0, y: 3, z: 0 }, { n: 34, spread: 5, size: 0.3, grow: 0.5, life: 0.9, color: ev.kind === 'ghost' ? [0.6, 0.8, 1] : [0.6, 1, 0.5], gravity: -3, alpha: 1, twinkle: true });
+      if (mine) { ui.popup(t(ev.power === 'thief' ? 'stolen' : 'scared', { n: ev.pts })); sfx.candy(ev.pts); sfx.blocked(); buzz(30); }
+      break;
+    }
     case 'house': {
       doors[ev.house].t = 0;
       const near = Math.hypot(player.state.x - HOUSES[ev.house].door.x, player.state.z - HOUSES[ev.house].door.z) < 14;
@@ -245,7 +270,7 @@ function onEvent(ev) {
       sfx.hit();
       if (ev.by === 'zombie') ui.banner(t('zombieGrab'), '', 1100, 'bad');
       else if (ev.by === 'web') ui.banner(t('webbed'), '', 1100, 'bad');
-      else ui.banner(ev.by === 'giant' ? t('giantAttack') : t('ghostAttack'), ev.delta ? t('lostCandy', { n: -ev.delta }) : '', 1100, 'bad');
+      else ui.banner(t('ghostAttack'), ev.delta ? t('lostCandy', { n: -ev.delta }) : '', 1100, 'bad');
       if (ev.delta) ui.popup(t('lostCandy', { n: -ev.delta }), 'bad');
       break;
     case 'spot': if (ev.target === me.id) { const m = view.monsters.get(ev.id); if (m?.kind === 'zombie') sfx.zombie(); else sfx.ghost(); } break;
@@ -305,20 +330,22 @@ async function finishRound() {
   ((session.solo ? mine > 0 : won) ? sfx.win : sfx.lose)();
   music(false);
   // Personal records and Snapchat's leaderboard (friends compare there: the API can't read entries back).
-  const prevBest = saveData.best;
-  saveData.best = Math.max(saveData.best, mine);
-  saveData.nights = [...saveData.nights, { score: mine, at: Date.now(), players: ranking.length }].sort((a, b) => b.score - a.score).slice(0, 10);
+  const level = view.level ?? saveData.level;
+  const prevBest = bestFor(level);
+  saveData.bests = { ...saveData.bests, [level]: Math.max(prevBest, mine) };
+  saveData.nights = [...saveData.nights, { score: mine, at: Date.now(), players: ranking.length, level }].sort((a, b) => b.score - a.score).slice(0, 10);
   save(saveData);
-  ui.setBest(saveData.best);
+  ui.setBest(bestFor(saveData.level));
   submitScore(mine);
   setTimeout(() => {
     if (screen !== 'game') return;
     let rows, king, note = '';
     if (session.solo) {
-      const idx = saveData.nights.findIndex((n) => n.score === mine);
-      rows = saveData.nights.slice(0, 5).map((n, i) => ({ pos: i + 1, name: i === idx ? `${me.name} · ${t('you')}` : new Date(n.at).toLocaleDateString(), score: n.score, win: i === idx && mine > prevBest, me: i === idx, costume: i === idx ? me.costume : 'none' }));
+      const nights = saveData.nights.filter((n) => (n.level ?? 'hard') === level);
+      const idx = nights.findIndex((n) => n.score === mine);
+      rows = nights.slice(0, 5).map((n, i) => ({ pos: i + 1, name: i === idx ? `${me.name} · ${t('you')}` : new Date(n.at).toLocaleDateString(), score: n.score, win: i === idx && mine > prevBest, me: i === idx, costume: i === idx ? me.costume : 'none' }));
       king = mine > prevBest && mine > 0 ? `${t('newBest')} · ${t('king')}` : '';
-      note = t('solo');
+      note = `${t(`levels.${level}`)} · ${t('solo')}`;
     } else {
       const tie = view.winners.length > 1;
       let pos = 0, last = null;
@@ -381,10 +408,11 @@ function playFrame(dt, now) {
   const playing = view.phase === 'playing';
   if (input.take('camera')) { saveData.camera = camCtl.toggle(); save(saveData); sfx.click(); }
   const move = input.read();
-  const mods = { speed: view.fx(me.id, 'speed') > 0, slow: view.fx(me.id, 'slow') > 0, frozen: !playing };
+  const mods = { speed: view.fx(me.id, 'speed') > 0, slow: view.fx(me.id, 'slow') > 0, frozen: !playing, sprint: input.sprinting(), giant: view.fx(me.id, 'giant') > 0 };
   const pose = player.update(dt, move, camCtl, mods);
   const ps = player.state;
   session.authority?.setPose(me.id, ps.x, ps.z); // the host's own position, every frame
+  if (ps.sprinting && ps.moving && Math.random() < dt * 25) fx.emit({ x: ps.x, y: 0.15, z: ps.z }, { x: -ps.vx * 0.15, y: 0.6, z: -ps.vz * 0.15 }, { n: 1, spread: 0.6, size: 0.35, grow: 1.6, life: 0.6, color: [0.62, 0.58, 0.7], gravity: 0, alpha: 0.45 });
   poseT += dt;
   if (poseT >= 1 / POSE_HZ) { poseT = 0; session.pose(pose); }
   camCtl.update(dt, ps, input.takeLook(), input.takeZoom(), input.sinceLook());
@@ -433,6 +461,9 @@ function playFrame(dt, now) {
     const ex = s.extra ?? {};
     if (ex.a) r.avatar.setAnim(ex.a, ex.a === 'walk' ? Math.max(0.5, (ex.s * 5) / 2.4) : ex.a === 'run' ? Math.max(0.6, ex.s) : 1);
     if (ex.c && ex.c !== r.avatar.costume) r.avatar.setCostume(ex.c);
+    const rk = view.fx(id, 'giant') > 0 ? GEMS.giant.scale : 1; // remote giants grow too
+    r.scale = (r.scale ?? 1) + (rk - (r.scale ?? 1)) * Math.min(1, dt * 3);
+    r.avatar.root.setLocalScale(r.scale, r.scale, r.scale);
     const rblink = p.inv > now && Math.floor(now * 10) % 2 === 0;
     r.avatar.setVisible(!rblink);
     r.avatar.update(dt, (ex.s ?? 0) * 5);
@@ -440,19 +471,19 @@ function playFrame(dt, now) {
   }
   auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody);
   monsters.update(dt, view, now, camera.getPosition());
-  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, canHold: !meP?.held }, (kind, id) => session.intent({ kind, id }), now);
+  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant, canHold: !meP?.held }, (kind, id) => session.intent({ kind, id }), now);
   ambient(dt);
 
   // HUD.
   const left = view.phase === 'countdown' ? ROUND_SECONDS : view.remaining();
   const leader = view.leader();
-  const effects = ['speed', 'shield', 'magnet', 'double', 'slow'].map((k) => ({ kind: k, left: view.fx(me.id, k) })).filter((e) => e.left > 0);
+  const effects = ['giant', 'thief', 'speed', 'shield', 'magnet', 'double', 'slow'].map((k) => ({ kind: k, left: view.fx(me.id, k) })).filter((e) => e.left > 0);
   const solo = session.solo;
   ui.hud({
     time: Math.ceil(left - 1e-6), mad: view.madness, myCandy: meP?.score ?? 0,
     leaderLabel: solo ? t('best') : t('leader'),
-    leaderName: solo ? String(Math.max(saveData.best, meP?.score ?? 0)) : leader ? (leader.id === me.id ? t('you') : leader.name) : '—',
-    effects, held: meP?.held ?? null, camMode: camCtl.mode,
+    leaderName: solo ? String(Math.max(bestFor(view.level ?? saveData.level), meP?.score ?? 0)) : leader ? (leader.id === me.id ? t('you') : leader.name) : '—',
+    effects, held: meP?.held ?? null, camMode: camCtl.mode, stamina: ps.stamina, sprinting: ps.sprinting,
     knock: { visible: !!door && playing, ready: coolLeft <= 0, left: coolLeft, name: door?.h.name ?? '' },
   });
   if (playing && left <= 10 && Math.ceil(left) !== lastTick) { lastTick = Math.ceil(left); sfx.tick(); }
@@ -467,6 +498,9 @@ function playFrame(dt, now) {
     tags.push({ key, x: scr.x, y: scr.y, text, cls });
   };
   for (const [id, r] of remotes) { const p = view.players.get(id); const pos = r.avatar.root.getPosition(); if (p) label(id, pos.x, 2.25, pos.z, `${p.name} · ${p.score}`, leader?.id === id && !solo ? 'lead' : ''); }
+  for (const [id, m] of view.monsters) { // what a ghost has taken, for a ghost thief to win back
+    if (m.loot > 0 && m.state !== 'banished' && !m.gone && Math.hypot(ps.x - m.x, ps.z - m.z) < 18) label(id, m.x, 2.3, m.z, t('loot', { n: m.loot }), 'house');
+  }
   for (const h of HOUSES) {
     const d = Math.hypot(ps.x - h.door.x, ps.z - h.door.z);
     if (d > 13) continue;

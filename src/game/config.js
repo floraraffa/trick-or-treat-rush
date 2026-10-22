@@ -14,7 +14,6 @@ export const TREAT_MIX = { caramel: 60, lollipop: 32, chocolate: 8 };
 export const JACKPOT = { candy: 'pumpkin', fullSlotBonus: 10 }; // a golden pumpkin and a power-up (or +10 with a full slot)
 export const TRICKS = ['ghost', 'web']; // a ghost bursts out after you, or a sticky web holds you
 export const TRAP_SLOW = 4;
-export const TRICK_GHOST_LIFE = 12;
 
 // Candy: points as asked, weights for what appears on the streets.
 export const CANDY = {
@@ -44,20 +43,53 @@ export const ORBS_ON_MAP = 3;
 export const ORB_RESPAWN = 12;
 export const ORB_R = 1.2;
 
+// Gems: rare crystals that give a power the moment you grab one.
+//   giant: you grow huge, monsters can't hurt you, and any you touch is scared off and drops candy.
+//   thief: ghosts take fright and flee; catch one to steal back the candy it has taken (and more).
+export const GEMS = {
+  giant: { dur: 8, scale: 2.2, speed: 1.25, reach: 2 },
+  thief: { dur: 10 },
+};
+export const GEM_KINDS = Object.keys(GEMS);
+export const GEM_FIRST = 18; // the first gem appears this long after GO
+export const GEM_EVERY = [20, 30]; // and the next one this long after the last was taken
+export const GEM_R = 1.3;
+export const SCARE_LOOT = { ghost: 10, zombie: 5 }; // candy a scared-off monster drops, on top of what it stole
+export const BANISHED = 5; // a scared-off monster stays away this long, then comes back on its route
+
 // Players.
 export const MOVE = { walk: 2.4, run: 5.0, accel: 16, turn: 10 };
 export const SLOW_MUL = 0.5;
-export const INVULNERABLE = 2.5; // protection after a hit, so one monster can't hit twice in a row
+// Sprint: a burst faster than any monster, on its own button. Stamina runs out in `last` seconds
+// of sprinting and refills in `refill` seconds once you let go (after a short breath).
+export const SPRINT = { mul: 1.55, last: 3, refill: 4.5, breath: 0.6 };
 
-// Monsters.
+// Monsters: what every level shares (speeds on patrol, reach, what a hit costs, as asked).
 export const MONSTERS = {
-  ghost: { count: 3, patrol: 1.7, chase: 3.6, detect: 9, giveUp: 15, maxChase: 9, reach: 1.0, penalty: 10 },
-  zombie: { count: 2, patrol: 0.9, chase: 2.2, detect: 7.5, giveUp: 12, maxChase: 10, reach: 1.15, slow: 5 },
-  giant: { chase: 3.9, reach: 2.1, penalty: 10 },
+  ghost: { patrol: 1.7, reach: 1.0, penalty: 10 },
+  zombie: { patrol: 0.9, reach: 1.15, slow: 5 },
 };
-export const MADNESS_SPEED = 1.35;
-export const GRACE = 5; // no monster goes after anyone in the first seconds after GO
-export const RECOVER = 1.6; // a monster backs off this long after an attack
+// Levels: how many monsters, how fast and keen they are, and how long a hit protects you.
+//   hard is the first tuning of the game; medium and easy hand out fewer hits.
+export const DIFFICULTY = {
+  easy: {
+    ghost: { count: 2, chase: 2.6, detect: 5.5, giveUp: 9, maxChase: 4.5 },
+    zombie: { count: 1, chase: 1.6, detect: 5, giveUp: 8, maxChase: 5 },
+    madnessSpeed: 1.1, invulnerable: 5, recover: 3.5, grace: 10, refocus: 4.5, trickLife: 6,
+  },
+  medium: {
+    ghost: { count: 2, chase: 3.1, detect: 7, giveUp: 12, maxChase: 6.5 },
+    zombie: { count: 2, chase: 1.9, detect: 6, giveUp: 10, maxChase: 7 },
+    madnessSpeed: 1.2, invulnerable: 3.5, recover: 2.5, grace: 7, refocus: 3.5, trickLife: 9,
+  },
+  hard: {
+    ghost: { count: 3, chase: 3.6, detect: 9, giveUp: 15, maxChase: 9 },
+    zombie: { count: 2, chase: 2.2, detect: 7.5, giveUp: 12, maxChase: 10 },
+    madnessSpeed: 1.35, invulnerable: 2.5, recover: 1.6, grace: 5, refocus: 2.5, trickLife: 12,
+  },
+};
+export const LEVELS = Object.keys(DIFFICULTY);
+export const DEFAULT_LEVEL = 'medium';
 
 // Network pacing.
 export const SNAP_HZ = 10;

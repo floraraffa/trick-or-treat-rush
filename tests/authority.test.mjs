@@ -84,7 +84,7 @@ while (A.phase === 'playing' && A.rt < C.ROUND_SECONDS - C.MADNESS_AT - 0.05) A.
 assert.equal(of('madness').length, 0);
 A.tick(0.1);
 assert.equal(of('madness').length, 1);
-assert.ok(of('mon+').some((e) => e.kind === 'giant'), 'giant ghost appears');
+assert.ok(!of('mon+').some((e) => e.kind === 'giant'), 'no giant ghost any more');
 let guard = 0;
 while (A.phase !== 'over' && guard++ < 10000) A.tick(0.05);
 const over = of('over')[0];
@@ -135,16 +135,55 @@ function fresh(seed = 7) {
   assert.equal(X.players.get('a').score, 30, 'zombies take no candy');
   console.log('✔ zombie slows for 5 s');
 }
-{ // giant ghost hunts the leader
-  const { X } = fresh();
-  X.players.get('a').score = 10; X.players.get('b').score = 80;
-  X.setPose('a', 20, 0); X.setPose('b', -20, 0);
-  X.clock = C.COUNTDOWN + C.ROUND_SECONDS - C.MADNESS_AT - 0.05;
-  for (let i = 0; i < 40; i++) X.tick(0.1);
-  const giant = X.monsters.find((m) => m.kind === 'giant');
-  assert.ok(giant && giant.target === 'b', `giant targets the leader (got ${giant?.target})`);
-  assert.ok(giant.x < 0, 'and heads their way');
-  console.log('✔ giant ghost hunts the leader');
+{ // levels: easy has fewer, slower monsters than hard
+  const count = (level) => { const X = new Authority({ emit: () => {}, snapshot: () => {}, seed: 3 }); X.start([{ id: 'a', name: 'A', costume: 'none' }], level); return X.monsters.length; };
+  assert.equal(count('easy'), 3); assert.equal(count('medium'), 4); assert.equal(count('hard'), 5);
+  assert.ok(C.DIFFICULTY.easy.ghost.chase < C.DIFFICULTY.medium.ghost.chase && C.DIFFICULTY.medium.ghost.chase < C.DIFFICULTY.hard.ghost.chase);
+  assert.ok(C.DIFFICULTY.easy.invulnerable > C.DIFFICULTY.hard.invulnerable);
+  console.log('✔ levels: easy 3 monsters, medium 4, hard 5');
+}
+{ // giant gem: monsters can't hurt you, they flee, and touching one scares it off with its candy
+  const { X, of } = fresh();
+  X.players.get('a').score = 30;
+  X.setPose('a', 0, 12); X.setPose('b', 0, -12);
+  X.players.get('a').fx.giant = X.rt + 8;
+  const g = X.addMonster('ghost', [[0, 17], [5, 17]], 0, 17); Object.assign(g, { cool: 0 });
+  X.tick(0.1);
+  assert.equal(g.state, 'flee', 'monsters flee from a giant');
+  for (let i = 0; i < 20 && g.state !== 'banished'; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); }
+  const sc = of('scare')[0];
+  assert.ok(sc && sc.id === 'a' && sc.power === 'giant' && sc.pts === C.SCARE_LOOT.ghost, 'stomped: the ghost drops candy');
+  assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'a giant takes no hits');
+  for (let i = 0; i < (C.BANISHED + 0.5) * 10; i++) X.tick(0.1);
+  assert.notEqual(g.state, 'banished', 'the ghost comes back after a while');
+  console.log(`✔ giant gem: ghosts flee, a stomp scares one off (+${sc.pts}), it returns ${C.BANISHED} s later`);
+}
+{ // thief gem: catch the ghost that robbed you, win its candy back (and more)
+  const { X, of } = fresh();
+  X.players.get('a').score = 30;
+  X.setPose('a', 0, 12); X.setPose('b', 0, -12);
+  const g = X.addMonster('ghost', [[0, 14], [5, 14]], 0.5, 12); Object.assign(g, { state: 'chase', target: 'a' });
+  for (let i = 0; i < 6; i++) X.tick(0.1);
+  assert.equal(g.loot, 10, 'the ghost keeps the 10 it took');
+  assert.equal(X.players.get('a').score, 20);
+  X.players.get('a').fx.thief = X.rt + 10;
+  for (let i = 0; i < 40 && g.state !== 'banished'; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); }
+  const sc = of('scare')[0];
+  assert.ok(sc && sc.power === 'thief' && sc.pts === 10 + C.SCARE_LOOT.ghost, 'stolen back: its loot plus a bonus');
+  assert.equal(X.players.get('a').score, 40);
+  console.log(`✔ thief gem: caught the ghost, stole back ${sc.pts} (score 30 → 20 → 40)`);
+}
+{ // gems appear during the round and are picked up through the authority
+  const { X, of } = fresh();
+  while (!X.gems.size && X.rt < 40) X.tick(0.1);
+  const gem = [...X.gems.values()][0];
+  assert.ok(gem, 'a gem appears');
+  X.setPose('a', gem.x, gem.z);
+  X.intent('a', { kind: 'gem', id: gem.id });
+  X.intent('b', { kind: 'gem', id: gem.id });
+  assert.equal(of('gem-').length, 1, 'one taker');
+  assert.ok(X.players.get('a').fx[gem.kind] > X.rt, `${gem.kind} power on`);
+  console.log(`✔ gem ${gem.kind} appeared at ${X.rt.toFixed(1)} s and went to one player`);
 }
 { // double candy doubles candy
   const { X, of } = fresh();

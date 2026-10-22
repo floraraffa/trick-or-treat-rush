@@ -1,6 +1,7 @@
 // What each player's power-ups and troubles look like, for everyone in the session: a shimmering
 // bubble (shield), a turning ring at the feet (magnet), golden streaks (speed), violet sparkles
-// (double candy) and green goo (slowed by a zombie or a web).
+// (double candy), green goo (slowed by a zombie or a web), spectral wisps (ghost thief) and red dust
+// round a giant's feet.
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, trs } from '../geo.js';
 import { circleOutline, tube } from '../world/shapes.js';
@@ -56,6 +57,8 @@ export function createAuras(app, fx) {
       if (!fx) return;
       if (fxLeft('speed') > 0 && Math.random() < dt * 30) fx.emit({ x: x + (Math.random() - 0.5) * 0.4, y: 0.3 + Math.random() * 0.9, z: z + (Math.random() - 0.5) * 0.4 }, { x: 0, y: 0.2, z: 0 }, { n: 1, spread: 0.2, size: 0.18, grow: -0.5, life: 0.45, color: [1, 0.85, 0.3], gravity: 0, alpha: 0.9 });
       if (fxLeft('double') > 0 && Math.random() < dt * 14) { const ang = a.t * 4 + Math.random(); fx.emit({ x: x + Math.cos(ang) * 0.6, y: 1.2 + Math.sin(a.t * 3) * 0.4, z: z + Math.sin(ang) * 0.6 }, { x: 0, y: 0.6, z: 0 }, { n: 1, spread: 0.3, size: 0.14, grow: 0.2, life: 0.7, color: [0.85, 0.45, 1], gravity: 0, alpha: 1, twinkle: true }); }
+      if (fxLeft('thief') > 0 && Math.random() < dt * 22) { const ang = -a.t * 5 + Math.random() * 0.5; fx.emit({ x: x + Math.cos(ang) * 0.75, y: 0.4 + Math.random() * 1.4, z: z + Math.sin(ang) * 0.75 }, { x: 0, y: 0.5, z: 0 }, { n: 1, spread: 0.2, size: 0.2, grow: 0.8, life: 0.8, color: [0.35, 1, 0.85], gravity: 0.2, alpha: 0.9, twinkle: true }); }
+      if (fxLeft('giant') > 0 && Math.random() < dt * 10) fx.emit({ x: x + (Math.random() - 0.5) * 2, y: 0.15, z: z + (Math.random() - 0.5) * 2 }, { x: 0, y: 0.4, z: 0 }, { n: 1, spread: 1.2, size: 0.5, grow: 1.5, life: 0.8, color: [1, 0.45, 0.3], gravity: 0, alpha: 0.6 });
       if (fxLeft('slow') > 0 && Math.random() < dt * 12) fx.emit({ x: x + (Math.random() - 0.5) * 0.6, y: 0.15, z: z + (Math.random() - 0.5) * 0.6 }, { x: 0, y: 0.1, z: 0 }, { n: 1, spread: 0.1, size: 0.22, grow: 0.6, life: 0.9, color: [0.45, 1, 0.3], gravity: -0.3, alpha: 0.7 });
     },
     remove(id) { const a = per.get(id); if (a) { a.root.destroy(); per.delete(id); } },

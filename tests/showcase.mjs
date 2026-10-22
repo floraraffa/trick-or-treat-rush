@@ -21,6 +21,6 @@ await G(() => window.__game.input.press('camera'));
 await shot('4-first-person', new Function(`${face(6)} window.__game.player.place(h.door.x * 0.55, h.door.z * 0.55, yaw); window.__game.camCtl.snapBehind(yaw);`), 3000);
 await G(() => window.__game.input.press('camera'));
 await G(() => window.__game.skip(Math.max(0, 121 - window.__game.view.rt())));
-await page.waitForFunction(() => [...window.__game.view.monsters.values()].some((m) => m.kind === 'giant' && m.state === 'chase'), null, { timeout: 90000 });
-await shot('5-madness', () => { const g = [...window.__game.view.monsters.values()].find((m) => m.kind === 'giant'); const x = g.x + 5, z = g.z + 14, yaw = Math.atan2(g.x - x, g.z - z) * 57.2958; window.__game.player.place(x, z, yaw); window.__game.camCtl.snapBehind(yaw); }, 900);
+await page.waitForFunction(() => window.__game.view.madness, null, { timeout: 90000 });
+await shot('5-madness', () => { const g = [...window.__game.view.monsters.values()].find((m) => m.kind === 'ghost'); const x = g.x + 5, z = g.z + 14, yaw = Math.atan2(g.x - x, g.z - z) * 57.2958; window.__game.player.place(x, z, yaw); window.__game.camCtl.snapBehind(yaw); }, 900);
 await browser.close();
