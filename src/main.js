@@ -92,12 +92,11 @@ if (!lowFx) {
 if (!frame) camera.camera.toneMapping = TONEMAP_NEUTRAL;
 
 const tex = createTextures(app.graphicsDevice);
-const village = createVillage(app, tex, { lowFx, ...(params.has('nomist') ? { mist: 0 } : {}) });
+const village = createVillage(app, tex, { lowFx });
 app.root.addChild(village.root);
 const fx = createFx(app, tex.glow, { max: 260 });
 const sparks = createFx(app, tex.glow, { max: 320, additive: true });
-const mist = createFx(app, tex.glow, { max: lowFx ? 24 : 48 });
-for (const f of [mist, fx, sparks]) app.root.addChild(f.entity);
+for (const f of [fx, sparks]) app.root.addChild(f.entity);
 const monsters = createMonsters(app, sparks);
 app.root.addChild(monsters.root);
 const candy = createCandy(app, tex, sparks);
@@ -238,7 +237,11 @@ function onEvent(ev) {
     case 'candy-':
       if (mine) { ui.popup(t('plusCandy', { n: ev.pts })); sfx.candy(ev.pts); buzz(15); }
       break;
-    case 'orb-': if (mine) { ui.popup(t('gotPower', { p: t(`powerName.${ev.kind}`) }), 'power'); sfx.orb(); } break;
+    case 'orb-':
+      if (!mine) break;
+      if (ev.used) { ui.banner(t(`power.${ev.kind}`), '', 1000, 'good'); sfx.power(); buzz(25); } // slot full: it works at once
+      else { ui.popup(t('gotPower', { p: t(`powerName.${ev.kind}`) }), 'power'); sfx.orb(); }
+      break;
     case 'power':
       if (mine) { ui.banner(t(`power.${ev.kind}`), '', 1000, 'good'); sfx.power(); buzz(25); }
       break;
@@ -388,7 +391,6 @@ app.on('update', () => {
   village.update(dt, camera);
   fx.update(dt, camera);
   sparks.update(dt, camera);
-  mist.update(dt, camera);
 });
 
 /** Menus: the player's Bitmoji in costume by the clock tower, the camera drifting round. */
@@ -471,7 +473,7 @@ function playFrame(dt, now) {
   }
   auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody);
   monsters.update(dt, view, now, camera.getPosition());
-  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant, canHold: !meP?.held }, (kind, id) => session.intent({ kind, id }), now);
+  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant }, (kind, id) => session.intent({ kind, id }), now);
   ambient(dt);
 
   // HUD.
@@ -510,14 +512,9 @@ function playFrame(dt, now) {
   ui.tags(tags);
 }
 
-/** Soft ground mist drifting round the camera, and a few will-o'-the-wisps. */
+/** A few will-o'-the-wisps drifting round the camera (the mist itself is the height fog). */
 function ambient(dt) {
   const c = camera.getPosition();
-  const mad = madK;
-  if (Math.random() < dt * (lowFx ? 3 : 6) * (1 + mad)) {
-    const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 16;
-    mist.emit({ x: c.x + Math.cos(a) * r, y: 0.3 + Math.random() * 0.6, z: c.z + Math.sin(a) * r }, { x: 0.25, y: 0.02, z: 0.1 }, { n: 1, spread: 0.2, size: 5 + Math.random() * 3, grow: 0.4, life: 7, color: mad > 0.5 ? [0.55, 0.45, 0.6] : [0.62, 0.6, 0.78], gravity: 0, alpha: 0.12 + mad * 0.06, drag: 0 });
-  }
   if (Math.random() < dt * 2) {
     const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 12;
     const col = [[0.5, 0.9, 1], [0.8, 0.6, 1], [0.6, 1, 0.7]][Math.floor(Math.random() * 3)];

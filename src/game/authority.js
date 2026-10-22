@@ -166,11 +166,13 @@ export class Authority {
       this.emit({ e: 'candy-', id: c.id, by: p.id, type: c.type, pts, score: p.score });
       this.queueCandy();
     } else if (msg.kind === 'orb') {
+      // Always yours to take: into the empty slot for the POWER-UP button, or straight on if the slot is full.
       const o = this.orbs.get(msg.id);
-      if (!o || p.held || dist(p.x, p.z, o.x, o.z) > C.ORB_R + C.PICKUP_SLACK) return;
+      if (!o || dist(p.x, p.z, o.x, o.z) > C.ORB_R * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK) return;
       this.orbs.delete(o.id);
-      p.held = o.kind;
-      this.emit({ e: 'orb-', id: o.id, by: p.id, kind: o.kind });
+      const used = !!p.held;
+      if (used) p.fx[o.kind] = rt + C.POWERUPS[o.kind].dur; else p.held = o.kind;
+      this.emit({ e: 'orb-', id: o.id, by: p.id, kind: o.kind, used, until: used ? p.fx[o.kind] : undefined });
       this.orbQueue.push(rt + C.ORB_RESPAWN);
       this.orbQueue.sort((a, b) => a - b);
     } else if (msg.kind === 'gem') {

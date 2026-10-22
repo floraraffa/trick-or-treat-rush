@@ -102,7 +102,7 @@ export class View {
       case 'candy+': this.candies.set(ev.id, { id: ev.id, type: ev.type, x: ev.x, z: ev.z, born: now }); break;
       case 'candy-': this.candies.delete(ev.id); if (p) p.score = ev.score; break;
       case 'orb+': this.orbs.set(ev.id, { id: ev.id, kind: ev.kind, x: ev.x, z: ev.z, born: now }); break;
-      case 'orb-': this.orbs.delete(ev.id); if (p) p.held = ev.kind; break;
+      case 'orb-': this.orbs.delete(ev.id); if (p) { if (ev.used) p.fx[ev.kind] = now + (ev.until - this.rt()); else p.held = ev.kind; } break;
       case 'power': if (p) { p.held = null; p.fx[ev.kind] = now + (ev.until - this.rt()); } break;
       case 'gem+': this.gems.set(ev.id, { id: ev.id, kind: ev.kind, x: ev.x, z: ev.z, born: now }); break;
       case 'gem-': this.gems.delete(ev.id); if (p) p.fx[ev.kind] = now + (ev.until - this.rt()); break;

@@ -156,7 +156,7 @@ export function createCandy(app, tex, fx) {
     root,
     /**
      * Mirrors view.candies/orbs; pulls magnet candy; asks for what the local player can reach.
-     * `me`: { x, z, magnet, canHold }; `ask(kind, id)` sends the request.
+     * `me`: { x, z, magnet, giant }; `ask(kind, id)` sends the request.
      */
     update(dt, view, me, ask, now) {
       for (const [id, c] of view.candies) {
@@ -205,7 +205,7 @@ export function createCandy(app, tex, fx) {
         s.spin.setLocalPosition(0, 1.1 + Math.sin(s.t * 2) * 0.15, 0);
         s.spin.setLocalEulerAngles(0, s.t * 70, 0);
         s.spin.setLocalScale(s.born, s.born, s.born);
-        if (me && me.canHold && view.phase === 'playing' && Math.hypot(me.x - o.x, me.z - o.z) < ORB_R && (!asked.has(`o${id}`) || now - asked.get(`o${id}`) > 1.5)) { asked.set(`o${id}`, now); ask('orb', id); }
+        if (me && view.phase === 'playing' && Math.hypot(me.x - o.x, me.z - o.z) < ORB_R * (me.giant ? GEMS.giant.reach : 1) && (!asked.has(`o${id}`) || now - asked.get(`o${id}`) > 1.5)) { asked.set(`o${id}`, now); ask('orb', id); }
       }
       for (const [id, g] of view.gems) {
         if (!gemsShown.has(id)) {

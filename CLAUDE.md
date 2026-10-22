@@ -24,7 +24,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   candy, scores, power-ups, gems, monster AI incl. flee/scare/loot, madness, ranking); emits numbered events + 10 Hz snapshots.
   `src/game/view.js` each device's mirror (`playerOf(ev)`: `by` for house/candy/orb events, `id` otherwise).
   `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, SPRINT). `src/net/session.js` room, host election, routing; `transport.js`.
-- Fog: light FOG_EXP2 plus three camera-following mist sheets (world-anchored drifting noise) and lamp halos (`village.js`).
+- Fog: `src/world/heightfog.js` replaces PlayCanvas's `fogPS` chunk globally (height + drifting-noise density, paler
+  mist colour low down; tf_* uniforms set each frame by `village.update`), plus lamp halos. No mist sheets or sprites.
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.

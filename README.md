@@ -58,7 +58,7 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
 | Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2,5 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan |
 | Gemas | aparecen cada 20–30 s con un haz de luz; **gema gigante** (roja, 8 s): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven 5 s después); **gema ladrona** (verde, 10 s): los fantasmas huyen y al atraparlos les robás lo que te quitaron + 10 |
-| Power-ups | velocidad ×2 (8 s), escudo mágico (para un ataque), imán de caramelos (8 s), caramelos dobles (10 s); un orbe por vez en la ranura, botón POWER-UP; indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
+| Power-ups | velocidad ×2 (8 s), escudo mágico (para un ataque), imán de caramelos (8 s), caramelos dobles (10 s); un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
 | Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,35), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
 | Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr), **SPRINT** (mantener: ~3 s más rápido que cualquier monstruo, se recarga en 4,5 s), mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD + Shift, Q (sprint), E, Espacio, C |
@@ -76,8 +76,9 @@ un monstruo se acerca (30 rondas por nivel, simulación de la autoridad en Node)
 
 ## Arte
 
-La noche tiene volumen: niebla de distancia liviana más tres capas de bruma rasante que derivan con el viento
-(los pies, las tumbas y las calabazas se hunden en ella) y halos cálidos en cada farol. Todo el pueblo se genera
+La noche tiene volumen: **niebla por altura** en el shader de cada material (`src/world/heightfog.js`), espesa y
+pálida a ras del suelo, más fina al subir, en bancos que derivan con el viento: la base de las casas y las tumbas se
+pierde en la bruma y los techos asoman. Los faroles brillan en ella con un halo suave. Todo el pueblo se genera
 por código en el arranque (sin modelos que descargar): casas altas y torcidas que se
 inclinan al subir, techos en aguja con punta enroscada, chimeneas curvas, ventanas irregulares encendidas, puertas
 enormes, escalones asimétricos, cercas torcidas, árboles con ramas como manos y raíces grandes, cementerio victoriano

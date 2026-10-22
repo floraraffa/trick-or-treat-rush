@@ -41,7 +41,7 @@ export const POWERUPS = {
 export const POWERUP_KINDS = Object.keys(POWERUPS);
 export const ORBS_ON_MAP = 3;
 export const ORB_RESPAWN = 12;
-export const ORB_R = 1.2;
+export const ORB_R = 1.5;
 
 // Gems: rare crystals that give a power the moment you grab one.
 //   giant: you grow huge, monsters can't hurt you, and any you touch is scared off and drops candy.

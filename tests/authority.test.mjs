@@ -185,6 +185,17 @@ function fresh(seed = 7) {
   assert.ok(X.players.get('a').fx[gem.kind] > X.rt, `${gem.kind} power on`);
   console.log(`✔ gem ${gem.kind} appeared at ${X.rt.toFixed(1)} s and went to one player`);
 }
+{ // orbs can always be taken: into an empty slot, or straight on when the slot is full
+  const { X, of } = fresh();
+  const [o1, o2] = [...X.orbs.values()];
+  X.setPose('a', o1.x, o1.z); X.intent('a', { kind: 'orb', id: o1.id });
+  assert.equal(X.players.get('a').held, o1.kind, 'first orb goes into the slot');
+  X.setPose('a', o2.x, o2.z); X.intent('a', { kind: 'orb', id: o2.id });
+  const ev = of('orb-')[1];
+  assert.ok(ev && ev.used && X.players.get('a').fx[o2.kind] > X.rt, 'second orb works at once');
+  assert.equal(X.players.get('a').held, o1.kind, 'the stored one stays for the button');
+  console.log(`✔ orbs: ${o1.kind} stored, ${o2.kind} used at once (slot was full)`);
+}
 { // double candy doubles candy
   const { X, of } = fresh();
   X.monsters = [];
