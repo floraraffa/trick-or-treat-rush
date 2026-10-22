@@ -1,0 +1,108 @@
+// Every player-facing string, in English (the game's own words), Spanish and French.
+export const LANGS = { en: 'English', es: 'Español', fr: 'Français' };
+
+const STRINGS = {
+  en: {
+    title: 'TRICK OR TREAT RUSH', subtitle: 'MULTIPLAYER HALLOWEEN ADVENTURE',
+    play: 'PLAY', how: 'HOW TO PLAY', back: 'BACK', close: 'GOT IT', start: 'START', menu: 'MENU', playAgain: 'PLAY AGAIN', friends: 'FRIENDS',
+    loading: 'Summoning the village…', costume: 'COSTUME', name: 'NAME',
+    costumes: { witch: 'Witch hat', pumpkin: 'Pumpkin', horns: 'Horns', cape: 'Cape', none: 'No costume' },
+    myCandy: 'MY CANDY', leader: 'LEADER', best: 'BEST', you: 'YOU',
+    trickOrTreat: 'TRICK OR TREAT!', powerup: 'POWER-UP', camera: 'CAMERA', third: '3RD', first: '1ST',
+    plusCandy: '+{n} CANDY!', jackpot: 'JACKPOT!', treat: 'TREAT!', trick: 'TRICK!', ghostAttack: 'GHOST ATTACK!', zombieGrab: 'ZOMBIE GRAB!', webbed: 'STUCK IN A WEB!', giantAttack: 'GIANT GHOST!',
+    blocked: 'SHIELD SAVED YOU!', ghostOut: 'A GHOST BURSTS OUT!', madness: 'MONSTER MADNESS!', madnessSub: 'Midnight strikes: the giant ghost hunts the leader',
+    go: 'GO!', timesUp: "TIME'S UP!", king: 'HALLOWEEN CANDY KING!', tie: 'A TIE! SHARED CROWN', youWin: 'YOU WIN!', newBest: 'NEW PERSONAL BEST!',
+    cooling: 'Come back in {n} s', points: 'pts', lostCandy: '-{n} CANDY',
+    power: { speed: 'SPEED BOOST!', shield: 'MAGIC SHIELD!', magnet: 'CANDY MAGNET!', double: 'DOUBLE CANDY!' },
+    powerName: { speed: 'Speed', shield: 'Shield', magnet: 'Magnet', double: 'Double' },
+    gotPower: 'Got {p}! Tap POWER-UP',
+    lobby: 'LOBBY', room: 'Room', waitPlayers: 'Waiting for players: 2 to 4', waitHost: 'Waiting for the host to start', roundOn: 'A round is on: you join the next one', full: 'This room is full (4 players)',
+    host: 'HOST', hostLeft: 'The host left: back to the lobby',
+    solo: 'Inside Snapchat each night is played on your own phone: beat your friends on the Snapchat leaderboard.',
+    soloShort: 'Solo night', paused: 'PAUSED', tapResume: 'tap to carry on',
+    howBody: [
+      ['🏚️', 'Walk up to a door and tap <b>TRICK OR TREAT!</b> 70% treat (candy), 20% trick (a ghost or a web), 10% jackpot (golden pumpkin + power-up). Each house then rests for 15 s, for everyone.'],
+      ['🍬', 'Grab the glowing candy: caramel <b>1</b>, lollipop <b>5</b>, chocolate <b>10</b>, golden pumpkin <b>25</b>, rainbow candy <b>50</b>.'],
+      ['👻', 'Ghosts take <b>10</b> candy, zombies slow you for 5 s. After a hit you are safe for a moment.'],
+      ['✨', 'Power-up orbs: speed ×2 (8 s), magic shield (one hit), candy magnet (8 s), double candy (10 s). Tap POWER-UP to use.'],
+      ['🌕', 'Last minute: <b>MONSTER MADNESS!</b> Thicker fog, faster monsters, special candy, and a giant ghost that hunts the leader.'],
+      ['🎮', 'Left thumb: walk (push further to run). Right side: look around. CAMERA switches third / first person.'],
+      ['👑', 'Most candy after 3 minutes is the HALLOWEEN CANDY KING!'],
+    ],
+    tips: ['Doors glow gold when they are ready', 'Running beats ghosts; walking beats nothing', 'The clock tower counts down to midnight', 'A shield blocks one hit: save it for the madness'],
+  },
+  es: {
+    title: 'TRICK OR TREAT RUSH', subtitle: 'AVENTURA MULTIJUGADOR DE HALLOWEEN',
+    play: 'JUGAR', how: 'CÓMO JUGAR', back: 'VOLVER', close: 'ENTENDIDO', start: 'EMPEZAR', menu: 'MENÚ', playAgain: 'JUGAR DE NUEVO', friends: 'AMIGOS',
+    loading: 'Invocando el pueblo…', costume: 'DISFRAZ', name: 'NOMBRE',
+    costumes: { witch: 'Sombrero de bruja', pumpkin: 'Calabaza', horns: 'Cuernos', cape: 'Capa', none: 'Sin disfraz' },
+    myCandy: 'MIS DULCES', leader: 'LÍDER', best: 'RÉCORD', you: 'VOS',
+    trickOrTreat: '¡DULCE O TRUCO!', powerup: 'PODER', camera: 'CÁMARA', third: '3ª', first: '1ª',
+    plusCandy: '¡+{n} DULCES!', jackpot: '¡PREMIO MAYOR!', treat: '¡DULCES!', trick: '¡TRUCO!', ghostAttack: '¡ATAQUE FANTASMA!', zombieGrab: '¡TE AGARRÓ UN ZOMBI!', webbed: '¡ATRAPADO EN UNA TELARAÑA!', giantAttack: '¡FANTASMA GIGANTE!',
+    blocked: '¡EL ESCUDO TE SALVÓ!', ghostOut: '¡SALE UN FANTASMA!', madness: '¡LOCURA MONSTRUOSA!', madnessSub: 'Suena la medianoche: el fantasma gigante caza al líder',
+    go: '¡YA!', timesUp: '¡SE ACABÓ EL TIEMPO!', king: '¡REY DE LOS DULCES DE HALLOWEEN!', tie: '¡EMPATE! CORONA COMPARTIDA', youWin: '¡GANASTE!', newBest: '¡NUEVO RÉCORD PERSONAL!',
+    cooling: 'Volvé en {n} s', points: 'pts', lostCandy: '-{n} DULCES',
+    power: { speed: '¡TURBO!', shield: '¡ESCUDO MÁGICO!', magnet: '¡IMÁN DE DULCES!', double: '¡DULCES DOBLES!' },
+    powerName: { speed: 'Turbo', shield: 'Escudo', magnet: 'Imán', double: 'Doble' },
+    gotPower: '¡{p}! Tocá PODER',
+    lobby: 'SALA', room: 'Sala', waitPlayers: 'Esperando jugadores: de 2 a 4', waitHost: 'Esperando que el anfitrión empiece', roundOn: 'Hay una ronda en curso: entrás en la próxima', full: 'La sala está llena (4 jugadores)',
+    host: 'ANFITRIÓN', hostLeft: 'El anfitrión se fue: volvemos a la sala',
+    solo: 'Dentro de Snapchat cada noche se juega en tu propio teléfono: ganale a tus amigos en el ranking de Snapchat.',
+    soloShort: 'Noche en solitario', paused: 'PAUSA', tapResume: 'tocá para seguir',
+    howBody: [
+      ['🏚️', 'Acercate a una puerta y tocá <b>¡DULCE O TRUCO!</b> 70% dulces, 20% truco (un fantasma o una telaraña), 10% premio mayor (calabaza dorada + poder). Después la casa descansa 15 s para todos.'],
+      ['🍬', 'Agarrá los dulces brillantes: caramelo <b>1</b>, piruleta <b>5</b>, chocolate <b>10</b>, calabaza dorada <b>25</b>, caramelo arcoíris <b>50</b>.'],
+      ['👻', 'Los fantasmas te quitan <b>10</b> dulces, los zombis te frenan 5 s. Después de un golpe quedás protegido un momento.'],
+      ['✨', 'Orbes de poder: velocidad ×2 (8 s), escudo mágico (un golpe), imán de dulces (8 s), dulces dobles (10 s). Tocá PODER para usarlo.'],
+      ['🌕', 'Último minuto: <b>¡LOCURA MONSTRUOSA!</b> Más niebla, monstruos más rápidos, dulces especiales y un fantasma gigante que caza al líder.'],
+      ['🎮', 'Pulgar izquierdo: caminar (empujá más para correr). Lado derecho: mirar. CÁMARA cambia entre tercera y primera persona.'],
+      ['👑', '¡Quien junte más dulces en 3 minutos es el REY DE LOS DULCES!'],
+    ],
+    tips: ['Las puertas brillan doradas cuando están listas', 'Corriendo dejás atrás a los fantasmas', 'La torre del reloj cuenta hasta la medianoche', 'El escudo para un golpe: guardalo para la locura'],
+  },
+  fr: {
+    title: 'TRICK OR TREAT RUSH', subtitle: "AVENTURE D'HALLOWEEN MULTIJOUEUR",
+    play: 'JOUER', how: 'COMMENT JOUER', back: 'RETOUR', close: 'COMPRIS', start: 'COMMENCER', menu: 'MENU', playAgain: 'REJOUER', friends: 'AMIS',
+    loading: 'Le village se réveille…', costume: 'COSTUME', name: 'NOM',
+    costumes: { witch: 'Chapeau de sorcière', pumpkin: 'Citrouille', horns: 'Cornes', cape: 'Cape', none: 'Sans costume' },
+    myCandy: 'MES BONBONS', leader: 'EN TÊTE', best: 'RECORD', you: 'TOI',
+    trickOrTreat: 'UN BONBON OU UN SORT !', powerup: 'POUVOIR', camera: 'CAMÉRA', third: '3e', first: '1re',
+    plusCandy: '+{n} BONBONS !', jackpot: 'JACKPOT !', treat: 'BONBONS !', trick: 'UN SORT !', ghostAttack: 'ATTAQUE DE FANTÔME !', zombieGrab: 'UN ZOMBIE T’ATTRAPE !', webbed: 'PRIS DANS UNE TOILE !', giantAttack: 'FANTÔME GÉANT !',
+    blocked: 'LE BOUCLIER T’A SAUVÉ !', ghostOut: 'UN FANTÔME S’ÉCHAPPE !', madness: 'FOLIE DES MONSTRES !', madnessSub: 'Minuit sonne : le fantôme géant chasse le meneur',
+    go: 'PARTEZ !', timesUp: 'TEMPS ÉCOULÉ !', king: 'ROI DES BONBONS D’HALLOWEEN !', tie: 'ÉGALITÉ ! COURONNE PARTAGÉE', youWin: 'GAGNÉ !', newBest: 'NOUVEAU RECORD !',
+    cooling: 'Reviens dans {n} s', points: 'pts', lostCandy: '-{n} BONBONS',
+    power: { speed: 'TURBO !', shield: 'BOUCLIER MAGIQUE !', magnet: 'AIMANT À BONBONS !', double: 'BONBONS DOUBLES !' },
+    powerName: { speed: 'Turbo', shield: 'Bouclier', magnet: 'Aimant', double: 'Double' },
+    gotPower: '{p} ! Touche POUVOIR',
+    lobby: 'SALON', room: 'Salon', waitPlayers: 'En attente de joueurs : 2 à 4', waitHost: "En attente de l'hôte", roundOn: 'Une partie est en cours : tu joueras la suivante', full: 'Ce salon est complet (4 joueurs)',
+    host: 'HÔTE', hostLeft: "L'hôte est parti : retour au salon",
+    solo: 'Dans Snapchat, chaque nuit se joue sur ton téléphone : bats tes amis au classement Snapchat.',
+    soloShort: 'Nuit en solo', paused: 'PAUSE', tapResume: 'touche pour reprendre',
+    howBody: [
+      ['🏚️', 'Va jusqu’à une porte et touche <b>UN BONBON OU UN SORT !</b> 70 % bonbons, 20 % sort (un fantôme ou une toile), 10 % jackpot (citrouille dorée + pouvoir). La maison se repose ensuite 15 s pour tous.'],
+      ['🍬', 'Ramasse les bonbons lumineux : caramel <b>1</b>, sucette <b>5</b>, chocolat <b>10</b>, citrouille dorée <b>25</b>, bonbon arc-en-ciel <b>50</b>.'],
+      ['👻', 'Les fantômes volent <b>10</b> bonbons, les zombies te ralentissent 5 s. Après un coup tu es protégé un instant.'],
+      ['✨', 'Orbes de pouvoir : vitesse ×2 (8 s), bouclier magique (un coup), aimant à bonbons (8 s), bonbons doubles (10 s). Touche POUVOIR pour l’utiliser.'],
+      ['🌕', 'Dernière minute : <b>FOLIE DES MONSTRES !</b> Plus de brume, des monstres plus rapides, des bonbons spéciaux et un fantôme géant qui chasse le meneur.'],
+      ['🎮', 'Pouce gauche : marcher (pousse plus loin pour courir). Côté droit : regarder. CAMÉRA passe en 3e ou 1re personne.'],
+      ['👑', 'Le plus de bonbons après 3 minutes : ROI DES BONBONS D’HALLOWEEN !'],
+    ],
+    tips: ['Les portes brillent en or quand elles sont prêtes', 'En courant, on sème les fantômes', 'L’horloge compte jusqu’à minuit', 'Le bouclier bloque un coup : garde-le pour la folie'],
+  },
+};
+
+let lang = 'en';
+export function detectLang(saved) {
+  if (saved && STRINGS[saved]) return saved;
+  const l = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  return STRINGS[l] ? l : 'en';
+}
+export function setLang(l) { lang = STRINGS[l] ? l : 'en'; document.documentElement.lang = lang; }
+export const getLang = () => lang;
+
+/** A string by key (dots for nested keys), with {placeholders} filled in. */
+export function t(key, vars = {}) {
+  let v = key.split('.').reduce((o, k) => o?.[k], STRINGS[lang]) ?? key.split('.').reduce((o, k) => o?.[k], STRINGS.en) ?? key;
+  if (typeof v === 'string') for (const [k, x] of Object.entries(vars)) v = v.replace(`{${k}}`, x);
+  return v;
+}

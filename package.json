@@ -1,0 +1,29 @@
+{
+  "name": "trick-or-treat-rush",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "pack": "npm run build && node tools/pack.mjs",
+    "clips": "node tools/make-clips.mjs",
+    "test": "node tests/run.mjs",
+    "test:e2e": "node tests/run.mjs --e2e",
+    "viewer": "vite --open /dev/viewer.html"
+  },
+  "dependencies": {
+    "@snap/web-lens-api": "^0.1.2",
+    "playcanvas": "^2.23.2"
+  },
+  "devDependencies": {
+    "@fontsource/griffy": "^5.3.0",
+    "@fontsource/mystery-quest": "^5.3.0",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "archiver": "^7.0.1",
+    "meshoptimizer": "^0.22.0",
+    "vite": "^6.3.0"
+  }
+}
