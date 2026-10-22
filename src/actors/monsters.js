@@ -1,7 +1,8 @@
 // MonsterManager (the drawing side): each monster the authority announces gets a body here, drawn
 // where the snapshots put it (interpolated) and animated by its state. Not gory, a little uncanny:
 // a small translucent ghost whose eyes flare red when it gives chase (and that turns a frightened blue
-// when a giant or a ghost thief is after it), and a lanky stitched zombie that lurches with its arms out.
+// when a giant or a candy thief is after it), and a lanky stitched zombie that lurches with its arms out
+// (and flails them over its head when it runs away).
 // A monster that gets scared off spins away into nothing.
 import { BLEND_NORMAL, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, box, trs } from '../geo.js';

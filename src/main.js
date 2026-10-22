@@ -500,7 +500,7 @@ function playFrame(dt, now) {
     tags.push({ key, x: scr.x, y: scr.y, text, cls });
   };
   for (const [id, r] of remotes) { const p = view.players.get(id); const pos = r.avatar.root.getPosition(); if (p) label(id, pos.x, 2.25, pos.z, `${p.name} · ${p.score}`, leader?.id === id && !solo ? 'lead' : ''); }
-  for (const [id, m] of view.monsters) { // what a ghost has taken, for a ghost thief to win back
+  for (const [id, m] of view.monsters) { // what a ghost has taken, for a candy thief to win back
     if (m.loot > 0 && m.state !== 'banished' && !m.gone && Math.hypot(ps.x - m.x, ps.z - m.z) < 18) label(id, m.x, 2.3, m.z, t('loot', { n: m.loot }), 'house');
   }
   for (const h of HOUSES) {

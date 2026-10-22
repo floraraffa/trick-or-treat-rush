@@ -323,10 +323,10 @@ export class Authority {
     return best;
   }
 
-  /** Does this player frighten this monster? Giants frighten everything, a thief frightens ghosts. */
+  /** Does this player frighten this monster? A giant or a candy thief frightens every monster. */
   frightens(p, m) {
     const rt = this.rt;
-    return p.fx.giant > rt || (m.kind === 'ghost' && p.fx.thief > rt);
+    return p.fx.giant > rt || p.fx.thief > rt;
   }
 
   /** The nearest player in range that isn't protected and doesn't frighten it. */
@@ -385,7 +385,7 @@ export class Authority {
       }
       return;
     }
-    // A giant (or, for ghosts, a ghost thief) close by: run away, and get caught if too slow.
+    // A giant or a candy thief close by: run away, and get caught if too slow.
     const threat = this.nearestThreat(m, 9);
     if (threat) {
       if (m.state !== 'flee') { m.state = 'flee'; m.t = 0; m.target = threat.id; }
@@ -449,12 +449,12 @@ export class Authority {
     } else {
       const loss = Math.min(p.score, cfg.penalty);
       p.score -= loss;
-      m.loot += loss; // the ghost keeps what it took: a ghost thief can win it back
+      m.loot += loss; // the ghost keeps what it took: a candy thief can win it back
       this.emit({ e: 'hit', id: p.id, by: m.kind, mon: m.id, delta: -loss, score: p.score });
     }
   }
 
-  /** A giant or a ghost thief caught a monster: it flees the village for a while and drops its candy. */
+  /** A giant or a candy thief caught a monster: it flees the village for a while and drops its candy. */
   scare(m, p) {
     const rt = this.rt;
     const pts = (m.loot + C.SCARE_LOOT[m.kind]) * (p.fx.double > rt ? 2 : 1);

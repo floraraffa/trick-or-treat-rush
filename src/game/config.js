@@ -45,16 +45,16 @@ export const ORB_R = 1.5;
 
 // Gems: rare crystals that give a power the moment you grab one.
 //   giant: you grow huge, monsters can't hurt you, and any you touch is scared off and drops candy.
-//   thief: ghosts take fright and flee; catch one to steal back the candy it has taken (and more).
+//   thief: every monster takes fright and flees; catch one to steal its candy (what it took, and more).
 export const GEMS = {
   giant: { dur: 8, scale: 2.2, speed: 1.25, reach: 2 },
-  thief: { dur: 10 },
+  thief: { dur: 18 },
 };
 export const GEM_KINDS = Object.keys(GEMS);
 export const GEM_FIRST = 18; // the first gem appears this long after GO
 export const GEM_EVERY = [20, 30]; // and the next one this long after the last was taken
 export const GEM_R = 1.3;
-export const SCARE_LOOT = { ghost: 10, zombie: 5 }; // candy a scared-off monster drops, on top of what it stole
+export const SCARE_LOOT = { ghost: 10, zombie: 10 }; // candy a scared-off monster drops, on top of what it stole
 export const BANISHED = 5; // a scared-off monster stays away this long, then comes back on its route
 
 // Players.

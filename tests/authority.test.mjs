@@ -173,6 +173,19 @@ function fresh(seed = 7) {
   assert.equal(X.players.get('a').score, 40);
   console.log(`✔ thief gem: caught the ghost, stole back ${sc.pts} (score 30 → 20 → 40)`);
 }
+{ // the candy thief frightens zombies too, and lasts longer than the giant
+  const { X, of } = fresh();
+  X.setPose('a', 0, 12); X.setPose('b', 0, -12);
+  X.players.get('a').fx.thief = X.rt + C.GEMS.thief.dur;
+  const z = X.addMonster('zombie', [[0, 16], [4, 16]], 0, 16); Object.assign(z, { cool: 0 });
+  X.tick(0.1);
+  assert.equal(z.state, 'flee', 'zombies flee from a candy thief');
+  for (let i = 0; i < 60 && z.state !== 'banished'; i++) { X.setPose('a', z.x, z.z); X.tick(0.1); }
+  const sc = of('scare')[0];
+  assert.ok(sc && sc.kind === 'zombie' && sc.power === 'thief' && sc.pts === C.SCARE_LOOT.zombie, 'caught zombie drops candy');
+  assert.ok(C.GEMS.thief.dur > C.GEMS.giant.dur);
+  console.log(`✔ candy thief: zombies flee too, a caught one drops ${sc.pts}; lasts ${C.GEMS.thief.dur} s`);
+}
 { // gems appear during the round and are picked up through the authority
   const { X, of } = fresh();
   while (!X.gems.size && X.rt < 40) X.tick(0.1);

@@ -1,6 +1,6 @@
 // What each player's power-ups and troubles look like, for everyone in the session: a shimmering
 // bubble (shield), a turning ring at the feet (magnet), golden streaks (speed), violet sparkles
-// (double candy), green goo (slowed by a zombie or a web), spectral wisps (ghost thief) and red dust
+// (double candy), green goo (slowed by a zombie or a web), spectral wisps (candy thief) and red dust
 // round a giant's feet.
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, trs } from '../geo.js';
