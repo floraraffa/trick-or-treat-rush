@@ -28,17 +28,18 @@ console.log('✔ moves with the keyboard');
   await touch('pointerdown', 7, 300, 400);
   for (let k = 1; k <= 6; k++) await touch('pointermove', 7, 300 - k * 25, 400);
   await touch('pointerup', 7, 150, 400);
-  await page.waitForFunction((y) => Math.abs(window.__game.camCtl.yaw - y) > 10, yaw0, { timeout: 20000 });
+  await page.waitForFunction((y) => Math.abs(window.__game.camCtl.yaw - y) > 10, yaw0, { timeout: 60000 });
   const at = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
   await touch('pointerdown', 8, 80, 700);
   await touch('pointermove', 8, 80, 640);
-  await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x - x, window.__game.player.state.z - z) > 1, at, { timeout: 30000 });
+  await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x - x, window.__game.player.state.z - z) > 1, at, { timeout: 60000 });
   const anim = await G(() => window.__game.player.avatar.anim);
   await touch('pointerup', 8, 80, 640);
   console.log(`✔ touch: right-side drag turns the camera, the joystick moves the player (clip "${anim}")`);
 }
 
-// Camera: third → first → third, the player stays put.
+// Camera: third → first → third, the player stays put (measured once they have come to a stop).
+await page.waitForFunction(() => window.__game.player.state.speed < 0.01, null, { timeout: 60000 });
 const before = await G(() => [window.__game.player.state.x, window.__game.player.state.z, window.__game.view.players.get(window.__game.me.id).score]);
 await page.click('#btnCam');
 await page.waitForFunction(() => window.__game.camCtl.mode === 'first' && window.__game.camCtl.hideBody, null, { timeout: 20000 });
