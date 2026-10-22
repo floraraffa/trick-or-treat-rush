@@ -30,9 +30,12 @@ export class BroadcastTransport {
   close() { this.ch.close(); }
 }
 
-/** The transport for this launch: a room when the page was opened with ?room=NAME and the browser can do it. */
+/**
+ * The transport for this launch: a room when the page was opened with ?room=NAME (or #room-NAME, for
+ * hosts that pass only the link's #anchor through) and the browser can do it.
+ */
 export function createTransport(params) {
-  const room = params.get('room');
+  const room = params.get('room') || (location.hash.match(/^#room-([\w.~-]+)$/) ?? [])[1];
   if (room && typeof BroadcastChannel !== 'undefined') return new BroadcastTransport(room.slice(0, 24));
   return new LoopbackTransport();
 }

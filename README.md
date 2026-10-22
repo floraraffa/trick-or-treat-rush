@@ -15,6 +15,9 @@ npm test               # reglas de la autoridad (rápido, sin navegador)
 npm run test:e2e       # además: una noche completa y una sala de 3 jugadores en Chromium headless
 ```
 
+**Jugarlo sin Snapchat:** `npm run artifact -- <carpeta>` arma una versión para publicar como página de claude.ai
+(los `.glb` van como `.glb.json`, que esas páginas sí sirven). Ahí la sala se abre con `#room-NOMBRE` al final del link.
+
 Parámetros de desarrollo: `?room=NOMBRE` (sala multijugador, ver abajo), `?name=Ana`, `?costume=witch|pumpkin|horns|cape|none`,
 `?inset=120` (simula los controles de Snapchat arriba), `?lowfx` (sin post-procesado ni sombras, para celulares lentos),
 `?debug` (panel de diagnóstico y ganchos de prueba), `?autostart`, `?bitmoji=./otro.glb`, `?camdist=6`.

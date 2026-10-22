@@ -11,7 +11,8 @@
     "clips": "node tools/make-clips.mjs",
     "test": "node tests/run.mjs",
     "test:e2e": "node tests/run.mjs --e2e",
-    "viewer": "vite --open /dev/viewer.html"
+    "viewer": "vite --open /dev/viewer.html",
+    "artifact": "npm run build && node tools/artifact.mjs"
   },
   "dependencies": {
     "@snap/web-lens-api": "^0.1.2",

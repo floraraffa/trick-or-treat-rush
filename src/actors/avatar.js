@@ -4,7 +4,7 @@
 // the current user's avatar (its `participant` parameter is reserved and rejected). Until a GLB has
 // loaded, a jointed stand-in plays the same clips. Costumes ride on the head or spine joints.
 import { Entity, Mat4, Quat } from 'playcanvas';
-import { unpackedGlbUrl } from '../lib/meshopt-glb.js';
+import { unpackGlb } from '../lib/meshopt-glb.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { snapchat } from '../lib/snap.js';
 import { Geo, along, blob, box, cylinder, texturedMaterial, trs } from '../geo.js';
@@ -16,10 +16,20 @@ export const AVATAR_SCALE = 1.35;
 /** Eye height of the scaled default Bitmoji (for the first-person camera), measured on avatar_default.glb. */
 export const EYE_HEIGHT = 0.97 * AVATAR_SCALE;
 
+/** A GLB's bytes. Hosts that can't serve .glb files (a claude.ai artifact) get them as base64 in `<name>.glb.json`. */
+async function fetchGlb(url) {
+  const r = await fetch(url).catch(() => null);
+  if (r?.ok && !(r.headers.get('content-type') ?? '').includes('text/html')) return r.arrayBuffer();
+  const { base64 } = await (await fetch(`${url}.json`)).json();
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+}
+
 let shared = null;
 function sharedAssets() {
-  // Both files are meshopt-compressed for the Lens budget: unpack once into blob URLs, reuse for every avatar.
-  shared ??= Promise.all([unpackedGlbUrl('./assets/clips.glb'), unpackedGlbUrl('./assets/avatar_default.glb')])
+  // Both files are meshopt-compressed for the Lens budget: unpack once, in memory (no blob: URLs, which
+  // stricter hosts refuse), and hand each avatar its own copy of the bytes.
+  const get = async (url) => unpackGlb(await fetchGlb(url));
+  shared ??= Promise.all([get('./assets/clips.glb'), get('./assets/avatar_default.glb')])
     .then(([clips, fallback]) => ({ clips, fallback }));
   return shared;
 }
@@ -101,7 +111,7 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
   }
 
   const ready = sharedAssets()
-    .then(({ clips, fallback }) => loadBitmoji(app, { clips, fallback, snapchat, ...(own ? (bitmojiUrl !== undefined ? { url: bitmojiUrl } : {}) : { url: null }) }))
+    .then(({ clips, fallback }) => loadBitmoji(app, { clips: clips.slice(0), fallback: fallback.slice(0), snapchat, ...(own ? (bitmojiUrl !== undefined ? { url: bitmojiUrl } : {}) : { url: null }) }))
     .then((b) => {
       bitmoji = b;
       figure.addChild(b.entity);
