@@ -2,11 +2,11 @@
 
 Halloween entry for the **Lenslist Halloween Challenge**, built as a **Snap Web Lens** on the Cruise Rush base
 (PlayCanvas 2 + Vite + `@snap/web-lens-api`). Players' Bitmojis roam a gothic-storybook haunted village for 180 s,
-knock on doors (trick or treat), collect candy, dodge monsters (a ghost and four creatures drawn by the team; keep
+knock on doors (trick or treat), collect candy, dodge monsters (a ghost and five creatures drawn by the team; keep
 going one way and you run on your own; or scare them off with a gem, or turn ghost); the last minute is Monster
 Madness. Levels: easy, medium, hard (the first hard tuning was too easy; hard is now meant to be really hard: 4 ghosts
 at 4.8 m/s that aim ahead, 3 creatures, scarce help).
-Most candy wins. A trick at a door steals all your candy one time in five (`TRICK_ROB`); the giant gem makes you ×7. There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
+Most candy wins. A trick at a door steals all your candy one time in five (`TRICK_ROB`); the giant gem makes you ×5 (it only bumps into walls and towers). There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
 lasts 20 s: gems giant / thief / ghost, power-ups candy storm (`rain`: a thundercloud with lightning, thunder and rain
 that pours candy, 7–12 a second by level) / shield / magnet (16 m) / double. How much help a night hands out (street
 candy, orbs, gems, scare loot, storm rate) is per level in `DIFFICULTY[level].help`.
@@ -36,10 +36,12 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.
-- Monsters: the ghost, and four creatures from the team's drawings (`src/actors/creatures.js`: `art/creatures/*.jpg` →
-  `npm run creatures` → `public/assets/monsters/*.webp`) in the role of the authority's 'zombie' kind (same rules). Each
-  is a 3D paper-theatre puppet: parts are drawing cut-outs puffed into pillows/rods/balls, the drawing projected
-  straight onto their fronts (outlines are in drawing pixels), plain colour behind; `animateCreature` walks them.
+- Monsters: the ghost, and five creatures from the team's T-pose drawings (`src/actors/creatures.js`: `art/creatures/*`
+  → `npm run creatures` → `public/assets/monsters/*.webp` + traced `creature-shapes.js`) in the role of the authority's
+  'zombie' kind (same rules): catgirl, goggles, lips, catman, longneck. Each is a 3D paper-theatre puppet: parts are
+  drawing cut-outs puffed into pillows/shells (outlines in drawing pixels), the drawing projected onto their fronts and
+  each back textured from a swatch of the same part (`backSwatch`: hair, fur, cloth); arms hang from shoulder pivots
+  (swing + hang); `animateCreature` walks, chases (arms reach forward) and flees (arms flail).
   Which creature a monster is comes from its id + the round (same on every device). Dev: `dev/viewer.html?creatures`.
 - `src/actors/costumes.js` witch hat / pumpkin / horns (head units) and the vampire cape (`capeParts(fit)`, fitted to the
   back `measure()` reads off the Bitmoji's outfit meshes; the collar doesn't swing), split by material (velvet, satin,

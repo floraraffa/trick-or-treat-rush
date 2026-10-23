@@ -39,7 +39,7 @@ function ghostFace() {
   return g;
 }
 
-/** Which of the four creatures a monster is: the same on every device (from its id and the round), changing each round. */
+/** Which of the five creatures a monster is: the same on every device (from its id and the round), changing each round. */
 const creatureOf = (id, round) => CREATURES[(parseInt(String(id).slice(1), 10) + (round | 0)) % CREATURES.length];
 
 export function createMonsters(app, fx, { base = './assets/' } = {}) {

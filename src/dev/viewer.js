@@ -53,7 +53,7 @@ if (new URLSearchParams(location.search).has('creatures')) {
   const plainMat = new StandardMaterial(); plainMat.diffuseVertexColor = true; plainMat.gloss = 0.3; plainMat.useMetalness = true; plainMat.update();
   const all = CREATURES.map((n, i) => {
     const c = createCreature(app, n, { base: '../assets/', plainMat });
-    c.root.setPosition(-3.3 + i * 2.2, 0.05, 5);
+    c.root.setPosition(-4.6 + i * 2.3, 0.05, +(new URLSearchParams(location.search).get('cz') ?? 5)); // &cz=: how far down the street
     c.root.setEulerAngles(0, 0, 0); // facing +Z, towards a camera on that side
     app.root.addChild(c.root);
     return c;

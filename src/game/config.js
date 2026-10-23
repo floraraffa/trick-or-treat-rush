@@ -48,7 +48,7 @@ export const ORB_R = 1.5;
 //   thief: every monster takes fright and flees; catch one to steal its candy (what it took, and more).
 //   ghost: you turn into a ghost; monsters can't see or touch you, and you float through them and through walls.
 export const GEMS = {
-  giant: { dur: POWER_SECONDS, scale: 7, speed: 1.3, reach: 5 }, // taller than the houses; picks things up from that far round its feet
+  giant: { dur: POWER_SECONDS, scale: 5, speed: 1.3, reach: 4 }, // about as tall as a house; picks things up from that far round its feet
   thief: { dur: POWER_SECONDS },
   ghost: { dur: POWER_SECONDS, speed: 1.1 },
 };

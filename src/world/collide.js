@@ -6,10 +6,14 @@ import { COLLIDERS, MAP_R } from './layout.js';
 const D2R = Math.PI / 180;
 for (const c of COLLIDERS) if (c.kind === 'box') { c.cos = Math.cos(c.yaw * D2R); c.sin = Math.sin(c.yaw * D2R); }
 
-/** Pushes a circle at (x, z) of radius r out of every collider; returns [x, z]. */
-export function slide(x, z, r) {
+/** Is this collider big enough to hide a player (a wall, a tower), or thin (a trunk, a lamp, a grave, a fence)? */
+const isBig = (c) => (c.kind === 'circle' ? c.r >= 0.9 : c.h >= 2.2);
+
+/** Pushes a circle at (x, z) of radius r out of every collider (`big`: only the walls and towers); returns [x, z]. */
+export function slide(x, z, r, { big = false } = {}) {
   for (let pass = 0; pass < 2; pass++) {
     for (const c of COLLIDERS) {
+      if (big && !isBig(c)) continue;
       const dx = x - c.x, dz = z - c.z;
       if (c.kind === 'circle') {
         const min = c.r + r, d2 = dx * dx + dz * dz;
@@ -44,7 +48,7 @@ export function slide(x, z, r) {
 export function raycast(o, dir, max, { big = null } = {}) {
   let best = max;
   for (const c of COLLIDERS) {
-    if (big !== null && (c.kind === 'circle' ? c.r >= 0.9 : c.h >= 2.2) !== big) continue;
+    if (big !== null && isBig(c) !== big) continue;
     if (c.kind === 'circle') {
       // ray against a vertical cylinder: solve in XZ, then check the height
       const ox = o[0] - c.x, oz = o[2] - c.z;

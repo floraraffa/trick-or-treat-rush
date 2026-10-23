@@ -8,5 +8,5 @@
 - **PlayCanvas** engine (MIT), **meshoptimizer** decoder (MIT), **@snap/web-lens-api**.
 - Fonts (SIL Open Font License 1.1, bundled through Fontsource): **Griffy** by Font Diner (Neapolitan) and
   **Mystery Quest** by Font Diner (Sideshow).
-- The four creatures (long neck, goggles, doll, lips): drawings by the team (`art/creatures/`), built into 3D puppets in code.
+- The five creatures (girl with the cat, goggles, lips lady, cat, long neck): drawings by the team (`art/creatures/`), built into 3D puppets in code.
 - Village, ghost, candy, costumes, sounds and music: made procedurally for this game.

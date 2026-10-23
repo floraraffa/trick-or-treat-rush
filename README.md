@@ -59,7 +59,7 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (sale un fantasma, te atrapa una telaraña o, una de cada cinco veces, **la casa te roba todos los caramelos**: ~4 % de las visitas; el escudo lo evita), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
 | Monstruos | fantasma: −10 caramelos (y se los guarda); **criaturas** (los dibujos del equipo, ver Arte): te frenan 5 s; protección después de cada golpe (5 / 3,5 / 2 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; las criaturas rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma; en Medium y Hard apuntan adelante de un jugador que corre |
-| Gemas | **todas duran 20 s**; aparecen con un haz de luz (cuándo y cuántas, según el nivel), de clases distintas si hay dos; **gigante** (roja): crecés ×7 (más alto que las casas; agarrás todo lo que está cerca de tus pies y los monstruos te ven desde lejos), los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven un rato después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás lo que le haya quitado a los jugadores más un extra (15 / 10 / 0 según el nivel); **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
+| Gemas | **todas duran 20 s**; aparecen con un haz de luz (cuándo y cuántas, según el nivel), de clases distintas si hay dos; **gigante** (roja): crecés ×5 (alto como una casa; pasás por encima de árboles, faroles, cercas y tumbas sin trabarte; agarrás todo lo que está cerca de tus pies y los monstruos te ven desde lejos), los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven un rato después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás lo que le haya quitado a los jugadores más un extra (15 / 10 / 0 según el nivel); **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
 | Power-ups | **todos duran 20 s**: **tormenta de caramelos** (una nube negra te sigue, caen rayos con destello, trueno y lluvia, y **llueven caramelos del cielo**: 12 / 10 / 7 por segundo según el nivel, unos 200 en Medium; se agarran al tocar el suelo y los que nadie agarra se desvanecen a los 8 s; los demás jugadores ven tu nube y también pueden agarrarlos), escudo mágico (para un ataque), **imán** (atrae caramelos desde **16 m**: vuelan hacia vos), caramelos dobles; un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
 | Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,3), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
@@ -110,16 +110,20 @@ pegada a la espalda (se ajusta a la espalda medida de cada Bitmoji y se balancea
 borde, cuello alto de Drácula y cadena dorada con medallón. En el menú, el vampiro tiene su cara dibujada
 (`src/ui/vampire.js`).
 
-**Monstruos.** El fantasma (translúcido, ojos que se encienden en rojo al perseguirte, azul cuando huye) y **cuatro
-criaturas hechas con los dibujos del equipo** (`art/creatures/`, convertidos por `npm run creatures`): el *cuello
-largo* (orejas de murciélago, bigotes, cuello con manchas y jardinero; le agregamos piernas para caminar), el de los
-*anteojos* (cabeza enorme sobre un resorte, cuerpo de lata, patas y brazos de varilla, una bola con cable), la
-*muñeca* (melena negra, ojos enormes, cuerpo de esqueleto con brazos y piernas larguísimos) y la *boca* (cabecita de
-rulos sobre un cuello de hilo, la gran máscara con labios y un cuerpo de tronco con raíces que se desliza sin piernas).
-Son marionetas 3D de teatro de papel: cada parte es un recorte del dibujo inflado como almohadón (o una varilla, un
-resorte, una bola) que muestra el dibujo tal cual visto de frente; por detrás y de costado, un color liso (pelo,
-tela, lata). Cada una camina o se desliza a su manera, se inclina al perseguirte y tiembla, azulada, si una gema la
-asusta. Ocupan el lugar del zombie (mismas reglas); cuál aparece se decide por el número del monstruo y de la ronda,
+**Monstruos.** El fantasma (translúcido, ojos que se encienden en rojo al perseguirte, azul cuando huye) y **cinco
+criaturas hechas con los dibujos del equipo** (`art/creatures/`, de frente y en pose T, convertidos por
+`npm run creatures`): la *nena del gato* (melena castaña, anteojos enormes, vestido con cuello blanco y un gatito
+acostado en la cabeza), el de los *anteojos* (cabezota gris de pelo negro con anteojos redondos enormes, cuerpo de lata, brazos y piernas
+de varilla, una bola con cable), la *dama de los labios* (azul, rulos violetas, una boca en el pecho y un vestido largo
+que se vuelve fucsia abajo; se desliza sin piernas), el *gato* (cabeza de gato de ojos amarillos, bigotes, traje negro
+y corbata blanca) y el *cuello largo* (orejas de murciélago, bigotes, cuello con manchas y jardinero).
+Son marionetas 3D de teatro de papel: cada parte (cabeza, cuello, torso, brazos, piernas, vestido) es un recorte del
+dibujo inflado con volumen; adelante muestra el dibujo tal cual y **la espalda se pinta con la textura del propio
+dibujo** tomada de esa parte (pelo, pelaje, tela, rayas), así por detrás y de costado se ve pelo, pelaje o vestido.
+Los brazos van articulados en los hombros: cuelgan y se balancean al caminar, se estiran hacia adelante al
+perseguirte y se agitan al huir; cada una mueve la cabeza a su manera (la cabezota de los anteojos se bambolea, el cuello largo se mece, el
+gato ladea la cabeza), se inclina al perseguirte y tiembla, azulada, si una gema la asusta. Ocupan el lugar del
+zombie (mismas reglas); cuál aparece se decide por el número del monstruo y de la ronda,
 igual en todos los dispositivos, y rota de ronda en ronda: en Hard hay tres a la vez, en Medium dos, en Easy una.
 
 Rayos de la tormenta: un canal nuevo en cada descarga (desplazamiento de punto medio, con ramas), cintas planas
