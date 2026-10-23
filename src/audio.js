@@ -68,7 +68,8 @@ export const sfx = {
   jackpot: () => [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568].forEach((f, i) => { tone(f, 0.25, { type: 'square', vol: 0.05, delay: 0.35 + i * 0.08 }); tone(f / 2, 0.25, { type: 'triangle', vol: 0.06, delay: 0.35 + i * 0.08 }); }),
   trick: () => [392, 369.99, 349.23, 311.13].forEach((f, i) => tone(f, 0.3, { type: 'sawtooth', vol: 0.05, delay: 0.35 + i * 0.12, vibrato: 6 })),
   ghost: () => tone(430, 1.1, { type: 'sine', vol: 0.08, slide: -160, vibrato: 14 }),
-  zombie: () => { tone(85, 0.9, { type: 'sawtooth', vol: 0.06, slide: -25, vibrato: 4 }); noise(0.8, { freq: 300, vol: 0.06 }); },
+  /** A creature has seen you: a music box winding down, out of tune, over a breath. */
+  creature: () => { [659.25, 622.25, 523.25, 493.88].forEach((f, i) => tone(f, 0.32, { type: 'triangle', vol: 0.06, delay: i * 0.13, slide: -40 - i * 25, vibrato: 7 })); noise(0.9, { freq: 500, q: 0.8, vol: 0.05, type: 'bandpass', sweep: -300 }); },
   hit: () => { tone(120, 0.35, { type: 'sawtooth', vol: 0.12, slide: -70 }); tone(127, 0.35, { type: 'square', vol: 0.05, slide: -70 }); },
   blocked: () => [880, 1320].forEach((f, i) => tone(f, 0.2, { type: 'triangle', vol: 0.1, delay: i * 0.06 })),
   power: () => { tone(300, 0.4, { type: 'sawtooth', vol: 0.05, slide: 900 }); noise(0.4, { freq: 600, vol: 0.06, sweep: 3000, type: 'bandpass' }); },

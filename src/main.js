@@ -271,7 +271,11 @@ function onEvent(ev) {
       if (!mine) break;
       if (ev.kind === 'treat') { setTimeout(() => { ui.banner(t('treat'), t('plusCandy', { n: ev.pts }), 1200, 'good'); sfx.treat(); }, 350); burstAtDoor(ev.house, [1, 0.7, 0.3]); }
       else if (ev.kind === 'jackpot') { setTimeout(() => { ui.banner(t('jackpot'), `${t('plusCandy', { n: ev.pts })}${ev.power ? ` · ${t(`power.${ev.power}`)}` : ''}`, 1600, 'good'); sfx.jackpot(); buzz(40); }, 350); burstAtDoor(ev.house, [1, 0.85, 0.3], 60); }
-      else { setTimeout(() => { ui.banner(t('trick'), ev.trick === 'ghost' ? t('ghostOut') : '', 1200, 'bad'); sfx.trick(); }, 350); burstAtDoor(ev.house, [0.6, 1, 0.5]); }
+      else if (ev.trick === 'rob') { // every piece of candy flies off into the house
+        const d = HOUSES[ev.house].door, ps = player.state;
+        sparks.emit({ x: ps.x, y: 1.2, z: ps.z }, { x: (d.x - ps.x) * 2.2, y: 2.5, z: (d.z - ps.z) * 2.2 }, { n: Math.min(60, 12 + ev.lost), spread: 1.5, size: 0.24, grow: -0.3, life: 0.7, color: [1, 0.7, 0.3], gravity: -4, alpha: 1, twinkle: true });
+        setTimeout(() => { ui.banner(t('robbed'), ev.lost ? t('lostCandy', { n: ev.lost }) : t('blocked'), 1800, 'bad'); sfx.trick(); if (ev.lost) { sfx.hit(); camCtl.shake(1); ui.flash(); buzz(120); } }, 350);
+      } else { setTimeout(() => { ui.banner(t('trick'), ev.trick === 'ghost' ? t('ghostOut') : '', 1200, 'bad'); sfx.trick(); }, 350); burstAtDoor(ev.house, [0.6, 1, 0.5]); }
       break;
     }
     case 'hit':
@@ -287,7 +291,7 @@ function onEvent(ev) {
       else ui.banner(t('ghostAttack'), ev.delta ? t('lostCandy', { n: -ev.delta }) : '', 1100, 'bad');
       if (ev.delta) ui.popup(t('lostCandy', { n: -ev.delta }), 'bad');
       break;
-    case 'spot': if (ev.target === me.id) { const m = view.monsters.get(ev.id); if (m?.kind === 'zombie') sfx.zombie(); else sfx.ghost(); } break;
+    case 'spot': if (ev.target === me.id) { const m = view.monsters.get(ev.id); if (m?.kind === 'zombie') sfx.creature(); else sfx.ghost(); } break;
     case 'madness':
       ui.banner(t('madness'), t('madnessSub'), 2600, 'mad');
       ui.madness(true);

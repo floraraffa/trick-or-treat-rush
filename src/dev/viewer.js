@@ -46,3 +46,21 @@ if (new URLSearchParams(location.search).has('avatars')) {
   Promise.all(all.map((a) => a.ready)).then(() => setTimeout(() => { window.__ready = true; }, 2500));
   app.on('update', (dt) => all.forEach((a) => a.update(dt, 4)));
 }
+// ?creatures: the four drawn creatures in a row (&anim=1 walks them on the spot).
+if (new URLSearchParams(location.search).has('creatures')) {
+  const { CREATURES, animateCreature, createCreature } = await import('../actors/creatures.js');
+  const { StandardMaterial } = await import('playcanvas');
+  const plainMat = new StandardMaterial(); plainMat.diffuseVertexColor = true; plainMat.gloss = 0.3; plainMat.useMetalness = true; plainMat.update();
+  const all = CREATURES.map((n, i) => {
+    const c = createCreature(app, n, { base: '../assets/', plainMat });
+    c.root.setPosition(-3.3 + i * 2.2, 0.05, 5);
+    c.root.setEulerAngles(0, 0, 0); // facing +Z, towards a camera on that side
+    app.root.addChild(c.root);
+    return c;
+  });
+  const walk = new URLSearchParams(location.search).get('anim');
+  let t = 0;
+  app.on('update', (dt) => { t += dt; for (const c of all) animateCreature(c, t, t * 5, walk ? 1 : 0, walk === 'chase' ? 'chase' : walk === 'flee' ? 'flee' : 'patrol'); });
+  window.__ready = false;
+  setTimeout(() => { window.__ready = true; }, 5000);
+}

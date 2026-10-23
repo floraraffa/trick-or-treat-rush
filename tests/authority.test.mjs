@@ -68,6 +68,34 @@ assert.equal(of('house').length, 2, 'usable again after 15 s');
   assert.ok(Math.abs(counts.treat / n - 0.7) < 0.015 && Math.abs(counts.trick / n - 0.2) < 0.015 && Math.abs(counts.jackpot / n - 0.1) < 0.01);
 }
 
+// The trick that robs: one trick in five takes every piece of candy you carry; a shield stops it.
+{
+  const ev = [];
+  const B = new Authority({ emit: (e) => ev.push(e), snapshot: () => {}, seed: 42 });
+  B.start([{ id: 'x', name: 'X', costume: 'none' }]);
+  for (let i = 0; i < 31; i++) B.tick(0.1);
+  const x = B.players.get('x');
+  let robbed = 0, tricks = 0, kept = 0;
+  for (let i = 0; i < 20000; i++) {
+    B.houses[1].until = -1; x.inv = 0; x.score = 77; delete x.fx.slow;
+    const shielded = i % 10 === 0;
+    if (shielded) x.fx.shield = B.rt + 20; else delete x.fx.shield;
+    B.setPose('x', HOUSES[1].door.x, HOUSES[1].door.z);
+    const n = ev.length;
+    B.intent('x', { kind: 'knock', house: 1 });
+    const h = ev.slice(n).find((e) => e.e === 'house');
+    if (h.kind !== 'trick') continue;
+    tricks++;
+    if (h.trick !== 'rob') continue;
+    robbed++;
+    if (shielded) { assert.equal(h.lost, 0); assert.equal(x.score, 77, 'a shield saves the candy'); kept++; } else { assert.equal(h.lost, 77); assert.equal(x.score, 0, 'robbed of everything'); }
+  }
+  B.monsters = [];
+  assert.ok(Math.abs(robbed / tricks - C.TRICK_ROB) < 0.02, `about ${C.TRICK_ROB * 100}% of tricks rob (${(robbed / tricks * 100).toFixed(1)}%)`);
+  assert.ok(kept > 0);
+  console.log(`✔ the robbing trick: ${(robbed / tricks * 100).toFixed(1)}% of ${tricks} tricks (${(robbed / 200).toFixed(1)}% of knocks) took all the candy; a shield saved it ${kept} times`);
+}
+
 // Power-up: picked up into the slot, used, expires.
 const orb = of('orb+')[0];
 A.setPose('a', orb.x, orb.z);
@@ -152,13 +180,14 @@ function fresh(seed = 7) {
   X.players.get('a').score = 30;
   X.setPose('a', 0, 12); X.setPose('b', 0, -12);
   X.players.get('a').fx.giant = X.rt + 8;
-  const g = X.addMonster('ghost', [[0, 17], [5, 17]], 0, 17); Object.assign(g, { cool: 0 });
+  const g = X.addMonster('ghost', [[0, 24], [5, 24]], 0, 24); Object.assign(g, { cool: 0 }); // beyond a giant's reach, well within its sight
   X.tick(0.1);
   assert.equal(g.state, 'flee', 'monsters flee from a giant');
   for (let i = 0; i < 20 && g.state !== 'banished'; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); }
   const sc = of('scare')[0];
   assert.ok(sc && sc.id === 'a' && sc.power === 'giant' && sc.pts === M.scareLoot, 'stomped: the ghost drops candy');
   assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'a giant takes no hits');
+  X.setPose('a', 0, -25); // the giant strides off
   for (let i = 0; i < (M.banished + 0.5) * 10; i++) X.tick(0.1);
   assert.notEqual(g.state, 'banished', 'the ghost comes back after a while');
   console.log(`✔ giant gem: ghosts flee, a stomp scares one off (+${sc.pts}), it returns ${M.banished} s later`);

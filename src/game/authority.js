@@ -228,6 +228,13 @@ export class Authority {
       p.score += pts;
       this.emit({ e: 'house', house, by: p.id, kind: 'treat', candies, pts, score: p.score, until });
     } else if (r < C.HOUSE_ODDS.treat + C.HOUSE_ODDS.trick) {
+      if (this.R() < C.TRICK_ROB) { // the house keeps every piece of candy you carry, unless a shield stops it
+        const shielded = p.fx.shield > rt, lost = shielded ? 0 : p.score;
+        p.score -= lost;
+        this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick: 'rob', lost, score: p.score, until });
+        if (shielded) this.protect(p, 'rob');
+        return;
+      }
       const trick = C.TRICKS[Math.floor(this.R() * C.TRICKS.length)];
       this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick, score: p.score, until });
       const h = HOUSES[house];
@@ -382,13 +389,13 @@ export class Authority {
     return best;
   }
 
-  /** The nearest player within `range` that this monster is afraid of. */
+  /** The nearest player within `range` (more for a giant, seen from afar) that this monster is afraid of. */
   nearestThreat(m, range) {
-    let best = null, bd = range;
+    let best = null, bd = Infinity;
     for (const p of this.players.values()) {
       if (p.gone || !this.frightens(p, m)) continue;
       const d = dist(m.x, m.z, p.x, p.z);
-      if (d < bd) { bd = d; best = p; }
+      if (d < (p.fx.giant > this.rt ? range + 9 : range) && d < bd) { bd = d; best = p; }
     }
     return best;
   }
@@ -423,7 +430,7 @@ export class Authority {
         if (m.trick) { this.removeMonster(m); return; }
         const k = farthest(m.path);
         [m.x, m.z] = m.path[k];
-        Object.assign(m, { state: 'patrol', wp: (k + 1) % m.path.length, t: 0, cool: this.D.refocus });
+        Object.assign(m, { state: 'patrol', wp: (k + 1) % m.path.length, t: 0, cool: this.D.refocus, back: this.rt });
       }
       return;
     }
@@ -433,7 +440,7 @@ export class Authority {
       if (m.state !== 'flee') { m.state = 'flee'; m.t = 0; m.target = threat.id; }
       this.moveToward(m, m.x + (m.x - threat.x), m.z + (m.z - threat.z), (m.kind === 'ghost' ? 3.0 : 1.5) * this.D.flee * mad, h);
       const reach = cfg.reach * (threat.fx.giant > this.rt ? C.GEMS.giant.scale : 1.3);
-      if (dist(m.x, m.z, threat.x, threat.z) < reach) this.scare(m, threat);
+      if (dist(m.x, m.z, threat.x, threat.z) < reach && !(this.rt - (m.back ?? -Infinity) < 2)) this.scare(m, threat); // (not again the moment it's back)
       return;
     }
     if (m.state === 'flee') { this.giveUp(m); return; }

@@ -76,7 +76,7 @@ export function createPlayer(avatar) {
         p.x += p.vx * dt; p.z += p.vz * dt;
         const d = Math.hypot(p.x, p.z), lim = MAP_R - PLAYER_R;
         if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
-      } else [p.x, p.z] = slide(p.x + p.vx * dt, p.z + p.vz * dt, PLAYER_R);
+      } else [p.x, p.z] = slide(p.x + p.vx * dt, p.z + p.vz * dt, PLAYER_R + Math.min(0.9, 0.15 * (p.scale - 1))); // a giant is wider too (not so wide it sticks in the streets)
       p.speed = Math.hypot(p.vx, p.vz);
       p.moving = p.speed > 0.3;
       if (fp) p.yaw = cam.yaw; // first person: the body faces the view

@@ -13,7 +13,8 @@
     "test:e2e": "node tests/run.mjs --e2e",
     "viewer": "vite --open /dev/viewer.html",
     "artifact": "npm run build && node tools/artifact.mjs",
-    "textures": "node tools/fetch-textures.mjs"
+    "textures": "node tools/fetch-textures.mjs",
+    "creatures": "node tools/make-creatures.mjs"
   },
   "dependencies": {
     "@snap/web-lens-api": "^0.1.2",
