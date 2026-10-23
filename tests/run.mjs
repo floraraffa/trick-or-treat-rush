@@ -1,4 +1,4 @@
-// npm test: the authority's rules (fast, no browser).
+// npm test: the authority's rules and the texts in every language (fast, no browser).
 // npm run test:e2e: also a solo night and a three-player room in headless Chromium (slow: software WebGL).
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -8,6 +8,7 @@ const run = (args, env = {}) => {
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
 run(['tests/authority.test.mjs']);
+run(['tests/i18n.test.mjs']);
 if (process.argv.includes('--e2e')) {
   mkdirSync('tests/out', { recursive: true });
   const port = 3300 + Math.floor(Math.random() * 500);

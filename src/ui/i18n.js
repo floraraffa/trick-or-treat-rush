@@ -1,7 +1,8 @@
-// Every player-facing string, in English (the game's own words), Spanish and French.
-export const LANGS = { en: 'English', es: 'Español', fr: 'Français' };
+// Every player-facing string, in English (the game's own words), Spanish, French and German. The player
+// picks one in the menu (saved with the profile); until then the phone's own language is used.
+export const LANGS = { en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch' };
 
-const STRINGS = {
+export const STRINGS = {
   en: {
     title: 'TRICK OR TREAT RUSH', subtitle: 'MULTIPLAYER HALLOWEEN ADVENTURE',
     play: 'PLAY', how: 'HOW TO PLAY', back: 'BACK', close: 'GOT IT', start: 'START', menu: 'MENU', playAgain: 'PLAY AGAIN', friends: 'FRIENDS',
@@ -103,6 +104,40 @@ const STRINGS = {
       ['👑', 'Le plus de bonbons après 3 minutes : ROI DES BONBONS D’HALLOWEEN !'],
     ],
     tips: ['Les portes brillent en or quand elles sont prêtes', 'Cours tout droit et personne ne te rattrape', 'L’horloge compte jusqu’à minuit', 'Le bouclier bloque un coup : garde-le pour la folie'],
+  },
+  de: {
+    title: 'TRICK OR TREAT RUSH', subtitle: 'HALLOWEEN-ABENTEUER FÜR MEHRERE SPIELER',
+    play: 'SPIELEN', how: 'SO GEHT’S', back: 'ZURÜCK', close: 'VERSTANDEN', start: 'STARTEN', menu: 'MENÜ', playAgain: 'NOCH MAL', friends: 'FREUNDE',
+    loading: 'Das Dorf erwacht…', costume: 'KOSTÜM', name: 'NAME',
+    costumes: { witch: 'Hexenhut', pumpkin: 'Kürbis', horns: 'Hörner', cape: 'Vampir', none: 'Kein Kostüm' },
+    myCandy: 'MEIN SÜSSES', leader: 'VORNE', best: 'REKORD', you: 'DU',
+    trickOrTreat: 'SÜSSES ODER SAURES!', powerup: 'KRAFT', camera: 'KAMERA', third: '3. P.', first: '1. P.',
+    plusCandy: '+{n} SÜSSES!', jackpot: 'JACKPOT!', treat: 'SÜSSES!', trick: 'SAURES!', ghostAttack: 'GEISTERANGRIFF!', zombieGrab: 'EIN WESEN HAT DICH!',
+    blocked: 'DER SCHILD HAT DICH GERETTET!', swarmOut: '{n} MONSTER STÜRMEN HERAUS!', robbed: 'DAS HAUS HAT DIR ALLE SÜSSIGKEITEN GEKLAUT!', madness: 'MONSTERWAHNSINN!', madnessSub: 'Mitternacht schlägt: schnellere Monster, seltene Süßigkeiten',
+    levels: { easy: 'LEICHT', medium: 'MITTEL', hard: 'SCHWER' },
+    gem: { giant: 'RIESE!', thief: 'SÜSSIGKEITENDIEB!', ghost: 'GEIST!' },
+    gemSub: { giant: 'Monster können dir nichts tun: zertrampel sie!', thief: 'Alle Monster fliehen: fang eins und hol dir seine Süßigkeiten', ghost: 'Monster sehen dich nicht: du schwebst durch sie hindurch, und durch Wände' },
+    scared: 'VERJAGT! +{n}', stolen: 'ZURÜCKGEHOLT! +{n}', loot: '🍬 {n}',
+    go: 'LOS!', timesUp: 'DIE ZEIT IST UM!', king: 'HALLOWEEN-SÜSSIGKEITENKÖNIG!', tie: 'UNENTSCHIEDEN! GETEILTE KRONE', youWin: 'GEWONNEN!', newBest: 'NEUER PERSÖNLICHER REKORD!',
+    cooling: 'Komm in {n} s wieder', points: 'Pkt.', lostCandy: '-{n} SÜSSES',
+    power: { rain: 'SÜSSIGKEITENSTURM!', shield: 'ZAUBERSCHILD!', magnet: 'SÜSSIGKEITENMAGNET!', double: 'DOPPELT SÜSS!' },
+    powerName: { rain: 'Sturm', shield: 'Schild', magnet: 'Magnet', double: 'Doppelt' },
+    gotPower: '{p}! Tippe auf KRAFT',
+    lobby: 'LOBBY', room: 'Raum', waitPlayers: 'Warte auf Spieler: 2 bis 4', waitHost: 'Warte, bis der Gastgeber startet', roundOn: 'Eine Runde läuft: du spielst bei der nächsten mit', full: 'Dieser Raum ist voll (4 Spieler)',
+    host: 'GASTGEBER', hostLeft: 'Der Gastgeber ist weg: zurück in die Lobby',
+    solo: 'In Snapchat spielst du jede Nacht auf deinem eigenen Handy: schlag deine Freunde in der Snapchat-Bestenliste.',
+    soloShort: 'Solo-Nacht', paused: 'PAUSE', tapResume: 'tippen zum Weiterspielen',
+    howBody: [
+      ['🏚️', 'Geh zu einer Tür und tippe auf <b>SÜSSES ODER SAURES!</b> 70 % Süßes (Süßigkeiten), 20 % Saures (eine Horde von 6 bis 8 Monstern stürmt aus dem Haus hinter dir her, und jedes fünfte Mal klaut dir das Haus außerdem <b>alle</b> Süßigkeiten), 10 % Jackpot (goldener Kürbis + Kraft). Danach ruht das Haus 15 s, für alle.'],
+      ['🍬', 'Schnapp dir die leuchtenden Süßigkeiten: Karamell <b>1</b>, Lutscher <b>5</b>, Schokolade <b>10</b>, goldener Kürbis <b>25</b>, Regenbogenbonbon <b>50</b>.'],
+      ['👻', 'Geister nehmen dir <b>10</b> Süßigkeiten ab; die Wesen (das Mädchen mit der Katze, die Brille, die Lippendame, der Kater und der Langhals) bremsen dich (3 bis 5 s). Alle fünf streifen auf jeder Stufe durchs Dorf. Nach einem Treffer bist du kurz geschützt. <b>SCHWER</b> ist wirklich schwer: vier Geister, fast so schnell wie du, die dir den Weg abschneiden, flinke Wesen, wenig Süßes und wenige Edelsteine.'],
+      ['✨', 'Kraft-Kugeln, je 20 s: <b>Süßigkeitensturm</b> (eine Gewitterwolke folgt dir, Blitze zucken und Süßigkeiten regnen vom Himmel), Zauberschild (ein Treffer), Süßigkeitenmagnet (zieht Süßes von weit her an), doppelt Süßes. Tippe auf KRAFT, um sie zu nutzen.'],
+      ['💎', 'Edelsteine leuchten von Weitem, je 20 s. Roter <b>Riese</b>: du wirst riesig, Monster können dir nichts tun und jedes, das du berührst, flieht. Grüner <b>Dieb</b>: alle Monster fliehen; fang eins und hol dir seine Süßigkeiten. Weißer <b>Geist</b>: du wirst zum Geist, Monster sehen dich nicht und du schwebst durch sie und durch Wände.'],
+      ['🌕', 'Letzte Minute: <b>MONSTERWAHNSINN!</b> Dichterer Nebel, schnellere Monster und besondere Süßigkeiten.'],
+      ['🎮', 'Linker Daumen: gehen (weiter schieben zum Rennen). Läufst du weiter in dieselbe Richtung, <b>sprintest du von selbst</b>, schneller als jedes Monster. Rechte Seite: umschauen. KAMERA wechselt zwischen dritter und erster Person.'],
+      ['👑', 'Wer nach 3 Minuten die meisten Süßigkeiten hat, ist der HALLOWEEN-SÜSSIGKEITENKÖNIG!'],
+    ],
+    tips: ['Türen leuchten golden, wenn sie bereit sind', 'Lauf geradeaus und dich holt keiner ein', 'Der Uhrturm zählt bis Mitternacht', 'Ein Schild blockt einen Treffer: heb ihn für den Wahnsinn auf'],
   },
 };
 

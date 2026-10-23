@@ -64,7 +64,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 - Textures: `src/textures.js` loads `public/assets/tex/<name>.webp` + `_n` normal maps made by `npm run textures`
   (`tools/fetch-textures.mjs`, Poly Haven CC0, needs network; in Claude's cloud containers run it with
   `NODE_USE_ENV_PROXY=1`). Credits in `CREDITS.md`.
-- `src/ui/ui.js` + `index.html` screens and HUD; `src/ui/i18n.js` en/es/fr. `src/audio.js` synthesised sound + music box.
+- `src/ui/ui.js` + `index.html` screens and HUD; `src/ui/i18n.js` en/es/fr/de (`LANGS`): the player picks one in the menu
+  (saved as `saveData.lang`, else the phone's language; `?lang=de` to test); every new string needs all four. `src/audio.js` synthesised sound + music box.
 - `src/poses.js` → `npm run clips` → `public/assets/clips.glb` (idle, walk, run, knock, hit, cheer, sad).
 - `src/lib/` snap wrapper, `bitmoji-anim.js` (MIT, vendored; added `setSpeed`), meshopt GLB unpacker.
 

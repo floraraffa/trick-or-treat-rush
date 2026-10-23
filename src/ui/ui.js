@@ -2,7 +2,7 @@
 // markup and the gothic-storybook styles). It only shows what it is told; game rules live elsewhere.
 import { COSTUMES, COSTUME_ICON } from '../actors/costumes.js';
 import { vampireFace } from './vampire.js';
-import { t } from './i18n.js';
+import { LANGS, t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const SCREENS = ['loading', 'menu', 'how', 'lobby', 'results'];
@@ -57,6 +57,16 @@ export function createUI(on) {
     levels.appendChild(b);
   }
 
+  const langs = $('langs'); // each language in its own words
+  for (const [id, label] of Object.entries(LANGS)) {
+    const b = document.createElement('button');
+    b.dataset.id = id;
+    b.lang = id;
+    b.textContent = label;
+    b.addEventListener('click', () => { on.click?.(); on.lang(id); });
+    langs.appendChild(b);
+  }
+
   function show(id) {
     screen = id;
     for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
@@ -105,6 +115,7 @@ export function createUI(on) {
     },
     setName(n) { $('nameInput').value = n; },
     setLevel(id) { for (const b of levels.children) b.classList.toggle('on', b.dataset.id === id); },
+    setLanguage(id) { for (const b of langs.children) b.classList.toggle('on', b.dataset.id === id); },
     showName(v) { $('nameField').classList.toggle('hidden', !v); },
     setBest(n) { $('bestLine').innerHTML = n > 0 ? `${t('best')}: <b>${n}</b>` : ''; },
     setModeNote(s) { $('modeNote').textContent = s; },

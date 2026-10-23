@@ -23,7 +23,7 @@ import { View, playerOf } from './game/view.js';
 import { DEFAULT_LEVEL, GEMS, LEVELS, MADNESS_AT, MIN_PLAYERS, POSE_HZ, ROUND_SECONDS } from './game/config.js';
 import { buzz, music, musicMadness, sfx, suspendAudio, unlockAudio } from './audio.js';
 import { createUI } from './ui/ui.js';
-import { detectLang, setLang, t } from './ui/i18n.js';
+import { detectLang, getLang, setLang, t } from './ui/i18n.js';
 import defaultFaceUrl from './assets/avatar_face.webp';
 
 const params = new URLSearchParams(location.search);
@@ -49,6 +49,7 @@ const ui = createUI({
   menu: () => toMenu(),
   camera: () => input.press('camera'),
   level: (id) => setLevel(id),
+  lang: (id) => setLanguage(id),
   power: () => input.press('use'),
   knock: () => input.press('knock'),
   resume: () => setPaused(false),
@@ -142,13 +143,14 @@ function goTo(id) {
 }
 
 async function boot() {
-  const caps = await initSnap();
+  await initSnap();
   ui.loadProgress(0.4);
   saveData = await loadSave(DEFAULT_SAVE);
   if (!COSTUMES.includes(saveData.costume)) saveData.costume = 'witch';
   if (!LEVELS.includes(saveData.level)) saveData.level = DEFAULT_LEVEL;
   if (LEVELS.includes(params.get('level'))) saveData.level = params.get('level');
   saveData.bests ??= {};
+  setLang(detectLang(params.get('lang') ?? saveData.lang)); // the language picked in the menu, else the phone's
   if (saveData.name && !params.get('name')) me.name = saveData.name;
   me.costume = params.get('costume') && COSTUMES.includes(params.get('costume')) ? params.get('costume') : saveData.costume;
   ui.loadProgress(0.55);
@@ -174,12 +176,10 @@ async function boot() {
 
   if (!snapchat.isStub) portraitUrl().then((url) => ui.setPortrait(url ?? defaultFaceUrl)); // the desktop stub's portrait is a placeholder
   ui.setPortrait(defaultFaceUrl);
-  ui.setCostume(me.costume);
   ui.setName(me.name);
   ui.showName(!session.solo);
   ui.setLevel(saveData.level);
-  ui.setBest(bestFor(saveData.level));
-  ui.setModeNote(session.solo ? (caps.isStub ? `${t('soloShort')} · ${t('solo')}` : t('solo')) : `${t('room')}: ${transport.room}`);
+  menuTexts();
   await Promise.race([tex.ready, new Promise((r) => setTimeout(r, 4000))]);
   ui.loadProgress(0.85);
   goTo('menu');
@@ -204,6 +204,21 @@ function setLevel(id) {
   ui.setBest(bestFor(id));
   session?.setLevel(id);
   renderLobby();
+}
+/** Every text on the menu (and the lobby), in the current language. */
+function menuTexts() {
+  ui.texts();
+  ui.setLanguage(getLang());
+  ui.setCostume(me.costume);
+  ui.setBest(bestFor(saveData.level));
+  ui.setModeNote(session.solo ? (snapchat.isStub ? `${t('soloShort')} · ${t('solo')}` : t('solo')) : `${t('room')}: ${transport.room}`);
+  renderLobby();
+}
+function setLanguage(id) {
+  setLang(id);
+  saveData.lang = getLang();
+  save(saveData);
+  menuTexts();
 }
 function setName(n) {
   me.name = (n || '').replace(/[<>]/g, '').trim().slice(0, 12) || me.name;

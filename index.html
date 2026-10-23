@@ -141,6 +141,8 @@
       .levels { display: flex; justify-content: center; gap: 6px; }
       .levels button { font: inherit; font-size: 15px; letter-spacing: .08em; padding: 7px 12px; color: var(--lav); background: rgba(0,0,0,.35); border: 2px solid #6d5a87; border-radius: 12px 4px 12px 4px; }
       .levels button.on { color: #2a0f20; background: linear-gradient(180deg, #ffe0a0, #ff9a3c); border-color: #3a1208; }
+      .langs { gap: 5px; margin-top: 6px; }
+      .langs button { font-size: 13px; letter-spacing: .03em; padding: 5px 9px; }
       #btnPower.empty { opacity: .45; }
       #btnPower.ready { border-color: var(--gold); animation: glowpulse 1s infinite; }
       @keyframes glowpulse { 50% { box-shadow: 0 4px 0 #120a18, 0 0 26px rgba(240,190,90,.9); } }
@@ -225,6 +227,7 @@
       <div class="costumes" id="costumes"></div>
       <div class="costumeName" id="costumeName"></div>
       <div class="levels" id="levels"></div>
+      <div class="levels langs" id="langs" role="group" aria-label="Language"></div>
       <div class="field" id="nameField"><span id="lblName">NAME</span><input id="nameInput" maxlength="12" autocomplete="off" spellcheck="false" /></div>
       <div class="bestLine" id="bestLine"></div>
       <div class="btns"><button class="btn go" id="btnPlay">PLAY</button></div>

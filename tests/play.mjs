@@ -14,6 +14,12 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 const G = (fn, arg) => page.evaluate(fn, arg);
 await page.goto(`${base}?test&lowfx`);
 await page.waitForFunction(() => window.__game?.screen === 'menu', null, { timeout: 120000 });
+// The language picker: the menu changes language at once (and back to English for the rest of the night).
+for (const [l, word] of [['de', 'SPIELEN'], ['fr', 'JOUER'], ['es', 'JUGAR'], ['en', 'PLAY']]) {
+  await page.click(`#langs button[data-id="${l}"]`);
+  await page.waitForFunction((w) => document.getElementById('btnPlay').textContent === w && document.documentElement.lang, word, { timeout: 10000 });
+}
+console.log('✔ language picker: Deutsch, Français, Español, English');
 await page.click('#btnPlay');
 await page.waitForFunction(() => window.__game.view.phase === 'playing', null, { timeout: 60000 });
 const p0 = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
