@@ -5,8 +5,11 @@ Halloween entry for the **Lenslist Halloween Challenge**, built as a **Snap Web 
 knock on doors (trick or treat), collect candy, dodge monsters (a ghost and five creatures drawn by the team; keep
 going one way and you run on your own; or scare them off with a gem, or turn ghost); the last minute is Monster
 Madness. Levels: easy, medium, hard (the first hard tuning was too easy; hard is now meant to be really hard: 4 ghosts
-at 4.8 m/s that aim ahead, 3 creatures, scarce help).
-Most candy wins. A trick at a door steals all your candy one time in five (`TRICK_ROB`); the giant gem makes you ×5 (it only bumps into walls and towers). There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
+at 4.8 m/s that aim ahead, quick creatures, scarce help). All five creatures walk the village on every level (one per
+zombie route); levels differ in speed, keenness, how long a grab slows you (3/4/5 s) and help.
+Most candy wins. A trick at a door lets a swarm out of the house (6/7/8 ghosts and creatures by level, `swarm` in
+DIFFICULTY: they fan out of the door, then chase the knocker for `trickLife` s) and one time in five also steals all
+your candy (`TRICK_ROB`); there is no web trick any more; the giant gem makes you ×5 (it only bumps into walls and towers). There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
 lasts 20 s: gems giant / thief / ghost, power-ups candy storm (`rain`: a thundercloud with lightning, thunder and rain
 that pours candy, 7–12 a second by level) / shield / magnet (16 m) / double. How much help a night hands out (street
 candy, orbs, gems, scare loot, storm rate) is per level in `DIFFICULTY[level].help`.
@@ -38,11 +41,16 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.
 - Monsters: the ghost, and five creatures from the team's T-pose drawings (`src/actors/creatures.js`: `art/creatures/*`
   → `npm run creatures` → `public/assets/monsters/*.webp` + traced `creature-shapes.js`) in the role of the authority's
-  'zombie' kind (same rules): catgirl, goggles, lips, catman, longneck. Each is a 3D paper-theatre puppet: parts are
-  drawing cut-outs puffed into pillows/shells (outlines in drawing pixels), the drawing projected onto their fronts and
-  each back textured from a swatch of the same part (`backSwatch`: hair, fur, cloth); arms hang from shoulder pivots
-  (swing + hang); `animateCreature` walks, chases (arms reach forward) and flees (arms flail).
-  Which creature a monster is comes from its id + the round (same on every device). Dev: `dev/viewer.html?creatures`.
+  'zombie' kind (same rules): catgirl, goggles, lips, catman, longneck. Each is a solid 3D paper-theatre puppet: blob
+  parts (heads, round bodies, the ball) are height grids over their true outline, inflated as a union of spheres, rim
+  points snapped onto the outline; limbs/necks/gowns/slim bodies are shells over traced profiles (gaps inside a limb
+  become a dark groove). The texture is an atlas: the cut-out drawing (fronts) + at half size to its right each part's
+  back (quilted from a swatch, `back` in the tool's config, blended into the drawing's colours at the edges). The tool
+  also stops the checkerboard fill at thin white lines (`thin`: the cat's whiskers) and finds enclosed checkerboard
+  pockets (two flat tones). Meshes are built once per creature and shared by every copy (`geometry()`); arms hang from
+  shoulder pivots (swing + hang); `animateCreature` walks, chases (arms reach forward) and flees (arms flail).
+  Monster ids are per kind: z1..z5 are the five patrols, so creature = CREATURES[(n - 1 + round) % 5] gives all five
+  every round (same on every device). Dev: `dev/creatures.html?name=<creature>` (studio, several sides at once).
 - `src/actors/costumes.js` witch hat / pumpkin / horns (head units) and the vampire cape (`capeParts(fit)`, fitted to the
   back `measure()` reads off the Bitmoji's outfit meshes; the collar doesn't swing), split by material (velvet, satin,
   gold, horn, rind, glow). `src/ui/vampire.js` the vampire face drawn for the costume picker.

@@ -12,9 +12,10 @@ export const HOUSE_ODDS = { treat: 0.7, trick: 0.2, jackpot: 0.1 };
 export const TREAT_CANDIES = [3, 6]; // a handful: min..max pieces, picked from TREAT_MIX
 export const TREAT_MIX = { caramel: 60, lollipop: 32, chocolate: 8 };
 export const JACKPOT = { candy: 'pumpkin', fullSlotBonus: 10 }; // a golden pumpkin and a power-up (or +10 with a full slot)
-export const TRICKS = ['ghost', 'web']; // a ghost bursts out after you, or a sticky web holds you
-export const TRICK_ROB = 0.2; // ...or, one trick in five, the house steals every piece of candy you carry (a shield saves it)
-export const TRAP_SLOW = 4;
+// A trick lets a swarm of monsters out of the house after you (how many: per level, `swarm`), and one
+// trick in five the house also steals every piece of candy you carry (a shield saves it).
+export const TRICK_ROB = 0.2;
+export const SWARM = { spread: 3.2, burst: 4.5 }; // they pour out of the door in a fan this wide (m), this fast (m/s)
 
 // Candy: points as asked, weights for what appears on the streets.
 export const CANDY = {
@@ -66,35 +67,42 @@ export const AUTORUN = { after: 1.1, ramp: 0.9, mul: 1.5, turn: 100 };
 // Monsters: what every level shares (speeds on patrol, reach, what a hit costs, as asked).
 export const MONSTERS = {
   ghost: { patrol: 1.7, reach: 1.0, penalty: 10 },
-  zombie: { patrol: 0.9, reach: 1.15, slow: 5 },
+  zombie: { patrol: 0.9, reach: 1.15 },
 };
+export const SEPARATION = 0.9; // monsters keep this far apart (a swarm spreads out instead of piling up)
 // Levels: how many monsters, how fast and keen they are, how long a hit protects you, and how much
-// help the night hands out.
+// help the night hands out. All five of the team's creatures walk the village on every level (one per
+// zombie route, each a different one); harder levels make them faster, keener and slower to let go.
+//   zombie.slow: how long a creature's grab slows you; swarm: how many monsters a trick lets out of the
+//   house (and how many of them are ghosts).
 //   lead: seconds ahead of a running player a chasing monster aims (it cuts you off); flee: how fast
 //   frightened monsters run (× the medium speed).
 //   help: candy on the streets (and in the Madness), power-up orbs out and how soon a taken one comes
 //   back, gems (the first one, the gap to the next, how many out at once), how long a scared-off monster
 //   stays away and the candy it drops on top of what it stole, candy rain pieces a second.
 // Hard is meant to be really hard: four ghosts nearly as fast as a run (only running on your own gets
-// you clear) that see far, chase for long and aim where you are going; a third zombie; in the Madness
+// you clear) that see far, chase for long and aim where you are going; quick creatures; in the Madness
 // the ghosts outrun a run and only a flat-out sprint escapes; little protection after a hit; and scarce
 // candy, orbs and gems.
 export const DIFFICULTY = {
   easy: {
     ghost: { count: 2, chase: 2.6, detect: 5.5, giveUp: 9, maxChase: 4.5 },
-    zombie: { count: 1, chase: 1.6, detect: 5, giveUp: 8, maxChase: 5 },
+    zombie: { count: 5, chase: 1.5, detect: 4.5, giveUp: 7, maxChase: 4, slow: 3 },
+    swarm: { count: 6, ghosts: 2 },
     madnessSpeed: 1.1, invulnerable: 5, recover: 3.5, grace: 10, refocus: 4.5, trickLife: 6, lead: 0, flee: 0.8,
     help: { candy: 26, candyMadness: 32, orbs: 4, orbBack: 8, gemFirst: 6, gemEvery: [8, 12], gems: 2, banished: 7, scareLoot: 15, rain: 12 },
   },
   medium: {
     ghost: { count: 2, chase: 3.1, detect: 7, giveUp: 12, maxChase: 6.5 },
-    zombie: { count: 2, chase: 1.9, detect: 6, giveUp: 10, maxChase: 7 },
+    zombie: { count: 5, chase: 1.9, detect: 6, giveUp: 10, maxChase: 7, slow: 4 },
+    swarm: { count: 7, ghosts: 3 },
     madnessSpeed: 1.2, invulnerable: 3.5, recover: 2.5, grace: 7, refocus: 3.5, trickLife: 9, lead: 0.3, flee: 1,
     help: { candy: 22, candyMadness: 28, orbs: 3, orbBack: 12, gemFirst: 10, gemEvery: [10, 16], gems: 2, banished: 5, scareLoot: 10, rain: 10 },
   },
   hard: {
     ghost: { count: 4, chase: 4.8, detect: 12, giveUp: 18, maxChase: 11 },
-    zombie: { count: 3, chase: 2.8, detect: 8.5, giveUp: 14, maxChase: 10 },
+    zombie: { count: 5, chase: 2.8, detect: 8.5, giveUp: 14, maxChase: 10, slow: 5 },
+    swarm: { count: 8, ghosts: 3 },
     madnessSpeed: 1.3, invulnerable: 2, recover: 1.4, grace: 3, refocus: 1.2, trickLife: 15, lead: 0.7, flee: 1.6,
     help: { candy: 16, candyMadness: 20, orbs: 2, orbBack: 25, gemFirst: 30, gemEvery: [30, 40], gems: 1, banished: 2, scareLoot: 0, rain: 7 },
   },

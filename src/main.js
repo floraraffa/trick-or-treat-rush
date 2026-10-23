@@ -275,7 +275,12 @@ function onEvent(ev) {
         const d = HOUSES[ev.house].door, ps = player.state;
         sparks.emit({ x: ps.x, y: 1.2, z: ps.z }, { x: (d.x - ps.x) * 2.2, y: 2.5, z: (d.z - ps.z) * 2.2 }, { n: Math.min(60, 12 + ev.lost), spread: 1.5, size: 0.24, grow: -0.3, life: 0.7, color: [1, 0.7, 0.3], gravity: -4, alpha: 1, twinkle: true });
         setTimeout(() => { ui.banner(t('robbed'), ev.lost ? t('lostCandy', { n: ev.lost }) : t('blocked'), 1800, 'bad'); sfx.trick(); if (ev.lost) { sfx.hit(); camCtl.shake(1); ui.flash(); buzz(120); } }, 350);
-      } else { setTimeout(() => { ui.banner(t('trick'), ev.trick === 'ghost' ? t('ghostOut') : '', 1200, 'bad'); sfx.trick(); }, 350); burstAtDoor(ev.house, [0.6, 1, 0.5]); }
+        setTimeout(() => ui.popup(t('swarmOut', { n: ev.n }), 'bad'), 900); // and the swarm comes out all the same
+        burstAtDoor(ev.house, [0.6, 1, 0.5], 60);
+      } else { // a swarm of monsters pours out of the door
+        setTimeout(() => { ui.banner(t('trick'), t('swarmOut', { n: ev.n }), 1500, 'bad'); sfx.trick(); sfx.ghost(); camCtl.shake(0.6); buzz(60); }, 350);
+        burstAtDoor(ev.house, [0.6, 1, 0.5], 60);
+      }
       break;
     }
     case 'hit':
@@ -287,7 +292,6 @@ function onEvent(ev) {
       buzz(80);
       sfx.hit();
       if (ev.by === 'zombie') ui.banner(t('zombieGrab'), '', 1100, 'bad');
-      else if (ev.by === 'web') ui.banner(t('webbed'), '', 1100, 'bad');
       else ui.banner(t('ghostAttack'), ev.delta ? t('lostCandy', { n: -ev.delta }) : '', 1100, 'bad');
       if (ev.delta) ui.popup(t('lostCandy', { n: -ev.delta }), 'bad');
       break;

@@ -139,6 +139,41 @@ function fresh(seed = 7) {
   X.monsters = []; // only the monster under test
   return { X, ev, of: (n) => ev.filter((e) => e.e === n) };
 }
+{ // a trick: a swarm of ghosts and creatures pours out of the door, fans out, chases the knocker, then goes
+  for (const level of C.LEVELS) {
+    const ev = [], of = (n) => ev.filter((e) => e.e === n);
+    const X = new Authority({ emit: (e) => ev.push(e), snapshot: () => {}, seed: 11 });
+    X.start([{ id: 'a', name: 'A', costume: 'none' }], level);
+    for (let i = 0; i < 31; i++) X.tick(0.1);
+    X.monsters = [];
+    const H = HOUSES[5], S = C.DIFFICULTY[level].swarm;
+    let tr = null;
+    for (let i = 0; i < 300 && !tr; i++) {
+      X.houses[5].until = -1; X.players.get('a').score = 0; X.setPose('a', H.door.x, H.door.z);
+      const n = ev.length;
+      X.intent('a', { kind: 'knock', house: 5 });
+      tr = ev.slice(n).find((e) => e.e === 'house' && e.kind === 'trick');
+      if (!tr) continue;
+    }
+    assert.ok(tr && tr.n === S.count, `${level}: a trick announces its swarm`);
+    const out = X.monsters.filter((m) => m.trick);
+    assert.equal(out.length, S.count, `${level}: ${S.count} monsters come out`);
+    assert.ok(S.count >= 6);
+    assert.equal(out.filter((m) => m.kind === 'ghost').length, S.ghosts, 'ghosts among them');
+    assert.ok(out.every((m) => Math.hypot(m.x - H.door.x, m.z - H.door.z) < 1), 'all out of the door');
+    const ox = H.door.x - H.x, oz = H.door.z - H.z, ol = Math.hypot(ox, oz);
+    X.setPose('a', H.door.x + (ox / ol) * 9, H.door.z + (oz / ol) * 9); // ran off down the path
+    for (let i = 0; i < 15; i++) X.tick(0.1);
+    let close = Infinity;
+    for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) close = Math.min(close, Math.hypot(out[i].x - out[j].x, out[i].z - out[j].z));
+    assert.ok(close > C.SEPARATION * 0.6, `fanned out, not piled up (closest pair ${close.toFixed(2)} m)`);
+    assert.ok(out.every((m) => !m.burst && m.state === 'chase' && m.target === 'a'), 'then every one chases the knocker');
+    for (let i = 0; i < (C.DIFFICULTY[level].trickLife + 1) * 10; i++) X.tick(0.1);
+    assert.equal(X.monsters.filter((m) => m.trick).length, 0, 'and they go home when their time is up');
+    assert.equal(of('mon-').length, S.count);
+  }
+  console.log(`✔ a trick lets a swarm out of the house: ${C.LEVELS.map((l) => `${C.DIFFICULTY[l].swarm.count} (${C.DIFFICULTY[l].swarm.ghosts} ghosts)`).join(' / ')}, fanned out, chasing, gone after their time`);
+}
 { // ghost: exactly -10, then protection: no second hit within 2.5 s
   const { X, of } = fresh();
   X.players.get('a').score = 30;
@@ -152,7 +187,7 @@ function fresh(seed = 7) {
   assert.equal(X.players.get('a').score, 20, 'protected right after a hit');
   console.log('✔ ghost takes 10, then the player is protected');
 }
-{ // zombie: slows for 5 s, no points lost
+{ // zombie: slows (5 s on the default level, medium: 4 s), no points lost
   const { X, of } = fresh();
   X.players.get('a').score = 30;
   X.setPose('a', 0, 12); X.setPose('b', 0, -12);
@@ -160,20 +195,27 @@ function fresh(seed = 7) {
   for (let i = 0; i < 10; i++) X.tick(0.1);
   const h = of('hit').find((e) => e.id === 'a');
   assert.ok(h && h.by === 'zombie' && h.slow, 'zombie slows');
-  assert.ok(Math.abs(h.slow - X.rt - 5) < 1.1, 'for about 5 s');
+  assert.ok(Math.abs(h.slow - X.rt - X.cfg.zombie.slow) < 1.1, `for about ${X.cfg.zombie.slow} s`);
   assert.equal(X.players.get('a').score, 30, 'zombies take no candy');
-  console.log('✔ zombie slows for 5 s');
+  console.log(`✔ zombie slows for ${X.cfg.zombie.slow} s (${C.LEVELS.map((l) => C.DIFFICULTY[l].zombie.slow).join(' / ')} s by level)`);
 }
-{ // levels: easy has fewer, slower monsters than hard
-  const count = (level) => { const X = new Authority({ emit: () => {}, snapshot: () => {}, seed: 3 }); X.start([{ id: 'a', name: 'A', costume: 'none' }], level); return X.monsters.length; };
-  assert.equal(count('easy'), 3); assert.equal(count('medium'), 4); assert.equal(count('hard'), 7);
+{ // levels: the five creatures on every level; easy has fewer, slower monsters than hard
+  const made = (level) => { const X = new Authority({ emit: () => {}, snapshot: () => {}, seed: 3 }); X.start([{ id: 'a', name: 'A', costume: 'none' }], level); return X.monsters; };
+  for (const level of C.LEVELS) {
+    const zs = made(level).filter((m) => m.kind === 'zombie');
+    assert.deepEqual(zs.map((m) => m.id), ['z1', 'z2', 'z3', 'z4', 'z5'], `${level}: five creatures, one per route`);
+    assert.equal(new Set(zs.map((m) => m.path)).size, 5, 'each on its own route');
+  }
+  assert.equal(made('easy').length, 7); assert.equal(made('medium').length, 7); assert.equal(made('hard').length, 9);
   const [E, Md, H] = C.LEVELS.map((l) => C.DIFFICULTY[l]);
   for (const k of ['ghost', 'zombie']) assert.ok(E[k].chase < Md[k].chase && Md[k].chase < H[k].chase && E[k].detect < H[k].detect && E[k].maxChase < H[k].maxChase, `${k}s get faster and keener`);
+  assert.ok(E.zombie.slow < Md.zombie.slow && Md.zombie.slow < H.zombie.slow, 'a creature holds you longer on harder levels');
+  assert.ok(E.swarm.count >= 6 && E.swarm.count <= Md.swarm.count && Md.swarm.count <= H.swarm.count, 'a trick lets out 6 or more monsters, more on harder levels');
   assert.ok(E.invulnerable > Md.invulnerable && Md.invulnerable > H.invulnerable);
   for (const k of ['candy', 'orbs', 'gems', 'banished', 'scareLoot', 'rain']) assert.ok(E.help[k] >= Md.help[k] && Md.help[k] >= H.help[k] && E.help[k] > H.help[k], `less ${k} on harder levels`);
   assert.ok(E.help.gemFirst < H.help.gemFirst && E.help.orbBack < H.help.orbBack);
   assert.ok(H.ghost.chase > C.MOVE.run * 0.9 && H.ghost.chase * H.madnessSpeed > C.MOVE.run && H.ghost.chase * H.madnessSpeed < C.MOVE.run * C.AUTORUN.mul, 'hard ghosts nearly keep up with a run, outrun it in the Madness, and only a sprint escapes');
-  console.log('✔ levels: easy 3 monsters, medium 4, hard 7; harder levels hand out less candy, fewer orbs and gems');
+  console.log('✔ levels: the five creatures on every level (2 / 2 / 4 ghosts); harder levels: faster, keener monsters, bigger swarms, less candy, fewer orbs and gems');
 }
 { // giant gem: monsters can't hurt you, they flee, and touching one scares it off with its candy
   const { X, of } = fresh();
@@ -225,7 +267,7 @@ function fresh(seed = 7) {
   assert.ok(!('speed' in C.POWERUPS) && 'rain' in C.POWERUPS && 'ghost' in C.GEMS);
   console.log(`✔ every power lasts 20 s (${[...C.GEM_KINDS, ...C.POWERUP_KINDS].join(', ')}); the round lasts 180 s`);
 }
-{ // ghost gem: monsters can't see you, a chasing one gives up, nothing hurts you, webs don't stick
+{ // ghost gem: monsters can't see you, a chasing one gives up, nothing hurts you, not even a trick's swarm
   const { X, of } = fresh();
   X.players.get('a').score = 30;
   X.setPose('a', 0, 12); X.setPose('b', 0, -20);
@@ -240,16 +282,18 @@ function fresh(seed = 7) {
   assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'zombies ignore a ghost too');
   assert.equal(X.players.get('a').score, 30);
   X.monsters = [];
-  // a web trick doesn't hold a ghost
-  for (let i = 0; i < 400 && !of('house').some((e) => e.trick === 'web'); i++) {
+  // a trick's swarm can't see a ghost either
+  for (let i = 0; i < 400 && !of('house').some((e) => e.trick === 'swarm'); i++) {
     X.houses[2].until = -1; X.setPose('a', HOUSES[2].door.x, HOUSES[2].door.z); X.intent('a', { kind: 'knock', house: 2 });
   }
-  assert.ok(of('house').some((e) => e.trick === 'web'), 'got a web trick');
-  assert.ok(!of('hit').some((h) => h.id === 'a' && h.by === 'web'), 'a ghost floats through webs');
+  assert.ok(of('house').some((e) => e.trick === 'swarm'), 'got a swarm trick');
+  for (let i = 0; i < 30; i++) { X.setPose('a', HOUSES[2].door.x, HOUSES[2].door.z); X.tick(0.1); }
+  assert.ok(!of('hit').some((h) => h.id === 'a'), 'the swarm walks past a ghost');
+  X.monsters = [];
   const left = X.players.get('a').fx.ghost - X.rt;
   for (let i = 0; i < (left + 0.3) * 10; i++) X.tick(0.1);
   assert.ok(of('fx-end').some((e) => e.id === 'a' && e.kind === 'ghost'), 'ghost form ends');
-  console.log('✔ ghost gem: monsters lose you, no hits from ghosts or zombies, webs don\'t stick, it wears off');
+  console.log('✔ ghost gem: monsters lose you, no hits from ghosts, zombies or a swarm, it wears off');
 }
 { // candy rain: candy falls round its player, can be taken once it lands, and melts away if left
   const { X, of } = fresh();

@@ -3,9 +3,10 @@
 // generator, checks every request (knock, pickup, power-up) against the shared state, and announces
 // the outcome as numbered events plus 10 Hz snapshots. Clients never roll dice or award points.
 //
-// Houses (trick or treat, 15 s cooldown), candy (one id, one owner; a candy rain drops more round
-// its player), monsters (patrol → chase → attack → recover → return, or flee and get scared off,
-// blind to anyone turned ghost), power-ups, gems, the level and Monster Madness all live here.
+// Houses (trick or treat, 15 s cooldown; a trick lets a swarm of monsters out), candy (one id, one
+// owner; a candy rain drops more round its player), monsters (patrol → chase → attack → recover →
+// return, or flee and get scared off, blind to anyone turned ghost), power-ups, gems, the level and
+// Monster Madness all live here.
 import { rng } from '../rng.js';
 import * as C from './config.js';
 import { CANDY_SPOTS, DOOR_RANGE, HOUSES, MAP_R, ORB_SPOTS, PATROLS, SPAWNS } from '../world/layout.js';
@@ -59,7 +60,7 @@ export class Authority {
     this.orbSeq = 0;
     this.orbQueue = [];
     this.monsters = [];
-    this.monsterSeq = 0;
+    this.monsterSeq = { ghost: 0, zombie: 0 }; // ids per kind: z1..z5 are the five creatures' patrols
     this.gems = new Map();
     this.gemSeq = 0;
     this.nextGem = this.help.gemFirst;
@@ -148,6 +149,21 @@ export class Authority {
     if (this.gems.size < this.help.gems && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
 
     for (const m of [...this.monsters]) this.stepMonster(m, h);
+    this.separate();
+  }
+
+  /** Monsters standing too close are pushed apart (creatures then slide back out of any wall). */
+  separate() {
+    const live = this.monsters.filter((m) => m.state !== 'banished'), min = C.SEPARATION;
+    for (let i = 0; i < live.length; i++) {
+      for (let j = i + 1; j < live.length; j++) {
+        const a = live[i], b = live[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+        if (d >= min) continue;
+        const k = (min - d) / 2, nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0;
+        a.x -= nx * k; a.z -= nz * k; b.x += nx * k; b.z += nz * k;
+      }
+    }
+    for (const m of live) if (m.kind === 'zombie') [m.x, m.z] = slide(m.x, m.z, 0.35);
   }
 
   startMadness() {
@@ -228,23 +244,14 @@ export class Authority {
       p.score += pts;
       this.emit({ e: 'house', house, by: p.id, kind: 'treat', candies, pts, score: p.score, until });
     } else if (r < C.HOUSE_ODDS.treat + C.HOUSE_ODDS.trick) {
-      if (this.R() < C.TRICK_ROB) { // the house keeps every piece of candy you carry, unless a shield stops it
-        const shielded = p.fx.shield > rt, lost = shielded ? 0 : p.score;
-        p.score -= lost;
-        this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick: 'rob', lost, score: p.score, until });
-        if (shielded) this.protect(p, 'rob');
-        return;
-      }
-      const trick = C.TRICKS[Math.floor(this.R() * C.TRICKS.length)];
-      this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick, score: p.score, until });
-      const h = HOUSES[house];
-      if (trick === 'ghost') {
-        const m = this.addMonster('ghost', null, h.door.x, h.door.z);
-        Object.assign(m, { trick: true, life: this.D.trickLife, state: 'chase', target: p.id, t: 0 });
-      } else if (!(p.fx.giant > rt) && !(p.fx.ghost > rt) && !this.protect(p, 'web')) { // a giant tears through a web, a ghost floats through it
-        p.fx.slow = rt + C.TRAP_SLOW;
-        this.emit({ e: 'hit', id: p.id, by: 'web', slow: p.fx.slow });
-      }
+      // A swarm of monsters pours out of the door after you; one time in five the house also keeps every
+      // piece of candy you carry, unless a shield stops it.
+      const rob = this.R() < C.TRICK_ROB, shielded = rob && p.fx.shield > rt, lost = rob && !shielded ? p.score : 0;
+      p.score -= lost;
+      const n = this.D.swarm.count;
+      this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick: rob ? 'rob' : 'swarm', n, lost, score: p.score, until });
+      if (shielded) this.protect(p, 'rob');
+      this.swarm(p, HOUSES[house]);
     } else {
       let pts = C.CANDY[C.JACKPOT.candy].points * dbl, power = null;
       if (!p.held) { power = C.POWERUP_KINDS[Math.floor(this.R() * C.POWERUP_KINDS.length)]; p.held = power; } else pts += C.JACKPOT.fullSlotBonus * dbl;
@@ -350,8 +357,24 @@ export class Authority {
     });
   }
 
+  /**
+   * A trick: the level's swarm (ghosts and creatures) bursts out of the house in a fan in front of the
+   * door, then every one of them chases the player who knocked until its time runs out or it attacks.
+   */
+  swarm(p, h) {
+    const { count, ghosts } = this.D.swarm;
+    const ox = h.door.x - h.x, oz = h.door.z - h.z, ol = Math.hypot(ox, oz), fx = ox / ol, fz = oz / ol; // out of the door
+    const ghostAt = new Set(Array.from({ length: ghosts }, (_, i) => Math.floor(((i + 0.5) * count) / ghosts))); // spread through the fan
+    for (let k = 0; k < count; k++) {
+      const a = ((k + 0.5) / count - 0.5) * 2.4, r = C.SWARM.spread * (k % 2 ? 0.65 : 1); // two ragged rows
+      const bx = h.door.x + (fx * Math.cos(a) - fz * Math.sin(a)) * r, bz = h.door.z + (fz * Math.cos(a) + fx * Math.sin(a)) * r;
+      const m = this.addMonster(ghostAt.has(k) ? 'ghost' : 'zombie', null, h.door.x - fx * 0.6, h.door.z - fz * 0.6);
+      Object.assign(m, { trick: true, life: this.D.trickLife, state: 'chase', target: p.id, t: 0, burst: { x: bx, z: bz }, yaw: Math.atan2(fx, fz) * 57.2958 });
+    }
+  }
+
   addMonster(kind, path, x, z) {
-    const m = { id: `${kind[0]}${++this.monsterSeq}`, kind, path, wp: 0, x, z, yaw: 0, state: 'patrol', target: null, t: 0, cool: 1, loot: 0 };
+    const m = { id: `${kind[0]}${++this.monsterSeq[kind]}`, kind, path, wp: 0, x, z, yaw: 0, state: 'patrol', target: null, t: 0, cool: 1, loot: 0 };
     if (path) m.wp = this.nearestWp(m);
     this.monsters.push(m);
     this.emit({ e: 'mon+', id: m.id, kind, x, z });
@@ -425,6 +448,10 @@ export class Authority {
       m.life -= h;
       if (m.life <= 0) { this.removeMonster(m); return; }
     }
+    if (m.burst) { // out of the door first, fanning out, then after its victim
+      if (this.moveToward(m, m.burst.x, m.burst.z, C.SWARM.burst, h) < 0.3 || m.t > 1.2) delete m.burst; // (blocked: on with the chase)
+      return;
+    }
     if (m.state === 'banished') { // scared off: away for a while, then back on its route
       if (m.t > this.help.banished) {
         if (m.trick) { this.removeMonster(m); return; }
@@ -495,7 +522,7 @@ export class Authority {
     if (this.protect(p, m.kind)) return;
     p.inv = rt + this.D.invulnerable;
     if (m.kind === 'zombie') {
-      p.fx.slow = rt + cfg.slow;
+      p.fx.slow = rt + cfg.slow; // longer on harder levels
       this.emit({ e: 'hit', id: p.id, by: m.kind, mon: m.id, slow: p.fx.slow });
     } else {
       const loss = Math.min(p.score, cfg.penalty);

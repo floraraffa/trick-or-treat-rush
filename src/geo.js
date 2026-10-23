@@ -172,7 +172,8 @@ export class Geo {
     return this;
   }
 
-  build(device, material, name = 'geo') {
+  /** The GPU mesh (to share between several entities, see build). */
+  mesh(device) {
     const mesh = new Mesh(device);
     mesh.setPositions(this.p);
     mesh.setNormals(this.n);
@@ -180,8 +181,12 @@ export class Geo {
     mesh.setColors32(this.c.map((x) => Math.max(0, Math.min(255, Math.round(x)))));
     mesh.setIndices(this.p.length / 3 > 65535 ? new Uint32Array(this.i) : new Uint16Array(this.i));
     mesh.update();
+    return mesh;
+  }
+
+  build(device, material, name = 'geo') {
     const e = new Entity(name);
-    e.addComponent('render', { meshInstances: [new MeshInstance(mesh, material)] });
+    e.addComponent('render', { meshInstances: [new MeshInstance(this.mesh(device), material)] });
     return e;
   }
 }

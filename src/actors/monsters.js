@@ -1,7 +1,7 @@
 // MonsterManager (the drawing side): each monster the authority announces gets a body here, drawn
 // where the snapshots put it (interpolated) and animated by its state. Not gory, a little uncanny:
 // a small translucent ghost whose eyes flare red when it gives chase (and that turns a frightened blue
-// when a giant or a candy thief is after it), and the team's four drawn creatures (creatures.js) in
+// when a giant or a candy thief is after it), and the team's five drawn creatures (creatures.js) in
 // the role of the monsters that slow you down (the authority's 'zombie' kind), each walking or gliding
 // its own way, leaning in to chase and shuddering, gone blue, when a gem frightens it.
 // A monster that gets scared off spins away into nothing.
@@ -39,8 +39,12 @@ function ghostFace() {
   return g;
 }
 
-/** Which of the five creatures a monster is: the same on every device (from its id and the round), changing each round. */
-const creatureOf = (id, round) => CREATURES[(parseInt(String(id).slice(1), 10) + (round | 0)) % CREATURES.length];
+/**
+ * Which of the five creatures a monster is: the same on every device (from its id and the round). The
+ * five patrols (z1..z5) are always the five different creatures, on routes that change each round; a
+ * trick's swarm (z6 on) cycles through them too.
+ */
+const creatureOf = (id, round) => CREATURES[(parseInt(String(id).slice(1), 10) - 1 + (round | 0)) % CREATURES.length];
 
 export function createMonsters(app, fx, { base = './assets/' } = {}) {
   const root = new Entity('monsters');

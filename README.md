@@ -55,11 +55,11 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Sistema | Detalle |
 |---|---|
 | Ronda | 3-2-1-GO, **180 s exactos** (reloj real del anfitrión), últimos 60 s **Monster Madness**, fin compartido y puntajes bloqueados |
-| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). Cada nivel fija los monstruos y **cuánta ayuda reparte la noche** (`DIFFICULTY` en `config.js`). **Easy**: 2 fantasmas y 1 criatura lentos, 26 caramelos en las calles, 4 orbes (vuelven a los 8 s), gemas desde los 6 s y cada 8–12 s, tormenta de 12 caramelos/s. **Medium**: 2 + 2, 22 caramelos, 3 orbes, gemas desde los 10 s cada 10–16 s, 10 caramelos/s. **Hard, difícil de verdad**: 4 fantasmas casi tan rápidos como correr (4,8 m/s contra 5; sólo la carrera automática te despega) que ven a 12 m, persiguen hasta 11 s y **apuntan adonde vas** para cortarte el paso; 3 criaturas; en la Madness los fantasmas corren más que vos y sólo el sprint escapa; 2 s de protección tras un golpe; 16 caramelos en las calles, 2 orbes (25 s para volver), una gema a la vez desde los 30 s y cada 30–40 s, monstruos espantados que vuelven a los 2 s y sólo sueltan lo que robaron, tormenta de 7 caramelos/s |
-| Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (sale un fantasma, te atrapa una telaraña o, una de cada cinco veces, **la casa te roba todos los caramelos**: ~4 % de las visitas; el escudo lo evita), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
+| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). **Las cinco criaturas aparecen en todos los niveles** (cada una en su propio recorrido); lo que cambia es qué tan rápidos y atentos son los monstruos y **cuánta ayuda reparte la noche** (`DIFFICULTY` en `config.js`). **Easy**: 2 fantasmas y 5 criaturas lentas (1,5 m/s, te ven a 4,5 m, te frenan 3 s), un truco suelta 6 monstruos, 26 caramelos en las calles, 4 orbes (vuelven a los 8 s), gemas desde los 6 s y cada 8–12 s, tormenta de 12 caramelos/s. **Medium**: 2 fantasmas + 5 criaturas (1,9 m/s, te frenan 4 s), trucos de 7 monstruos, 22 caramelos, 3 orbes, gemas desde los 10 s cada 10–16 s, 10 caramelos/s. **Hard, difícil de verdad**: 4 fantasmas casi tan rápidos como correr (4,8 m/s contra 5; sólo la carrera automática te despega) que ven a 12 m, persiguen hasta 11 s y **apuntan adonde vas** para cortarte el paso; 5 criaturas rápidas (2,8 m/s, te ven a 8,5 m, te frenan 5 s); trucos de 8 monstruos; en la Madness los fantasmas corren más que vos y sólo el sprint escapa; 2 s de protección tras un golpe; 16 caramelos en las calles, 2 orbes (25 s para volver), una gema a la vez desde los 30 s y cada 30–40 s, monstruos espantados que vuelven a los 2 s y sólo sueltan lo que robaron, tormenta de 7 caramelos/s |
+| Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (**de la casa sale una manada de monstruos** a perseguirte: 6 / 7 / 8 según el nivel, fantasmas y criaturas, que salen en abanico por la puerta y te persiguen 6 / 9 / 15 s; y una de cada cinco veces, además, **la casa te roba todos los caramelos**: ~4 % de las visitas; el escudo lo evita), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
-| Monstruos | fantasma: −10 caramelos (y se los guarda); **criaturas** (los dibujos del equipo, ver Arte): te frenan 5 s; protección después de cada golpe (5 / 3,5 / 2 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; las criaturas rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma; en Medium y Hard apuntan adelante de un jugador que corre |
-| Gemas | **todas duran 20 s**; aparecen con un haz de luz (cuándo y cuántas, según el nivel), de clases distintas si hay dos; **gigante** (roja): crecés ×5 (alto como una casa; pasás por encima de árboles, faroles, cercas y tumbas sin trabarte; agarrás todo lo que está cerca de tus pies y los monstruos te ven desde lejos), los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven un rato después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás lo que le haya quitado a los jugadores más un extra (15 / 10 / 0 según el nivel); **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
+| Monstruos | fantasma: −10 caramelos (y se los guarda); **criaturas** (los dibujos del equipo, ver Arte; las cinco en todos los niveles): te frenan 3 / 4 / 5 s según el nivel; protección después de cada golpe (5 / 3,5 / 2 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; las criaturas rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma; en Medium y Hard apuntan adelante de un jugador que corre |
+| Gemas | **todas duran 20 s**; aparecen con un haz de luz (cuándo y cuántas, según el nivel), de clases distintas si hay dos; **gigante** (roja): crecés ×5 (alto como una casa; pasás por encima de árboles, faroles, cercas y tumbas sin trabarte; agarrás todo lo que está cerca de tus pies y los monstruos te ven desde lejos), los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven un rato después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás lo que le haya quitado a los jugadores más un extra (15 / 10 / 0 según el nivel); **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos (también la manada de un truco) no te ven ni te dañan, atravesás a los fantasmas y las paredes |
 | Power-ups | **todos duran 20 s**: **tormenta de caramelos** (una nube negra te sigue, caen rayos con destello, trueno y lluvia, y **llueven caramelos del cielo**: 12 / 10 / 7 por segundo según el nivel, unos 200 en Medium; se agarran al tocar el suelo y los que nadie agarra se desvanecen a los 8 s; los demás jugadores ven tu nube y también pueden agarrarlos), escudo mágico (para un ataque), **imán** (atrae caramelos desde **16 m**: vuelan hacia vos), caramelos dobles; un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
 | Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,3), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
@@ -75,9 +75,12 @@ una persona.
 
 | Nivel | caramelos al final | golpes de monstruos | caramelos perdidos por golpes | gemas agarradas |
 |---|---|---|---|---|
-| Easy | 1537 | 1,2 | 9 | 8,8 |
-| Medium | 874 | 3,5 | 24 | 6,0 |
-| Hard | 117 | 31,0 | 87 | 0,3 |
+| Easy | 2267 | 0,4 | 2 | 7,3 |
+| Medium | 672 | 5,1 | 25 | 3,3 |
+| Hard | 164 | 27,2 | 86 | 0,6 |
+
+Medido con las cinco criaturas en todos los niveles y la manada de monstruos de los trucos. En Easy el bot junta
+más que antes porque, con más monstruos cerca, la gema gigante y la ladrona espantan más (cada uno suelta caramelos).
 
 La versión anterior de Hard (3 fantasmas a 3,6 m/s, la misma ayuda que los otros niveles) daba 635 caramelos y 9
 golpes con este mismo bot, contra 703 y 1,7 en Easy: con las gemas y power-ups de 20 s casi no se notaba la
@@ -117,14 +120,25 @@ acostado en la cabeza), el de los *anteojos* (cabezota gris de pelo negro con an
 de varilla, una bola con cable), la *dama de los labios* (azul, rulos violetas, una boca en el pecho y un vestido largo
 que se vuelve fucsia abajo; se desliza sin piernas), el *gato* (cabeza de gato de ojos amarillos, bigotes, traje negro
 y corbata blanca) y el *cuello largo* (orejas de murciélago, bigotes, cuello con manchas y jardinero).
-Son marionetas 3D de teatro de papel: cada parte (cabeza, cuello, torso, brazos, piernas, vestido) es un recorte del
-dibujo inflado con volumen; adelante muestra el dibujo tal cual y **la espalda se pinta con la textura del propio
-dibujo** tomada de esa parte (pelo, pelaje, tela, rayas), así por detrás y de costado se ve pelo, pelaje o vestido.
+Son marionetas 3D de teatro de papel, **macizas**: `npm run creatures` recorta cada dibujo de su fondo (también el
+blanco de la cara del gato, que se confundía con el damero porque los bigotes blancos lo conectaban, y los huecos de
+damero encerrados entre las varillas de las piernas del de los anteojos) y traza cada parte. Las cabezas, el torso de
+lata, el de la dama y la bola se inflan desde su **contorno real** como una unión de esferas (la esfera más grande que
+entra en cada punto), con los huecos rellenos: orejas, rulos y el gatito en el pelo de la nena tienen su propio
+volumen y nada queda hueco al mirarlas de costado. Brazos, piernas, cuellos, vestido y torsos finos son tubos que
+siguen el ancho del dibujo fila por fila; si el dibujo tiene huecos adentro (las piernas de varillas), quedan como una
+ranura oscura, nunca un agujero. Adelante se ve el dibujo tal cual; **la espalda tiene su propia pintura** en la misma
+textura (a la derecha, a media resolución): pelo, pelaje, lata o tela tejidos con parches del propio dibujo a su
+escala real, que se funden con los colores del dibujo en el borde, así no hay costura. A la nena se le agregó un cuello
+(debajo del mentón) para que no quede un hueco cuando ladea la cabeza. Las mallas de cada criatura se construyen una
+sola vez y las comparten todas sus copias (un truco suelta muchas a la vez).
 Los brazos van articulados en los hombros: cuelgan y se balancean al caminar, se estiran hacia adelante al
-perseguirte y se agitan al huir; cada una mueve la cabeza a su manera (la cabezota de los anteojos se bambolea, el cuello largo se mece, el
-gato ladea la cabeza), se inclina al perseguirte y tiembla, azulada, si una gema la asusta. Ocupan el lugar del
-zombie (mismas reglas); cuál aparece se decide por el número del monstruo y de la ronda,
-igual en todos los dispositivos, y rota de ronda en ronda: en Hard hay tres a la vez, en Medium dos, en Easy una.
+perseguirte y se agitan al huir; cada una mueve la cabeza a su manera (la cabezota de los anteojos se bambolea, el
+cuello largo se mece, el gato ladea la cabeza), se inclina al perseguirte y tiembla, azulada, si una gema la asusta.
+Ocupan el lugar del zombie (mismas reglas). **Las cinco están en todos los niveles**, cada una en su propio recorrido
+(este, oeste, la calle norte, la calle sur y el cementerio); cuál camina cada recorrido rota de ronda en ronda, igual
+en todos los dispositivos. Revisarlas de todos los lados: `dev/creatures.html?name=catgirl` (con `&anim=1`, `chase` o
+`flee`).
 
 Rayos de la tormenta: un canal nuevo en cada descarga (desplazamiento de punto medio, con ramas), cintas planas
 vueltas a la cámara con núcleo blanco y halo azulado, 3–4 parpadeos en 0,4 s, y una luz que ilumina el suelo, la nube

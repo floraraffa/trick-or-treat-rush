@@ -239,7 +239,7 @@ export const ORB_SPOTS = [[0, 5.5], [5.5, 0], [-5.5, 0], [0, -24.6], ...[0.5, 2.
 /** Player spawn points around the clock tower (up to four), facing out. */
 export const SPAWNS = [45, 135, 225, 315].map((deg) => { const [x, z] = polar(deg * D2R, 5); return { x, z, yaw: Math.atan2(x, z) / D2R }; });
 
-/** Patrol loops: ghosts drift round the ring and out of the cemetery; zombies shamble east and west. */
+/** Patrol loops: ghosts drift round the ring and out of the cemetery; the five creatures (zombies) each walk their own corner of the village. */
 const ringLoop = (from, to, n, r = 0) => Array.from({ length: n + 1 }, (_, i) => { const a = (from + (to - from) * (i / n)) * D2R; return polar(a, ringR(a) + r); });
 export const PATROLS = {
   ghost: [
@@ -252,8 +252,12 @@ export const PATROLS = {
   zombie: [
     [[6, 0], [12, 1], ...ringLoop(0, 75, 4), [3.5, 11], [0, 7.4], [5.2, 4.6]],
     [[-6, 0], [-12, -1], ...ringLoop(180, 255, 4), ...ringLoop(255, 180, 4, 0.8).slice(1), [-7.4, 1.5]],
-    // hard only: down the south street and back along the south-east ring
+    // up the north street and back along the north-east ring
     [[0.5, -10], [0.6, -14], ...ringLoop(270, 360, 5), [12, 1], [7, 0], [4.5, -4.5]],
+    // down the south street and round the south-west ring
+    [[0, 9.6], [0.4, 13.4], ...ringLoop(90, 150, 5), ...ringLoop(150, 90, 5, 0.8), [-0.6, 12.6]],
+    // up the cemetery's central path, between the graves to the mausoleum and back
+    [[0, -12], [0, -20.4], [-1.4, -22.6], [-1.4, -25.8], [1.4, -25.8], [1.4, -22.6], [0, -20.4]],
   ],
 };
 export const GIANT_SPAWN = { x: 0, z: -27 };

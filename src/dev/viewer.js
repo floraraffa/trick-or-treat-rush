@@ -46,7 +46,7 @@ if (new URLSearchParams(location.search).has('avatars')) {
   Promise.all(all.map((a) => a.ready)).then(() => setTimeout(() => { window.__ready = true; }, 2500));
   app.on('update', (dt) => all.forEach((a) => a.update(dt, 4)));
 }
-// ?creatures: the four drawn creatures in a row (&anim=1 walks them on the spot).
+// ?creatures: the five drawn creatures in a row (&anim=1 walks them on the spot; dev/creatures.html shows one from every side).
 if (new URLSearchParams(location.search).has('creatures')) {
   const { CREATURES, animateCreature, createCreature } = await import('../actors/creatures.js');
   const { StandardMaterial } = await import('playcanvas');

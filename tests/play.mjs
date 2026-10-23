@@ -132,6 +132,26 @@ console.log(`✔ candy storm: a piece fell ${Math.hypot(drop.x, drop.z - 9).toFi
   console.log('✔ ghost: the Bitmoji turns ghostly, floats into a house, and is solid again afterwards');
 }
 
+// A trick's swarm: six or more monsters burst out of a door, each drawn on this device (forced through the
+// authority, since a knock's outcome is random).
+{
+  const before = await G(() => window.__game.view.monsters.size);
+  const n = await G(() => {
+    const g = window.__game, h = g.houses[2], A = g.session.authority, ox = h.door.x - h.x, oz = h.door.z - h.z, l = Math.hypot(ox, oz), yaw = Math.atan2(-ox, -oz) * 57.2958;
+    g.player.place(h.door.x + (ox / l) * 7, h.door.z + (oz / l) * 7, yaw); g.camCtl.snapBehind(yaw);
+    const p = A.players.get(g.me.id); p.inv = A.rt + 30; // (watch them come, don't get caught)
+    A.swarm(p, h);
+    return A.D.swarm.count;
+  });
+  assert.ok(n >= 6);
+  await page.waitForFunction((k) => window.__game.view.monsters.size >= k, before + n, { timeout: 20000 });
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${out}/p3d-swarm.png` });
+  await G(() => { const A = window.__game.session.authority; for (const m of A.monsters.filter((o) => o.trick)) A.removeMonster(m); A.players.get(window.__game.me.id).inv = 0; });
+  await page.waitForFunction((k) => window.__game.view.monsters.size <= k, before, { timeout: 20000 });
+  console.log(`✔ trick swarm: ${n} monsters burst out of the door and are drawn (${before} → ${before + n} monsters), then go`);
+}
+
 // A gem: wait for one, walk onto it, get its power (a giant grows).
 await G(() => window.__game.skip(Math.max(0, 11 - window.__game.view.rt())));
 const gem = await (await page.waitForFunction(() => { const g = [...window.__game.view.gems.values()][0]; return g ? { id: g.id, kind: g.kind, x: g.x, z: g.z } : null; }, null, { timeout: 60000 })).jsonValue();
