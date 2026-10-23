@@ -38,6 +38,7 @@ export class Authority {
     this.round++;
     this.level = C.LEVELS.includes(level) ? level : C.DEFAULT_LEVEL;
     this.D = C.DIFFICULTY[this.level];
+    this.help = this.D.help;
     this.cfg = { ghost: { ...C.MONSTERS.ghost, ...this.D.ghost }, zombie: { ...C.MONSTERS.zombie, ...this.D.zombie } };
     this.phase = 'countdown';
     this.clock = 0; // seconds since start; round time rt = clock - COUNTDOWN
@@ -48,7 +49,7 @@ export class Authority {
     this.players = new Map();
     roster.slice(0, C.MAX_PLAYERS).forEach((p, i) => {
       const s = SPAWNS[i];
-      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, rain: 0, x: s.x, z: s.z });
+      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, rain: 0, x: s.x, z: s.z, vx: 0, vz: 0, poseAt: null });
     });
     this.houses = HOUSES.map(() => ({ until: -Infinity }));
     this.candies = new Map();
@@ -61,13 +62,13 @@ export class Authority {
     this.monsterSeq = 0;
     this.gems = new Map();
     this.gemSeq = 0;
-    this.nextGem = C.GEM_FIRST;
+    this.nextGem = this.help.gemFirst;
     this.emit({
       e: 'start', round: this.round, level: this.level,
       players: [...this.players.values()].map((p, i) => ({ id: p.id, name: p.name, costume: p.costume, spawn: SPAWNS[i] })),
     });
-    for (let k = 0; k < C.CANDY_ON_MAP; k++) this.spawnCandy();
-    for (let k = 0; k < C.ORBS_ON_MAP; k++) this.spawnOrb();
+    for (let k = 0; k < this.help.candy; k++) this.spawnCandy();
+    for (let k = 0; k < this.help.orbs; k++) this.spawnOrb();
     this.spawnPatrols();
     this.sendSnapshot();
   }
@@ -77,10 +78,17 @@ export class Authority {
   /** Freezes the round (single-player only: the Lens went to the background). */
   pause(on) { this.paused = on; }
 
-  /** Last known position of a player (from their pose messages). */
+  /** Last known position of a player (from their pose messages), and how fast they're going (for monsters that aim ahead). */
   setPose(id, x, z) {
     const p = this.players.get(id);
-    if (p && Number.isFinite(x) && Number.isFinite(z)) { p.x = x; p.z = z; }
+    if (!p || !Number.isFinite(x) || !Number.isFinite(z)) return;
+    const gap = p.poseAt === null ? 0 : this.clock - p.poseAt;
+    if (gap >= 0.05) {
+      const k = Math.min(1, gap * 4), vx = (x - p.px) / gap, vz = (z - p.pz) / gap;
+      if (Math.hypot(vx, vz) < 15) { p.vx += (vx - p.vx) * k; p.vz += (vz - p.vz) * k; } // (a jump, like a respawn, isn't speed)
+    }
+    if (p.poseAt === null || gap >= 0.05) { p.px = x; p.pz = z; p.poseAt = this.clock; }
+    p.x = x; p.z = z;
   }
 
   /** A player left the room: their score stays in the ranking, monsters stop chasing them. */
@@ -130,14 +138,14 @@ export class Authority {
       if (c.spot >= 0) onStreets++;
       else if (c.gone <= rt) { this.candies.delete(c.id); this.emit({ e: 'candy-', id: c.id, gone: true }); } // rain candy nobody took
     }
-    const target = this.madness ? C.CANDY_ON_MAP_MADNESS : C.CANDY_ON_MAP;
+    const target = this.madness ? this.help.candyMadness : this.help.candy;
     if (onStreets + this.candyQueue.length < target) this.queueCandy();
     for (const p of this.players.values()) {
       if (p.gone || !(p.fx.rain > rt)) continue;
-      p.rain += h * C.POWERUPS.rain.rate;
+      p.rain += h * this.help.rain;
       while (p.rain >= 1) { p.rain -= 1; this.rainCandy(p); }
     }
-    if (this.gems.size < C.GEMS_ON_MAP && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
+    if (this.gems.size < this.help.gems && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
 
     for (const m of [...this.monsters]) this.stepMonster(m, h);
   }
@@ -184,7 +192,7 @@ export class Authority {
       const used = !!p.held;
       if (used) { p.fx[o.kind] = rt + C.POWERUPS[o.kind].dur; if (o.kind === 'rain') p.rain = 1; } else p.held = o.kind;
       this.emit({ e: 'orb-', id: o.id, by: p.id, kind: o.kind, used, until: used ? p.fx[o.kind] : undefined });
-      this.orbQueue.push(rt + C.ORB_RESPAWN);
+      this.orbQueue.push(rt + this.help.orbBack);
       this.orbQueue.sort((a, b) => a - b);
     } else if (msg.kind === 'gem') {
       const g = this.gems.get(msg.id);
@@ -306,7 +314,8 @@ export class Authority {
     const kinds = C.GEM_KINDS.filter((k) => !out.has(k));
     const g = { id: ++this.gemSeq, kind: kinds[Math.floor(this.R() * kinds.length)], x: s.x, z: s.z, spot: s.i };
     this.gems.set(g.id, g);
-    this.nextGem = this.rt + C.GEM_EVERY[0] + this.R() * (C.GEM_EVERY[1] - C.GEM_EVERY[0]);
+    const [a, b] = this.help.gemEvery;
+    this.nextGem = this.rt + a + this.R() * (b - a);
     this.emit({ e: 'gem+', id: g.id, kind: g.kind, x: g.x, z: g.z });
   }
 
@@ -410,7 +419,7 @@ export class Authority {
       if (m.life <= 0) { this.removeMonster(m); return; }
     }
     if (m.state === 'banished') { // scared off: away for a while, then back on its route
-      if (m.t > C.BANISHED) {
+      if (m.t > this.help.banished) {
         if (m.trick) { this.removeMonster(m); return; }
         const k = farthest(m.path);
         [m.x, m.z] = m.path[k];
@@ -422,7 +431,7 @@ export class Authority {
     const threat = this.nearestThreat(m, 9);
     if (threat) {
       if (m.state !== 'flee') { m.state = 'flee'; m.t = 0; m.target = threat.id; }
-      this.moveToward(m, m.x + (m.x - threat.x), m.z + (m.z - threat.z), (m.kind === 'ghost' ? 3.0 : 1.5) * mad, h);
+      this.moveToward(m, m.x + (m.x - threat.x), m.z + (m.z - threat.z), (m.kind === 'ghost' ? 3.0 : 1.5) * this.D.flee * mad, h);
       const reach = cfg.reach * (threat.fx.giant > this.rt ? C.GEMS.giant.scale : 1.3);
       if (dist(m.x, m.z, threat.x, threat.z) < reach) this.scare(m, threat);
       return;
@@ -440,7 +449,9 @@ export class Authority {
         if (!p || p.gone || this.hidden(p) || this.frightens(p, m)) { this.giveUp(m); break; }
         const d = dist(m.x, m.z, p.x, p.z);
         if (!m.trick && (d > cfg.giveUp || m.t > cfg.maxChase)) { this.giveUp(m); break; }
-        this.moveToward(m, p.x, p.z, cfg.chase * mad, h);
+        // Keen monsters aim where a running player is going, not where they are (less so up close).
+        const lead = this.D.lead * Math.min(1, d / 5);
+        this.moveToward(m, p.x + p.vx * lead, p.z + p.vz * lead, cfg.chase * mad, h);
         if (dist(m.x, m.z, p.x, p.z) < cfg.reach) this.attack(m, p);
         break;
       }
@@ -490,7 +501,7 @@ export class Authority {
   /** A giant or a candy thief caught a monster: it flees the village for a while and drops its candy. */
   scare(m, p) {
     const rt = this.rt;
-    const pts = (m.loot + C.SCARE_LOOT[m.kind]) * (p.fx.double > rt ? 2 : 1);
+    const pts = (m.loot + this.help.scareLoot) * (p.fx.double > rt ? 2 : 1);
     p.score += pts;
     this.emit({ e: 'scare', id: p.id, mon: m.id, kind: m.kind, power: p.fx.giant > rt ? 'giant' : 'thief', pts, score: p.score, x: +m.x.toFixed(2), z: +m.z.toFixed(2) });
     Object.assign(m, { loot: 0, state: 'banished', t: 0, target: null });

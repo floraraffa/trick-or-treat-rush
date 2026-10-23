@@ -169,6 +169,13 @@ export function createUI(on) {
       f.classList.add('on');
       requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
     },
+    /** A lightning flash over the screen, `k` 0..1 by how near it struck (kept soft: storms flash often). */
+    lightning(k) {
+      const b = $('bolt');
+      b.style.transition = 'none';
+      b.style.opacity = String(Math.min(0.8, k));
+      requestAnimationFrame(() => requestAnimationFrame(() => { b.style.transition = ''; b.style.opacity = '0'; }));
+    },
     madness(on) { $('madVeil').classList.toggle('on', on); },
 
     /** Floating labels over players and houses: [{ key, x, y, text, cls }] in CSS pixels. */

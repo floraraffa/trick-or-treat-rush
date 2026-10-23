@@ -55,30 +55,33 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Sistema | Detalle |
 |---|---|
 | Ronda | 3-2-1-GO, **180 s exactos** (reloj real del anfitrión), últimos 60 s **Monster Madness**, fin compartido y puntajes bloqueados |
-| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). Hard es la primera versión del juego; Medium y Easy tienen menos monstruos, más lentos, que ven menos y se rinden antes, y más protección tras un golpe |
+| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). Cada nivel fija los monstruos y **cuánta ayuda reparte la noche** (`DIFFICULTY` en `config.js`). **Easy**: 2 fantasmas y 1 zombie lentos, 26 caramelos en las calles, 4 orbes (vuelven a los 8 s), gemas desde los 6 s y cada 8–12 s, tormenta de 6 caramelos/s. **Medium**: 2 + 2, 22 caramelos, 3 orbes, gemas desde los 10 s cada 10–16 s, 5 caramelos/s. **Hard, difícil de verdad**: 4 fantasmas casi tan rápidos como correr (4,8 m/s contra 5; sólo la carrera automática te despega) que ven a 12 m, persiguen hasta 11 s y **apuntan adonde vas** para cortarte el paso; 3 zombies; en la Madness los fantasmas corren más que vos y sólo el sprint escapa; 2 s de protección tras un golpe; 16 caramelos en las calles, 2 orbes (25 s para volver), una gema a la vez desde los 30 s y cada 30–40 s, monstruos espantados que vuelven a los 2 s y sólo sueltan lo que robaron, tormenta de 3,5 caramelos/s |
 | Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (sale un fantasma o te atrapa una telaraña), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
-| Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2,5 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma |
-| Gemas | **todas duran 20 s**; la primera a los 10 s, después una cada 10–16 s, hasta 2 a la vez y de clases distintas, con un haz de luz; **gigante** (roja): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven 5 s después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás 10 caramelos más lo que le haya quitado a los jugadores; **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
-| Power-ups | **todos duran 20 s**: **lluvia de caramelos** (caen del cielo alrededor tuyo, ~1,6 por segundo, se pueden agarrar al tocar el suelo; los que nadie agarra se desvanecen a los 14 s), escudo mágico (para un ataque), **imán** (atrae caramelos desde **16 m**: vuelan hacia vos), caramelos dobles; un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
-| Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,35), caramelos especiales |
+| Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma; en Medium y Hard apuntan adelante de un jugador que corre |
+| Gemas | **todas duran 20 s**; aparecen con un haz de luz (cuándo y cuántas, según el nivel), de clases distintas si hay dos; **gigante** (roja): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven un rato después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás lo que le haya quitado a los jugadores más un extra (15 / 10 / 0 según el nivel); **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
+| Power-ups | **todos duran 20 s**: **tormenta de caramelos** (una nube negra te sigue, caen rayos con destello, trueno y lluvia, y **llueven caramelos del cielo**: 6 / 5 / 3,5 por segundo según el nivel, unos 100 en Medium; se agarran al tocar el suelo y los que nadie agarra se desvanecen a los 10 s; los demás jugadores ven tu nube y también pueden agarrarlos), escudo mágico (para un ataque), **imán** (atrae caramelos desde **16 m**: vuelan hacia vos), caramelos dobles; un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
+| Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,3), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
 | Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr); **carrera automática**: si seguís para el mismo lado 1,1 s, el Bitmoji acelera solo hasta ×1,5 la velocidad de correr (7,5 m/s, más que cualquier monstruo); al frenar o girar más de 100° vuelve al paso del joystick. Sin botón de sprint. Mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD (+ Shift para correr), E, Espacio, C |
 
 ## Dificultad medida
 
-Golpes de monstruos por ronda de 3 minutos, con un jugador simulado que corre siempre a fondo hacia el caramelo más
-cercano y escapa cuando un monstruo lo persigue; no usa gemas ni power-ups (30 rondas por nivel, simulación de la
-autoridad en Node). Es un bot torpe, sirve para comparar niveles, no para predecir a una persona:
+Una ronda de 3 minutos con un jugador simulado que juega como una persona: agarra gemas y orbes, usa los power-ups
+en el acto, golpea las puertas listas que tiene cerca, persigue monstruos cuando es gigante o ladrón, los ignora
+cuando es fantasma y si no, junta caramelos y escapa del monstruo que lo persigue, con la carrera automática
+(30 rondas por nivel, simulación de la autoridad en Node). Es un bot: sirve para comparar niveles, no para predecir a
+una persona.
 
-| Nivel | corriendo (5 m/s) | con carrera automática |
-|---|---|---|
-| Hard | 11,9 golpes · 88 caramelos | 10,2 golpes · 115 caramelos |
-| Medium | 5,2 · 84 | 4,4 · 97 |
-| Easy | 2,2 · 90 | 2,9 · 80 |
+| Nivel | caramelos al final | golpes de monstruos | caramelos perdidos por golpes | gemas agarradas |
+|---|---|---|---|---|
+| Easy | 1537 | 1,2 | 9 | 8,8 |
+| Medium | 874 | 3,5 | 24 | 6,0 |
+| Hard | 117 | 31,0 | 87 | 0,3 |
 
-Al huir, el bot da media vuelta y eso reinicia la carrera automática: por eso ayuda más a juntar caramelos que a
-escapar. (La tabla anterior, con el botón de sprint, se midió con otro bot y no es comparable.)
+La versión anterior de Hard (3 fantasmas a 3,6 m/s, la misma ayuda que los otros niveles) daba 635 caramelos y 9
+golpes con este mismo bot, contra 703 y 1,7 en Easy: con las gemas y power-ups de 20 s casi no se notaba la
+diferencia.
 
 ## Arte
 

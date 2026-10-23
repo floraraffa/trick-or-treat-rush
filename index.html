@@ -161,6 +161,7 @@
       @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 12px) scale(.7) rotate(-4deg); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1) rotate(-4deg); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(1) rotate(-4deg); } }
       #flash { background: radial-gradient(ellipse at center, rgba(120,20,60,0) 35%, rgba(140,20,40,.6) 100%); opacity: 0; transition: opacity .5s; }
       #flash.on { opacity: 1; transition: none; }
+      #bolt { background: radial-gradient(ellipse at 50% 20%, rgba(240,235,255,.5), rgba(190,180,255,.25)); opacity: 0; transition: opacity .3s; }
       #madVeil { background: radial-gradient(ellipse at center, rgba(80,0,40,0) 55%, rgba(90,10,50,.26) 100%); opacity: 0; transition: opacity 2s; }
       #madVeil.on { opacity: 1; }
       #tags { overflow: hidden; }
@@ -193,6 +194,7 @@
 
     <div id="madVeil" class="layer"></div>
     <div id="flash" class="layer"></div>
+    <div id="bolt" class="layer"></div>
     <div id="tags" class="layer"></div>
     <div id="popups" class="layer"></div>
 

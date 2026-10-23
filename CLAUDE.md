@@ -3,9 +3,12 @@
 Halloween entry for the **Lenslist Halloween Challenge**, built as a **Snap Web Lens** on the Cruise Rush base
 (PlayCanvas 2 + Vite + `@snap/web-lens-api`). Players' Bitmojis roam a gothic-storybook haunted village for 180 s,
 knock on doors (trick or treat), collect candy, dodge monsters (keep going one way and you run on your own; or scare
-them off with a gem, or turn ghost); the last minute is Monster Madness. Levels: easy, medium, hard (hard = the first
-tuning). Most candy wins. There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and
-power-up lasts 20 s: gems giant / thief / ghost (up to 2 out), power-ups candy rain / shield / magnet (16 m) / double.
+them off with a gem, or turn ghost); the last minute is Monster Madness. Levels: easy, medium, hard (the first hard
+tuning was too easy; hard is now meant to be really hard: 4 ghosts at 4.8 m/s that aim ahead, 3 zombies, scarce help).
+Most candy wins. There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
+lasts 20 s: gems giant / thief / ghost, power-ups candy storm (`rain`: a thundercloud with lightning, thunder and rain
+that pours candy, 3.5–6 a second by level) / shield / magnet (16 m) / double. How much help a night hands out (street
+candy, orbs, gems, scare loot, storm rate) is per level in `DIFFICULTY[level].help`.
 The team talks in Spanish (and French); code, comments and commits are in English.
 
 ## Platform rules (Snap Web Lenses)
@@ -34,7 +37,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.
 - `src/actors/` avatar (own Bitmoji via API, default Bitmoji for others, stand-in, costumes on joints; `setGhost`
   swaps in see-through copies of its own materials), player controller (auto-run, ghosts skip colliders), monsters,
-  candy/orbs/gems (rain falls in), power-up auras. `src/camera.js` third/first person (local only).
+  candy/orbs/gems (storm candy falls in), power-up auras (`effects.js`: also the storm's cloud and lightning, whose
+  strikes call back main.js for the flash, thunder and `village.lightning`, and the rain streaks round the camera).
+  `src/camera.js` third/first person (local only).
 - Textures: `src/textures.js` loads `public/assets/tex/<name>.webp` + `_n` normal maps made by `npm run textures`
   (`tools/fetch-textures.mjs`, Poly Haven CC0, needs network; in Claude's cloud containers run it with
   `NODE_USE_ENV_PROXY=1`). Credits in `CREDITS.md`.

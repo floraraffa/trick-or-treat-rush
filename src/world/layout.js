@@ -246,10 +246,14 @@ export const PATROLS = {
     ringLoop(0, 360, 18).slice(0, -1),
     ringLoop(360, 0, 18, 0.6).slice(0, -1).map(([x, z]) => [x * 0.98, z * 0.98]),
     [[0, -23], [-5, -25.5], [-4, -28.5], [4, -28.5], [5, -25.5], [0, -21], [0, -14], [0, -10.5], [0, -14]],
+    // hard only: round the plaza, where every street meets (ghosts float through the clock tower)
+    Array.from({ length: 10 }, (_, k) => polar((k / 10) * Math.PI * 2 + 0.3, 10)),
   ],
   zombie: [
     [[6, 0], [12, 1], ...ringLoop(0, 75, 4), [3.5, 11], [0, 7.4], [5.2, 4.6]],
     [[-6, 0], [-12, -1], ...ringLoop(180, 255, 4), ...ringLoop(255, 180, 4, 0.8).slice(1), [-7.4, 1.5]],
+    // hard only: down the south street and back along the south-east ring
+    [[0.5, -10], [0.6, -14], ...ringLoop(270, 360, 5), [12, 1], [7, 0], [4.5, -4.5]],
   ],
 };
 export const GIANT_SPAWN = { x: 0, z: -27 };

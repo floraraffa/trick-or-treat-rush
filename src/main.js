@@ -14,7 +14,7 @@ import { COSTUMES } from './actors/costumes.js';
 import { createPlayer } from './actors/player.js';
 import { createMonsters } from './actors/monsters.js';
 import { createCandy } from './actors/candy.js';
-import { createAuras } from './actors/effects.js';
+import { createAuras, createRain } from './actors/effects.js';
 import { createCameraController } from './camera.js';
 import { createInput } from './input.js';
 import { createTransport } from './net/transport.js';
@@ -98,9 +98,21 @@ const sparks = createFx(app, tex.glow, { max: 320, additive: true });
 for (const f of [fx, sparks]) app.root.addChild(f.entity);
 const monsters = createMonsters(app, sparks);
 app.root.addChild(monsters.root);
-const candy = createCandy(app, tex, sparks);
+const candy = createCandy(app, tex, sparks, { onLand: (x, z) => { if (screen === 'game' && Math.hypot(player.state.x - x, player.state.z - z) < 10) sfx.patter(); } });
 app.root.addChild(candy.root);
-const auras = createAuras(app, sparks);
+// Candy storms throw lightning: a flash and thunder by how near it struck (a strike right overhead shakes the camera).
+const auras = createAuras(app, sparks, {
+  onStrike({ x, z }) {
+    if (screen !== 'game') return;
+    const c = camera.getPosition(), d = Math.hypot(c.x - x, c.z - z), k = Math.max(0, 1 - d / 45);
+    if (k <= 0) return;
+    village.lightning(k);
+    ui.lightning(0.55 * k * k);
+    sfx.thunder(k, d / 80);
+    if (d < 6) camCtl.shake(0.4);
+  },
+});
+const rain = createRain(app);
 const camCtl = createCameraController(camera, { distance: +params.get('camdist') || undefined });
 const input = createInput(canvas, { joy: $('joy'), knob: $('knob') });
 village.setClock(0);
@@ -401,6 +413,9 @@ function menuFrame(dt) {
   camera.camera.fov = 52;
   myAvatar?.setVisible(true);
   myAvatar?.update(dt, 0);
+  rain.update(dt, camera.getPosition(), 0); // no storm over the menus
+  village.setStorm(0);
+  auras.tick(dt);
   ambient(dt);
 }
 
@@ -473,6 +488,12 @@ function playFrame(dt, now) {
     auras.update(dt, id, r.avatar.root, (k) => view.fx(id, k), s.x, s.z);
   }
   auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody);
+  auras.tick(dt);
+  // The storm where the camera is: rain falling, the village darker.
+  const cp = camera.getPosition();
+  const storm = auras.stormAt(cp.x, cp.z, (id) => (id === me.id ? ps : remotes.get(id)?.avatar.root.getPosition()));
+  rain.update(dt, cp, storm);
+  village.setStorm(storm);
   monsters.update(dt, view, now, camera.getPosition());
   candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant }, (kind, id) => session.intent({ kind, id }), now);
   ambient(dt);
@@ -539,7 +560,7 @@ async function showDiagnostics() {
 
 if (debug) {
   window.__game = {
-    get session() { return session; }, view, get player() { return player; }, camCtl, input, ui, me,
+    app, get session() { return session; }, view, get player() { return player; }, camCtl, input, ui, me,
     get screen() { return screen; },
     houses: HOUSES,
     /** Test hook: fast-forwards the host's round clock (the authority still simulates every step). */

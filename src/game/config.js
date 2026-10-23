@@ -24,8 +24,7 @@ export const CANDY = {
   rainbow: { points: 50, weight: 2 },
 };
 export const CANDY_MADNESS_WEIGHTS = { caramel: 40, lollipop: 25, chocolate: 17, pumpkin: 12, rainbow: 6 };
-export const CANDY_ON_MAP = 22;
-export const CANDY_ON_MAP_MADNESS = 28;
+// (how much candy lies on the streets is set per level, in DIFFICULTY)
 export const MADNESS_SPECIALS = 6; // golden pumpkins and rainbow candy scattered when Madness starts
 export const CANDY_RESPAWN = [2.5, 5];
 export const PICKUP_R = 1.15;
@@ -34,15 +33,13 @@ export const PICKUP_SLACK = 1.2; // the session forgives this much lag on top
 // Power-ups: held one at a time, used with the action button. Every power lasts POWER_SECONDS.
 export const POWER_SECONDS = 20;
 export const POWERUPS = {
-  rain: { dur: POWER_SECONDS, rate: 1.6, radius: [1.8, 7], fall: 1.1, life: 14 }, // candy rain: pieces a second, how far, fall time, how long they wait
+  rain: { dur: POWER_SECONDS, radius: [1.5, 9], fall: 1.1, life: 10 }, // candy storm: how far, fall time, how long they wait (pieces a second: per level)
   shield: { dur: POWER_SECONDS }, // blocks one attack, or fades after this long
   magnet: { dur: POWER_SECONDS, radius: 16 },
   double: { dur: POWER_SECONDS },
 };
 export const POWERUP_KINDS = Object.keys(POWERUPS);
-export const RAIN_MIX = { caramel: 40, lollipop: 34, chocolate: 20, pumpkin: 6 };
-export const ORBS_ON_MAP = 3;
-export const ORB_RESPAWN = 12;
+export const RAIN_MIX = { caramel: 55, lollipop: 30, chocolate: 12, pumpkin: 3 }; // lots of small candy
 export const ORB_R = 1.5;
 
 // Gems: crystals that give a power the moment you grab one.
@@ -55,12 +52,7 @@ export const GEMS = {
   ghost: { dur: POWER_SECONDS, speed: 1.1 },
 };
 export const GEM_KINDS = Object.keys(GEMS);
-export const GEM_FIRST = 10; // the first gem appears this long after GO
-export const GEM_EVERY = [10, 16]; // and the next one this long after the last appeared or was taken
-export const GEMS_ON_MAP = 2;
 export const GEM_R = 1.3;
-export const SCARE_LOOT = { ghost: 10, zombie: 10 }; // candy a scared-off monster drops, on top of what it stole
-export const BANISHED = 5; // a scared-off monster stays away this long, then comes back on its route
 
 // Players.
 export const MOVE = { walk: 2.4, run: 5.0, accel: 16, turn: 10 };
@@ -75,23 +67,35 @@ export const MONSTERS = {
   ghost: { patrol: 1.7, reach: 1.0, penalty: 10 },
   zombie: { patrol: 0.9, reach: 1.15, slow: 5 },
 };
-// Levels: how many monsters, how fast and keen they are, and how long a hit protects you.
-//   hard is the first tuning of the game; medium and easy hand out fewer hits.
+// Levels: how many monsters, how fast and keen they are, how long a hit protects you, and how much
+// help the night hands out.
+//   lead: seconds ahead of a running player a chasing monster aims (it cuts you off); flee: how fast
+//   frightened monsters run (× the medium speed).
+//   help: candy on the streets (and in the Madness), power-up orbs out and how soon a taken one comes
+//   back, gems (the first one, the gap to the next, how many out at once), how long a scared-off monster
+//   stays away and the candy it drops on top of what it stole, candy rain pieces a second.
+// Hard is meant to be really hard: four ghosts nearly as fast as a run (only running on your own gets
+// you clear) that see far, chase for long and aim where you are going; a third zombie; in the Madness
+// the ghosts outrun a run and only a flat-out sprint escapes; little protection after a hit; and scarce
+// candy, orbs and gems.
 export const DIFFICULTY = {
   easy: {
     ghost: { count: 2, chase: 2.6, detect: 5.5, giveUp: 9, maxChase: 4.5 },
     zombie: { count: 1, chase: 1.6, detect: 5, giveUp: 8, maxChase: 5 },
-    madnessSpeed: 1.1, invulnerable: 5, recover: 3.5, grace: 10, refocus: 4.5, trickLife: 6,
+    madnessSpeed: 1.1, invulnerable: 5, recover: 3.5, grace: 10, refocus: 4.5, trickLife: 6, lead: 0, flee: 0.8,
+    help: { candy: 26, candyMadness: 32, orbs: 4, orbBack: 8, gemFirst: 6, gemEvery: [8, 12], gems: 2, banished: 7, scareLoot: 15, rain: 6 },
   },
   medium: {
     ghost: { count: 2, chase: 3.1, detect: 7, giveUp: 12, maxChase: 6.5 },
     zombie: { count: 2, chase: 1.9, detect: 6, giveUp: 10, maxChase: 7 },
-    madnessSpeed: 1.2, invulnerable: 3.5, recover: 2.5, grace: 7, refocus: 3.5, trickLife: 9,
+    madnessSpeed: 1.2, invulnerable: 3.5, recover: 2.5, grace: 7, refocus: 3.5, trickLife: 9, lead: 0.3, flee: 1,
+    help: { candy: 22, candyMadness: 28, orbs: 3, orbBack: 12, gemFirst: 10, gemEvery: [10, 16], gems: 2, banished: 5, scareLoot: 10, rain: 5 },
   },
   hard: {
-    ghost: { count: 3, chase: 3.6, detect: 9, giveUp: 15, maxChase: 9 },
-    zombie: { count: 2, chase: 2.2, detect: 7.5, giveUp: 12, maxChase: 10 },
-    madnessSpeed: 1.35, invulnerable: 2.5, recover: 1.6, grace: 5, refocus: 2.5, trickLife: 12,
+    ghost: { count: 4, chase: 4.8, detect: 12, giveUp: 18, maxChase: 11 },
+    zombie: { count: 3, chase: 2.8, detect: 8.5, giveUp: 14, maxChase: 10 },
+    madnessSpeed: 1.3, invulnerable: 2, recover: 1.4, grace: 3, refocus: 1.2, trickLife: 15, lead: 0.7, flee: 1.6,
+    help: { candy: 16, candyMadness: 20, orbs: 2, orbBack: 25, gemFirst: 30, gemEvery: [30, 40], gems: 1, banished: 2, scareLoot: 0, rain: 3.5 },
   },
 };
 export const LEVELS = Object.keys(DIFFICULTY);

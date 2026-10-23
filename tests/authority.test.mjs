@@ -4,13 +4,14 @@ import { Authority } from '../src/game/authority.js';
 import * as C from '../src/game/config.js';
 import { HOUSES } from '../src/world/layout.js';
 
+const M = C.DIFFICULTY[C.DEFAULT_LEVEL].help; // what the night hands out at the default level (medium)
 const events = [], snaps = [];
 const A = new Authority({ emit: (e) => events.push(e), snapshot: (s) => snaps.push(s), seed: 1234 });
 const of = (name) => events.filter((e) => e.e === name);
 A.start([{ id: 'a', name: 'Ana', costume: 'witch' }, { id: 'b', name: 'Beto', costume: 'cape' }]);
 assert.equal(of('start').length, 1);
-assert.equal(of('candy+').length, C.CANDY_ON_MAP, 'initial candy');
-assert.equal(of('orb+').length, C.ORBS_ON_MAP, 'initial orbs');
+assert.equal(of('candy+').length, M.candy, 'initial candy');
+assert.equal(of('orb+').length, M.orbs, 'initial orbs');
 
 // Nothing scores during the countdown.
 const c0 = of('candy+')[0];
@@ -137,10 +138,14 @@ function fresh(seed = 7) {
 }
 { // levels: easy has fewer, slower monsters than hard
   const count = (level) => { const X = new Authority({ emit: () => {}, snapshot: () => {}, seed: 3 }); X.start([{ id: 'a', name: 'A', costume: 'none' }], level); return X.monsters.length; };
-  assert.equal(count('easy'), 3); assert.equal(count('medium'), 4); assert.equal(count('hard'), 5);
-  assert.ok(C.DIFFICULTY.easy.ghost.chase < C.DIFFICULTY.medium.ghost.chase && C.DIFFICULTY.medium.ghost.chase < C.DIFFICULTY.hard.ghost.chase);
-  assert.ok(C.DIFFICULTY.easy.invulnerable > C.DIFFICULTY.hard.invulnerable);
-  console.log('✔ levels: easy 3 monsters, medium 4, hard 5');
+  assert.equal(count('easy'), 3); assert.equal(count('medium'), 4); assert.equal(count('hard'), 7);
+  const [E, Md, H] = C.LEVELS.map((l) => C.DIFFICULTY[l]);
+  for (const k of ['ghost', 'zombie']) assert.ok(E[k].chase < Md[k].chase && Md[k].chase < H[k].chase && E[k].detect < H[k].detect && E[k].maxChase < H[k].maxChase, `${k}s get faster and keener`);
+  assert.ok(E.invulnerable > Md.invulnerable && Md.invulnerable > H.invulnerable);
+  for (const k of ['candy', 'orbs', 'gems', 'banished', 'scareLoot', 'rain']) assert.ok(E.help[k] >= Md.help[k] && Md.help[k] >= H.help[k] && E.help[k] > H.help[k], `less ${k} on harder levels`);
+  assert.ok(E.help.gemFirst < H.help.gemFirst && E.help.orbBack < H.help.orbBack);
+  assert.ok(H.ghost.chase > C.MOVE.run * 0.9 && H.ghost.chase * H.madnessSpeed > C.MOVE.run && H.ghost.chase * H.madnessSpeed < C.MOVE.run * C.AUTORUN.mul, 'hard ghosts nearly keep up with a run, outrun it in the Madness, and only a sprint escapes');
+  console.log('✔ levels: easy 3 monsters, medium 4, hard 7; harder levels hand out less candy, fewer orbs and gems');
 }
 { // giant gem: monsters can't hurt you, they flee, and touching one scares it off with its candy
   const { X, of } = fresh();
@@ -152,11 +157,11 @@ function fresh(seed = 7) {
   assert.equal(g.state, 'flee', 'monsters flee from a giant');
   for (let i = 0; i < 20 && g.state !== 'banished'; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); }
   const sc = of('scare')[0];
-  assert.ok(sc && sc.id === 'a' && sc.power === 'giant' && sc.pts === C.SCARE_LOOT.ghost, 'stomped: the ghost drops candy');
+  assert.ok(sc && sc.id === 'a' && sc.power === 'giant' && sc.pts === M.scareLoot, 'stomped: the ghost drops candy');
   assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'a giant takes no hits');
-  for (let i = 0; i < (C.BANISHED + 0.5) * 10; i++) X.tick(0.1);
+  for (let i = 0; i < (M.banished + 0.5) * 10; i++) X.tick(0.1);
   assert.notEqual(g.state, 'banished', 'the ghost comes back after a while');
-  console.log(`✔ giant gem: ghosts flee, a stomp scares one off (+${sc.pts}), it returns ${C.BANISHED} s later`);
+  console.log(`✔ giant gem: ghosts flee, a stomp scares one off (+${sc.pts}), it returns ${M.banished} s later`);
 }
 { // thief gem: catch the ghost that robbed you, win its candy back (and more)
   const { X, of } = fresh();
@@ -169,9 +174,9 @@ function fresh(seed = 7) {
   X.players.get('a').fx.thief = X.rt + 10;
   for (let i = 0; i < 40 && g.state !== 'banished'; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); }
   const sc = of('scare')[0];
-  assert.ok(sc && sc.power === 'thief' && sc.pts === 10 + C.SCARE_LOOT.ghost, 'stolen back: its loot plus a bonus');
-  assert.equal(X.players.get('a').score, 40);
-  console.log(`✔ thief gem: caught the ghost, stole back ${sc.pts} (score 30 → 20 → 40)`);
+  assert.ok(sc && sc.power === 'thief' && sc.pts === 10 + M.scareLoot, 'stolen back: its loot plus a bonus');
+  assert.equal(X.players.get('a').score, 20 + 10 + M.scareLoot);
+  console.log(`✔ thief gem: caught the ghost, stole back ${sc.pts} (score 30 → 20 → ${20 + sc.pts})`);
 }
 { // the candy thief frightens zombies too, and lasts longer than the giant
   const { X, of } = fresh();
@@ -182,7 +187,7 @@ function fresh(seed = 7) {
   assert.equal(z.state, 'flee', 'zombies flee from a candy thief');
   for (let i = 0; i < 60 && z.state !== 'banished'; i++) { X.setPose('a', z.x, z.z); X.tick(0.1); }
   const sc = of('scare')[0];
-  assert.ok(sc && sc.kind === 'zombie' && sc.power === 'thief' && sc.pts === C.SCARE_LOOT.zombie, 'caught zombie drops candy');
+  assert.ok(sc && sc.kind === 'zombie' && sc.power === 'thief' && sc.pts === M.scareLoot, 'caught zombie drops candy');
   console.log(`✔ candy thief: zombies flee too, a caught one drops ${sc.pts}`);
 }
 { // every gem and power-up lasts 20 s
@@ -239,14 +244,16 @@ function fresh(seed = 7) {
   X.setPose('a', 0, 12);
   for (let i = 0; i < 100; i++) X.tick(0.1); // 10 s of rain, standing still
   const fell = of('candy+').filter((e) => e.fall).length;
-  const want = 11 * C.POWERUPS.rain.rate;
-  assert.ok(Math.abs(fell - want) <= 3, `about ${C.POWERUPS.rain.rate} a second (${fell} in 11 s)`);
-  assert.ok([...X.candies.values()].filter((k) => k.spot >= 0).length <= Math.max(streets, C.CANDY_ON_MAP), 'rain candy does not stop the streets refilling');
-  for (let i = 0; i < 260; i++) X.tick(0.1); // the rain stops; what nobody took melts away
+  const want = 11 * M.rain;
+  assert.ok(Math.abs(fell - want) <= 3, `about ${M.rain} a second (${fell} in 11 s)`);
+  assert.ok([...X.candies.values()].filter((k) => k.spot >= 0).length <= Math.max(streets, M.candy), 'rain candy does not stop the streets refilling');
+  for (let i = 0; i < 260; i++) X.tick(0.1); // the storm passes; what nobody took melts away
   assert.ok(of('fx-end').some((e) => e.id === 'a' && e.kind === 'rain'), 'the rain stops after 20 s');
   assert.equal([...X.candies.values()].filter((k) => k.spot < 0).length, 0, 'fallen candy does not pile up');
   assert.ok(of('candy-').some((e) => e.gone), 'left-over rain candy melts away');
-  console.log(`✔ candy rain: ${fell} pieces in the first 11 s round its player, taken once landed, the rest melts away`);
+  const total = of('candy+').filter((e) => e.fall).length;
+  assert.ok(total >= C.POWERUPS.rain.dur * M.rain - 3, `a real downpour: ${total} pieces in ${C.POWERUPS.rain.dur} s`);
+  console.log(`✔ candy storm: ${total} pieces in ${C.POWERUPS.rain.dur} s round its player (${fell} in the first 11 s), taken once landed, the rest melts away`);
 }
 { // magnet: pulls candy in from far away (16 m)
   const { X, of } = fresh();
@@ -266,12 +273,42 @@ function fresh(seed = 7) {
   while (X.gems.size < 2 && X.rt < 60) { X.tick(0.1); if (firstAt === null && X.gems.size) firstAt = X.rt; }
   const out = of('gem+');
   assert.ok(out[0], 'a gem appears');
-  assert.ok(Math.abs(firstAt - C.GEM_FIRST) < 0.2, `${C.GEM_FIRST} s after GO`);
+  assert.ok(Math.abs(firstAt - M.gemFirst) < 0.2, `${M.gemFirst} s after GO`);
   assert.equal(X.gems.size, 2, 'two at a time');
   assert.notEqual(out[0].kind, out[1].kind, 'of different kinds');
   for (let i = 0; i < 200; i++) X.tick(0.1);
-  assert.equal(X.gems.size, C.GEMS_ON_MAP, 'never more than two');
-  console.log(`✔ gems: ${out[0].kind} at ${C.GEM_FIRST} s, then ${out[1].kind}; at most ${C.GEMS_ON_MAP} out`);
+  assert.equal(X.gems.size, M.gems, 'never more than two');
+  console.log(`✔ gems: ${out[0].kind} at ${M.gemFirst} s, then ${out[1].kind}; at most ${M.gems} out`);
+}
+{ // hard: ghosts aim where a running player is going; on easy they go straight for where you are
+  const aim = (level) => {
+    const X = new Authority({ emit: () => {}, snapshot: () => {}, seed: 5 });
+    X.start([{ id: 'a', name: 'A', costume: 'none' }], level);
+    for (let i = 0; i < 31; i++) X.tick(0.1);
+    X.monsters = [];
+    let x = -4;
+    X.setPose('a', x, 12);
+    for (let i = 0; i < 10; i++) { x += 0.5; X.setPose('a', x, 12); X.tick(0.1); } // running east at 5 m/s
+    const g = X.addMonster('ghost', [[0, 22]], x, 20); Object.assign(g, { state: 'chase', target: 'a', t: 0 });
+    X.tick(0.1);
+    return g.x - x; // > 0: heading east of the player, to cut them off
+  };
+  const easy = aim('easy'), hard = aim('hard');
+  assert.ok(Math.abs(easy) < 0.02 && hard > 0.1, `hard cuts you off (east drift easy ${easy.toFixed(2)}, hard ${hard.toFixed(2)})`);
+  console.log(`✔ hard ghosts aim ahead of a running player (${hard.toFixed(2)} m in one step), easy ones don't`);
+}
+{ // hard is scarce: one gem at a time and late, two orbs, less candy on the streets
+  const ev = [];
+  const X = new Authority({ emit: (e) => ev.push(e), snapshot: () => {}, seed: 11 });
+  X.start([{ id: 'a', name: 'A', costume: 'none' }], 'hard');
+  const H = C.DIFFICULTY.hard.help;
+  assert.equal(ev.filter((e) => e.e === 'candy+').length, H.candy);
+  assert.equal(ev.filter((e) => e.e === 'orb+').length, H.orbs);
+  X.setPose('a', 0, 40);
+  let first = null;
+  while (X.rt < 80) { X.tick(0.1); if (first === null && X.gems.size) first = X.rt; assert.ok(X.gems.size <= 1, 'one gem at a time'); }
+  assert.ok(Math.abs(first - H.gemFirst) < 0.2, `the first gem only at ${H.gemFirst} s`);
+  console.log(`✔ hard: ${H.candy} candy, ${H.orbs} orbs, first gem at ${first.toFixed(0)} s, one at a time`);
 }
 { // gems are picked up through the authority
   const { X, of } = fresh();

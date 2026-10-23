@@ -104,11 +104,16 @@ await page.click('#btnPower');
 const drop = await (await page.waitForFunction(() => { const c = [...window.__game.view.candies.values()].find((k) => k.fall); return c ? { id: c.id, x: c.x, z: c.z } : null; }, null, { timeout: 30000 })).jsonValue();
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/p3b-rain.png` });
-await page.waitForFunction((id) => performance.now() / 1000 - window.__game.view.candies.get(id).born > 1.4, drop.id, { timeout: 30000 });
+// (in a heavy storm the player may scoop it up on the spot: then it's gone already)
+await page.waitForFunction((id) => { const c = window.__game.view.candies.get(id); return !c || performance.now() / 1000 - c.born > 1.4; }, drop.id, { timeout: 30000 });
+const scoreRain = await G(() => window.__game.view.players.get(window.__game.me.id).score);
 await G((c) => window.__game.player.place(c.x, c.z, 0), drop);
 await page.waitForFunction((id) => !window.__game.view.candies.has(id), drop.id, { timeout: 60000 });
+await page.waitForTimeout(1500);
 const fallen = await G(() => [...window.__game.view.candies.values()].filter((k) => k.fall).length);
-console.log(`✔ candy rain: a piece fell ${Math.hypot(drop.x, drop.z - 9).toFixed(1)} m away and was picked up once landed (${fallen} more falling or waiting)`);
+const scoreRain2 = await G(() => window.__game.view.players.get(window.__game.me.id).score);
+assert.ok(fallen >= 5, `a downpour, not a drizzle (${fallen} storm pieces out)`);
+console.log(`✔ candy storm: a piece fell ${Math.hypot(drop.x, drop.z - 9).toFixed(1)} m away and was picked up once landed; ${fallen} more falling or waiting; score ${scoreRain} → ${scoreRain2}`);
 
 // Ghost: the Bitmoji turns ghostly and floats through a house.
 {

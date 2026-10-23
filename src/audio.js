@@ -81,6 +81,13 @@ export const sfx = {
   win: () => [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5].forEach((f, i) => tone(f, 0.24, { type: 'triangle', vol: 0.12, delay: i * 0.13 })),
   lose: () => [392, 369.99, 349.23, 293.66].forEach((f, i) => tone(f, i === 3 ? 0.8 : 0.3, { type: 'sawtooth', vol: 0.05, delay: i * 0.3, vibrato: i === 3 ? 8 : 0 })),
   click: () => tone(1200, 0.04, { type: 'square', vol: 0.03 }),
+  /** Thunder: a crack (only up close) and a long rolling rumble; `k` 0..1 is how near the strike was. */
+  thunder: (k = 1, delay = 0) => {
+    if (k > 0.5) noise(0.35, { freq: 2600, q: 0.7, vol: 0.35 * k, type: 'highpass', delay, sweep: -2000 });
+    for (let i = 0; i < 3; i++) noise(1.6 + i * 0.5, { freq: 140 - i * 25, vol: (0.55 - i * 0.12) * (0.3 + 0.7 * k), delay: delay + 0.05 + i * 0.22 });
+  },
+  /** Candy landing round you in a storm: a soft pitter-patter. */
+  patter: () => noise(0.05, { freq: 2200 + Math.random() * 1500, q: 3, vol: 0.05, type: 'bandpass' }),
 };
 
 // A little music-box waltz in A minor (a lullaby gone strange). Lower and wobblier in the madness.

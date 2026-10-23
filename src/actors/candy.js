@@ -71,7 +71,8 @@ function orbGeo(kind) {
   return inner;
 }
 
-export function createCandy(app, tex, fx) {
+/** `onLand(x, z)`: a piece of a candy storm just hit the ground. */
+export function createCandy(app, tex, fx, { onLand = null } = {}) {
   const root = new Entity('candy');
   const candyMat = texturedMaterial(tex.plain, { gloss: 0.85, emissive: new Color(0.45, 0.45, 0.45) });
   const goldMat = texturedMaterial(tex.plain, { gloss: 0.9, metal: 0.8, emissive: new Color(0.5, 0.4, 0.15) });
@@ -146,9 +147,11 @@ export function createCandy(app, tex, fx) {
     spin.addChild(proto.clone());
     for (const r of spin.findComponents('render')) r.castShadows = false;
     e.addChild(spin);
-    const g = pool(glowCol, glowR);
-    g.setLocalPosition(0, 0.06, 0);
-    e.addChild(g);
+    if (glowR > 0) { // (a candy storm's pieces go without: there are too many)
+      const g = pool(glowCol, glowR);
+      g.setLocalPosition(0, 0.06, 0);
+      e.addChild(g);
+    }
     e.setPosition(x, 0, z);
     root.addChild(e);
     return { e, spin, t: Math.random() * 6, x, z, born: 0 };
@@ -164,9 +167,9 @@ export function createCandy(app, tex, fx) {
       for (const [id, c] of view.candies) {
         if (!shown.has(id)) {
           const big = c.type === 'rainbow' ? 1.25 : c.type === 'pumpkin' ? 1.15 : 1;
-          const s = addEntity(protos[c.type], c.x, c.z, CANDY_GLOW[c.type], 0.9 * big, `candy-${id}`);
+          const s = addEntity(protos[c.type], c.x, c.z, CANDY_GLOW[c.type], c.fall ? 0 : 0.9 * big, `candy-${id}`);
           s.spin.setLocalScale(big, big, big);
-          if (c.fall) { s.born = 1; s.fall = c.fall; s.pool = s.e.children[1]; }
+          if (c.fall) { s.born = 1; s.fall = c.fall; }
           shown.set(id, s);
         }
       }
@@ -191,9 +194,8 @@ export function createCandy(app, tex, fx) {
         const k = s.fall ? Math.min(1, (now - c.born) / s.fall) : 1;
         if (s.fall) {
           bob += (1 - k * k) * FALL_FROM;
-          s.pool.enabled = k > 0.6;
-          if (k < 1 && Math.random() < dt * 30) fx?.emit({ x: s.x, y: bob + 0.3, z: s.z }, { x: 0, y: 2, z: 0 }, { n: 1, spread: 0.2, size: 0.16, grow: 0.2, life: 0.5, color: CANDY_GLOW[c.type], gravity: 0, alpha: 0.9, twinkle: true });
-          if (k >= 1 && !s.landed) { s.landed = true; fx?.emit({ x: s.x, y: 0.4, z: s.z }, { x: 0, y: 1.2, z: 0 }, { n: 10, spread: 2.5, size: 0.2, grow: 0.4, life: 0.5, color: CANDY_GLOW[c.type], gravity: -3, alpha: 0.9 }); }
+          if (k < 1 && Math.random() < dt * 12) fx?.emit({ x: s.x, y: bob + 0.3, z: s.z }, { x: 0, y: 2, z: 0 }, { n: 1, spread: 0.2, size: 0.16, grow: 0.2, life: 0.5, color: CANDY_GLOW[c.type], gravity: 0, alpha: 0.9, twinkle: true });
+          if (k >= 1 && !s.landed) { s.landed = true; fx?.emit({ x: s.x, y: 0.4, z: s.z }, { x: 0, y: 1.2, z: 0 }, { n: 6, spread: 2.5, size: 0.2, grow: 0.4, life: 0.5, color: CANDY_GLOW[c.type], gravity: -3, alpha: 0.9 }); onLand?.(s.x, s.z); }
         }
         s.e.setPosition(s.x, 0, s.z);
         s.spin.setLocalPosition(0, bob, 0);
