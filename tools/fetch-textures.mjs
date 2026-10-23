@@ -18,6 +18,7 @@ export const TEXTURES = {
   cobbles: ['mossy_cobblestone', 1024, 1024, 70, 0.8, 120], // the streets
   flags: ['stone_tiles_02', 768, 512, 72, 0.5, 140], // the plaza and the door steps
   masonry: ['rustic_stone_wall', 768, 512, 72, 0.45, 125], // foundations, chimneys, the mausoleum, the tower base
+  velvet: ['velour_velvet', 512, 512, 72, 0, 170], // costumes: the vampire's cape and collar, the witch's hat (satin is just gloss)
 };
 
 const api = async (id) => (await fetch(`https://api.polyhaven.com/files/${id}`)).json();

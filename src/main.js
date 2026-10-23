@@ -102,12 +102,12 @@ const candy = createCandy(app, tex, sparks, { onLand: (x, z) => { if (screen ===
 app.root.addChild(candy.root);
 // Candy storms throw lightning: a flash and thunder by how near it struck (a strike right overhead shakes the camera).
 const auras = createAuras(app, sparks, {
+  tex,
   onStrike({ x, z }) {
     if (screen !== 'game') return;
     const c = camera.getPosition(), d = Math.hypot(c.x - x, c.z - z), k = Math.max(0, 1 - d / 45);
     if (k <= 0) return;
-    village.lightning(k);
-    ui.lightning(0.55 * k * k);
+    ui.lightning(0.4 * k * k);
     sfx.thunder(k, d / 80);
     if (d < 6) camCtl.shake(0.4);
   },
@@ -415,7 +415,8 @@ function menuFrame(dt) {
   myAvatar?.update(dt, 0);
   rain.update(dt, camera.getPosition(), 0); // no storm over the menus
   village.setStorm(0);
-  auras.tick(dt);
+  village.setLightning(0);
+  auras.tick(dt, camera.getPosition());
   ambient(dt);
 }
 
@@ -488,9 +489,10 @@ function playFrame(dt, now) {
     auras.update(dt, id, r.avatar.root, (k) => view.fx(id, k), s.x, s.z);
   }
   auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody);
-  auras.tick(dt);
-  // The storm where the camera is: rain falling, the village darker.
   const cp = camera.getPosition();
+  auras.tick(dt, cp);
+  village.setLightning(auras.flashAt(cp.x, cp.z));
+  // The storm where the camera is: rain falling, the village darker.
   const storm = auras.stormAt(cp.x, cp.z, (id) => (id === me.id ? ps : remotes.get(id)?.avatar.root.getPosition()));
   rain.update(dt, cp, storm);
   village.setStorm(storm);

@@ -35,10 +35,15 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.
+- `src/actors/costumes.js` witch hat / pumpkin / horns (head units) and the vampire cape (`capeParts(fit)`, fitted to the
+  back `measure()` reads off the Bitmoji's outfit meshes; the collar doesn't swing), split by material (velvet, satin,
+  gold, horn, rind, glow). `src/ui/vampire.js` the vampire face drawn for the costume picker.
 - `src/actors/` avatar (own Bitmoji via API, default Bitmoji for others, stand-in, costumes on joints; `setGhost`
   swaps in see-through copies of its own materials), player controller (auto-run, ghosts skip colliders), monsters,
-  candy/orbs/gems (storm candy falls in), power-up auras (`effects.js`: also the storm's cloud and lightning, whose
-  strikes call back main.js for the flash, thunder and `village.lightning`, and the rain streaks round the camera).
+  candy/orbs/gems (storm candy falls in), power-up auras (`effects.js`: also the storm's cloud and lightning, a fresh
+  fractal channel per strike as camera-facing ribbons with `flashAt(t)` flickers and a ground light; strikes call back
+  main.js for the screen flash and thunder, and main feeds `auras.flashAt` to `village.setLightning` every frame; plus
+  the rain streaks round the camera).
   `src/camera.js` third/first person (local only).
 - Textures: `src/textures.js` loads `public/assets/tex/<name>.webp` + `_n` normal maps made by `npm run textures`
   (`tools/fetch-textures.mjs`, Poly Haven CC0, needs network; in Claude's cloud containers run it with

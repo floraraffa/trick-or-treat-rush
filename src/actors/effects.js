@@ -25,25 +25,58 @@ function glowMat(color, opacity) {
 
 const CLOUD_Y = 5.8, CLOUD_AHEAD = 3; // the thundercloud hangs low, a little ahead of its player: where the third-person camera looks
 
-/** A lightning bolt from (0, 1, 0) down to the ground, jagged, with a couple of forks; scaled to height. */
-function boltGeo(seed) {
-  const R = rng(seed), g = new Geo();
-  const zig = (from, to, n, w) => {
-    const pts = [from];
-    for (let k = 1; k < n; k++) { const t = k / n; pts.push([from[0] + (to[0] - from[0]) * t + (R() - 0.5) * w, from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t + (R() - 0.5) * w]); }
-    pts.push(to);
+/** How bright a lightning strike is `t` seconds in: a blinding return stroke, a few re-strokes, then gone. */
+export const flashAt = (t) => (t < 0.05 ? 1 : t < 0.08 ? 0.1 : t < 0.12 ? 0.85 : t < 0.16 ? 0.15 : t < 0.22 ? 0.6 : Math.max(0, 0.6 - (t - 0.22) * 3.5));
+const FLASH_LEN = 0.4;
+
+/**
+ * A lightning channel from the cloud (x0, y0, z0) to the ground at (x1, z1). Midpoint displacement
+ * makes the jagged, self-similar path real lightning has; forks split off downwards and peter out.
+ * Returns polylines [{ pts, w }], w the relative width.
+ */
+function lightningPaths(R, x0, y0, z0, x1, z1) {
+  const crooked = (a, b, depth, rough) => {
+    let pts = [a, b];
+    for (let d = 0; d < depth; d++) {
+      const next = [pts[0]];
+      for (let k = 1; k < pts.length; k++) {
+        const p = pts[k - 1], q = pts[k], len = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]);
+        next.push([(p[0] + q[0]) / 2 + (R() - 0.5) * len * rough, (p[1] + q[1]) / 2 + (R() - 0.5) * len * rough * 0.3, (p[2] + q[2]) / 2 + (R() - 0.5) * len * rough], q);
+      }
+      pts = next;
+    }
     return pts;
   };
-  const main = zig([0, 1, 0], [0, 0, 0], 14, 0.3);
-  g.add(tube(main, 0.028, 4, { caps: false }), null, [1, 1, 1]);
-  g.add(tube(main, 0.09, 5, { caps: false }), null, [0.5, 0.4, 1]); // the glow round it
-  for (const k of [2, 5, 8]) {
-    const a = main[k], end = [a[0] + (R() - 0.5) * 0.9, a[1] - 0.25 - R() * 0.15, a[2] + (R() - 0.5) * 0.9];
-    const fork = zig(a, end, 5, 0.12);
-    g.add(tube(fork, 0.016, 3, { caps: false }), null, [0.9, 0.85, 1]);
-    g.add(tube(fork, 0.05, 4, { caps: false }), null, [0.45, 0.35, 0.9]);
+  const main = crooked([x0, y0, z0], [x1, 0, z1], 6, 0.5);
+  const paths = [{ pts: main, w: 1 }];
+  const forks = 4 + Math.floor(R() * 4);
+  for (let f = 0; f < forks; f++) {
+    const k = 3 + Math.floor(R() * main.length * 0.7), a = main[k];
+    const drop = a[1] * (0.2 + R() * 0.35), ang = R() * Math.PI * 2, out = drop * (0.5 + R() * 0.8);
+    const pts = crooked(a, [a[0] + Math.cos(ang) * out, Math.max(0.4, a[1] - drop), a[2] + Math.sin(ang) * out], 4, 0.6);
+    paths.push({ pts, w: 0.5 * (1 - k / main.length) + 0.12 });
+    if (R() < 0.5) { const c = pts[2 + Math.floor(R() * (pts.length - 4))]; paths.push({ pts: crooked(c, [c[0] + (R() - 0.5) * 1.2, c[1] - 0.3 - R() * 0.6, c[2] + (R() - 0.5) * 1.2], 3, 0.6), w: 0.1 }); }
   }
-  return g;
+  return paths;
+}
+
+/** Polylines → flat ribbons turned to the eye, narrowing towards their ends (UV u across, 0..1). */
+function ribbons(paths, eye, width) {
+  const m = { p: [], n: [], uv: [], i: [] };
+  for (const { pts, w } of paths) {
+    const base = m.p.length / 3, last = pts.length - 1;
+    pts.forEach((p, k) => {
+      const a = pts[Math.max(0, k - 1)], b = pts[Math.min(last, k + 1)];
+      const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [p[0] - eye.x, p[1] - eye.y, p[2] - eye.z];
+      const s = [d[1] * v[2] - d[2] * v[1], d[2] * v[0] - d[0] * v[2], d[0] * v[1] - d[1] * v[0]];
+      const hw = (width * w * (1 - 0.65 * (k / last))) / 2 / (Math.hypot(...s) || 1);
+      m.p.push(p[0] - s[0] * hw, p[1] - s[1] * hw, p[2] - s[2] * hw, p[0] + s[0] * hw, p[1] + s[1] * hw, p[2] + s[2] * hw);
+      m.n.push(0, 1, 0, 0, 1, 0);
+      m.uv.push(0, k / last, 1, k / last);
+      if (k) { const i = base + k * 2; m.i.push(i - 2, i - 1, i, i - 1, i + 1, i); }
+    });
+  }
+  return m;
 }
 
 /** Rain falling round the camera: thin crossed streaks in one mesh, slid down and wrapped. */
@@ -82,7 +115,7 @@ export function createRain(app) {
  * Per-player auras. `onStrike({ x, z, id })` hears every lightning strike of a candy storm (for the
  * flash, the thunder and the light), wherever it is.
  */
-export function createAuras(app, fx, { onStrike = null } = {}) {
+export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
   // The thundercloud: dark billows, faintly violet, lit from inside by the lightning.
   const cloudGeo = new Geo(), CR = rng(21);
   for (let k = 0; k < 16; k++) {
@@ -93,24 +126,35 @@ export function createAuras(app, fx, { onStrike = null } = {}) {
   cloudMat.diffuse = new Color(1, 1, 1); cloudMat.diffuseVertexColor = true;
   const CLOUD_GLOW = [0.08, 0.06, 0.14];
   cloudMat.emissive = new Color(...CLOUD_GLOW); cloudMat.gloss = 0.05; cloudMat.useMetalness = true;
-  let glow = 0; // lightning inside the clouds
   cloudMat.update();
-  const boltMat = new StandardMaterial();
-  boltMat.diffuse = new Color(0, 0, 0); boltMat.emissive = new Color(1, 1, 1); boltMat.emissiveVertexColor = true; boltMat.emissiveIntensity = 4;
-  boltMat.blendType = BLEND_ADDITIVEALPHA; boltMat.depthWrite = false; boltMat.cull = CULLFACE_NONE; boltMat.useFog = false;
-  boltMat.update();
+  // Lightning: a fresh channel every strike, white-hot core in a blue-white glow (tex.bolt across each
+  // ribbon), with a light that floods the ground round it for the length of the flash.
+  const boltMats = [0, 1, 2, 3].map(() => {
+    const m = new StandardMaterial();
+    m.useLighting = false; m.useSkybox = false; m.useFog = false;
+    m.diffuse = new Color(0, 0, 0); m.emissive = new Color(1, 1, 1); m.emissiveIntensity = 3;
+    if (tex) { m.emissiveMap = tex.bolt; m.opacityMap = tex.bolt; m.opacityMapChannel = 'a'; }
+    m.blendType = BLEND_ADDITIVEALPHA; m.depthWrite = false; m.cull = CULLFACE_NONE;
+    m.update();
+    return m;
+  });
   const boltRoot = new Entity('lightning');
   app.root.addChild(boltRoot);
-  const bolts = [0, 1, 2, 3].map((k) => { const e = boltGeo(31 + k).build(app.graphicsDevice, boltMat, 'bolt'); e.render.castShadows = false; e.enabled = false; boltRoot.addChild(e); return { e, t: 0 }; });
-  let nextBolt = 0;
-  function strike(x, z, top, id) {
-    const b = bolts[nextBolt++ % bolts.length];
-    b.e.setPosition(x, 0, z);
-    b.e.setEulerAngles(0, Math.random() * 360, 0);
-    b.e.setLocalScale(top * 0.9, top, top * 0.9);
-    b.e.enabled = true; b.t = 0;
-    glow = 1;
-    fx?.emit({ x, y: 0.2, z }, { x: 0, y: 2.5, z: 0 }, { n: 16, spread: 4, size: 0.3, grow: 0.4, life: 0.5, color: [0.8, 0.75, 1], gravity: -4, alpha: 1, twinkle: true });
+  const flashLight = new Entity('lightning-light');
+  flashLight.addComponent('light', { type: 'omni', color: new Color(0.78, 0.84, 1), intensity: 0, range: 24, castShadows: false });
+  flashLight.enabled = false;
+  app.root.addChild(flashLight);
+  const live = []; // strikes on screen: { e, mat, t, x, z }
+  const BR = rng(97);
+  let eye = { x: 0, y: 2, z: 0 }, nextMat = 0;
+  function strike(x, z, from, id) {
+    const mat = boltMats[nextMat++ % boltMats.length];
+    const e = new Geo().add(ribbons(lightningPaths(BR, from.x, from.y, from.z, x, z), eye, 0.75), null, [1, 1, 1]).build(app.graphicsDevice, mat, 'bolt');
+    e.render.castShadows = false;
+    boltRoot.addChild(e);
+    while (live.length >= boltMats.length) live.shift().e.destroy();
+    live.push({ e, mat, t: 0, x, z });
+    fx?.emit({ x, y: 0.15, z }, { x: 0, y: 2, z: 0 }, { n: 8, spread: 3, size: 0.18, grow: 0.3, life: 0.35, color: [0.9, 0.95, 1], gravity: -5, alpha: 1 });
     onStrike?.({ x, z, id });
   }
 
@@ -165,7 +209,8 @@ export function createAuras(app, fx, { onStrike = null } = {}) {
         // mostly in front of its player (where a third-person camera is looking), now and then anywhere
         const f = parent.forward, ahead = Math.atan2(-f.z, -f.x);
         const ang = Math.random() < 0.7 ? ahead + (Math.random() - 0.5) * 2.4 : Math.random() * Math.PI * 2, r = 2.5 + Math.random() * 6;
-        strike(x + Math.cos(ang) * r, z + Math.sin(ang) * r, CLOUD_Y - 0.5, id);
+        const c = a.cloud.getPosition();
+        strike(x + Math.cos(ang) * r, z + Math.sin(ang) * r, { x: c.x + (Math.random() - 0.5) * 3, y: c.y - 0.8, z: c.z + (Math.random() - 0.5) * 3 }, id);
       }
       if (rain && fx && Math.random() < dt * 20) fx.emit({ x: x + (Math.random() - 0.5) * 7, y: CLOUD_Y - 0.6, z: z + (Math.random() - 0.5) * 7 }, { x: 0, y: -0.2, z: 0 }, { n: 1, spread: 0.3, size: 1.1, grow: 0.5, life: 1.2, color: [1, 0.5, 0.85], gravity: 0, alpha: 0.25 }); // candy-pink glow under the cloud
       if (!fx) return;
@@ -176,19 +221,29 @@ export function createAuras(app, fx, { onStrike = null } = {}) {
       if (fxLeft('giant') > 0 && Math.random() < dt * 10) fx.emit({ x: x + (Math.random() - 0.5) * 2, y: 0.15, z: z + (Math.random() - 0.5) * 2 }, { x: 0, y: 0.4, z: 0 }, { n: 1, spread: 1.2, size: 0.5, grow: 1.5, life: 0.8, color: [1, 0.45, 0.3], gravity: 0, alpha: 0.6 });
       if (fxLeft('slow') > 0 && Math.random() < dt * 12) fx.emit({ x: x + (Math.random() - 0.5) * 0.6, y: 0.15, z: z + (Math.random() - 0.5) * 0.6 }, { x: 0, y: 0.1, z: 0 }, { n: 1, spread: 0.1, size: 0.22, grow: 0.6, life: 0.9, color: [0.45, 1, 0.3], gravity: -0.3, alpha: 0.7 });
     },
-    /** Lightning fades on its own: call once a frame. */
-    tick(dt) {
-      glow = Math.max(0, glow - dt * 5);
-      const gl = glow * (0.6 + 0.4 * Math.sin(performance.now() / 18));
-      cloudMat.emissive.set(CLOUD_GLOW[0] + gl * 0.8, CLOUD_GLOW[1] + gl * 0.75, CLOUD_GLOW[2] + gl * 1.1);
-      cloudMat.update();
-      for (const b of bolts) {
-        if (!b.e.enabled) continue;
+    /** Lightning flickers out on its own: call once a frame with the camera position. Returns how bright the brightest strike is now. */
+    tick(dt, cam) {
+      if (cam) eye = { x: cam.x, y: cam.y, z: cam.z };
+      let top = 0, at = null;
+      for (let k = live.length - 1; k >= 0; k--) {
+        const b = live[k];
         b.t += dt;
-        b.e.enabled = b.t < 0.22;
-        boltMat.opacity = b.t < 0.05 || (b.t > 0.09 && b.t < 0.14) ? 1 : 0.35; // a double flicker
+        if (b.t > FLASH_LEN) { b.e.destroy(); live.splice(k, 1); continue; }
+        const f = flashAt(b.t);
+        b.mat.opacity = f; b.mat.update();
+        if (f >= top) { top = f; at = b; }
       }
-      boltMat.update();
+      flashLight.enabled = top > 0.01;
+      if (at) { flashLight.setPosition(at.x, 1.6, at.z); flashLight.light.intensity = 7 * top; }
+      cloudMat.emissive.set(CLOUD_GLOW[0] + top * 0.55, CLOUD_GLOW[1] + top * 0.58, CLOUD_GLOW[2] + top * 0.75);
+      cloudMat.update();
+      return top;
+    },
+    /** How bright lightning is at (x, z) right now (0..1), fading with distance. */
+    flashAt(x, z) {
+      let k = 0;
+      for (const b of live) k = Math.max(k, flashAt(b.t) * Math.max(0, 1 - Math.hypot(b.x - x, b.z - z) / 45));
+      return k;
     },
     /** How strong the storm is at (x, z): 1 under a cloud, fading out 20 m away. */
     stormAt(x, z, where) {
@@ -197,6 +252,6 @@ export function createAuras(app, fx, { onStrike = null } = {}) {
       return k;
     },
     remove(id) { const a = per.get(id); if (a) { a.root.destroy(); per.delete(id); } },
-    clear() { for (const a of per.values()) a.root.destroy(); per.clear(); for (const b of bolts) b.e.enabled = false; },
+    clear() { for (const a of per.values()) a.root.destroy(); per.clear(); for (const b of live) b.e.destroy(); live.length = 0; flashLight.enabled = false; },
   };
 }

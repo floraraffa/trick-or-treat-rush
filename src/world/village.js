@@ -210,18 +210,17 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
     },
     /** A candy storm overhead (k 0..1): darker, mistier. */
     setStorm(k) { storm = k; },
-    /** A lightning strike, `k` its brightness here (by distance). */
-    lightning(k) { flash = Math.max(flash, k); },
+    /** Lightning brightness here right now (0..1, set every frame while a storm flashes). */
+    setLightning(k) { flash = k; },
     update(dt, camera) {
       time += dt;
       // Fog and ambient light: calm → madness, darkened by a storm, lit up white-violet by lightning.
-      flash = Math.max(0, flash - dt * 4);
-      const fl = flash * (0.7 + 0.3 * Math.sin(time * 60));
+      const fl = flash;
       const fogC = lerp(lerp(FOG_CALM.color, FOG_MAD.color, madness), [0.07, 0.06, 0.11], storm * 0.6);
-      app.scene.fog.color.set(...fogC.map((v, i) => v + fl * [0.5, 0.48, 0.65][i]));
+      app.scene.fog.color.set(...fogC.map((v, i) => v + fl * [0.45, 0.5, 0.62][i]));
       app.scene.fog.density = FOG_CALM.density + (FOG_MAD.density - FOG_CALM.density) * madness + 0.006 * storm;
-      app.scene.ambientLight.set(...lerp(AMBIENT_CALM, AMBIENT_MAD, madness).map((v, i) => v * (1 - 0.3 * storm) + fl * [0.9, 0.85, 1.2][i]));
-      moon.light.intensity = 0.95 * (1 - 0.35 * storm) + fl * 3;
+      app.scene.ambientLight.set(...lerp(AMBIENT_CALM, AMBIENT_MAD, madness).map((v, i) => v * (1 - 0.3 * storm) + fl * [0.75, 0.8, 0.95][i]));
+      moon.light.intensity = 0.95 * (1 - 0.35 * storm) + fl * 2.5;
       sky.update(camera);
       const c = camera.getPosition();
       const m = madness;

@@ -10,7 +10,7 @@ import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { snapchat } from '../lib/snap.js';
 import { Geo, along, blob, box, cylinder, texturedMaterial, trs } from '../geo.js';
 import { JOINTS, J, POSES, REST, evaluate } from '../poses.js';
-import { capeGeo, costumeGeo } from './costumes.js';
+import { capeParts, costumeMaterials, costumeParts } from './costumes.js';
 
 /** Bitmojis are about 1.2 m tall; the village is built for grown-up proportions. */
 export const AVATAR_SCALE = 1.35;
@@ -25,12 +25,14 @@ async function fetchGlb(url) {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
 
-let shared = null;
+let shared = null, assetBase = './assets/';
+/** Where the GLBs live, relative to the page (the dev viewer sits one folder down). */
+export function setAssetBase(base) { assetBase = base; }
 function sharedAssets() {
   // Both files are meshopt-compressed for the Lens budget: unpack once, in memory (no blob: URLs, which
   // stricter hosts refuse), and hand each avatar its own copy of the bytes.
   const get = async (url) => unpackGlb(await fetchGlb(url));
-  shared ??= Promise.all([get('./assets/clips.glb'), get('./assets/avatar_default.glb')])
+  shared ??= Promise.all([get(`${assetBase}clips.glb`), get(`${assetBase}avatar_default.glb`)])
     .then(([clips, fallback]) => ({ clips, fallback }));
   return shared;
 }
@@ -45,7 +47,7 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
   figure.setLocalScale(AVATAR_SCALE, AVATAR_SCALE, AVATAR_SCALE);
   root.addChild(figure);
   const mat = texturedMaterial(tex.plain, { gloss: 0.35 });
-  const costumeMat = texturedMaterial(tex.plain, { gloss: 0.45 });
+  const costumeMats = costumeMaterials(tex);
   const puppet = createPuppet(app, mat);
   figure.addChild(puppet.entity);
   const status = { state: 'loading', real: false, error: null };
@@ -53,8 +55,20 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
   let worn = [], costumeId = costume, cape = null, capeSway = 0;
   let ghost = false, ghostT = 0, float = 0;
   const original = new WeakMap(), ghostly = new Map(); // mesh instance → its own material; material → its ghost copy
-  // Where the head is, in the figure's (unscaled) frame: puppet values until a Bitmoji arrives.
-  let headInfo = { joint: puppet.joints[J.Head], spine: puppet.joints[J.Spine1], top: 1.12, cx: 0, cz: 0, r: 0.12, neckY: 0.86, neckZ: 0 };
+  // Where the head and back are, in the figure's (unscaled) frame: puppet values until a Bitmoji arrives.
+  let headInfo = { joint: puppet.joints[J.Head], spine: puppet.joints[J.Spine1], top: 1.12, cx: 0, cz: 0, r: 0.12, neckY: 0.86, neckZ: 0, back: -0.12, half: 0.14 };
+
+  /** A costume piece from its parts (one mesh per material). */
+  function build(parts, name) {
+    const e = new Entity(name);
+    for (const [k, g] of Object.entries(parts)) {
+      if (g.empty) continue;
+      const m = g.build(app.graphicsDevice, costumeMats[k], `${name}-${k}`);
+      m.render.castShadows = k !== 'glow';
+      e.addChild(m);
+    }
+    return e;
+  }
 
   function attach(e, joint, desired) {
     const world = new Mat4().mul2(figure.getWorldTransform(), desired);
@@ -71,17 +85,18 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
     if (id === 'none') return;
     const h = headInfo;
     if (id === 'cape') {
+      // hung from the base of the neck, fitted to this Bitmoji's back; the collar stays put while the cape swings
+      const pivotY = h.neckY - 0.03, pivotZ = h.neckZ + 0.02;
+      const parts = capeParts({ back: h.back - pivotZ, half: h.half, len: pivotY - 0.38 * h.neckY });
       const pivot = new Entity('cape');
-      const mesh = capeGeo().build(app.graphicsDevice, costumeMat, 'cape-mesh');
-      mesh.render.castShadows = true;
-      pivot.addChild(mesh);
-      attach(pivot, h.spine, trs(0, h.neckY - 0.03, h.neckZ + 0.02));
-      cape = mesh;
+      cape = build(parts.sheet, 'cape-sheet');
+      pivot.addChild(cape);
+      pivot.addChild(build(parts.collar, 'cape-collar'));
+      attach(pivot, h.spine, trs(0, pivotY, pivotZ));
       worn.push(pivot);
     } else {
-      const e = costumeGeo(id).build(app.graphicsDevice, costumeMat, `costume-${id}`);
-      e.render.castShadows = true;
-      const drop = id === 'horns' ? 0.5 : id === 'pumpkin' ? 0.1 : 0.22;
+      const e = build(costumeParts(id), `costume-${id}`);
+      const drop = id === 'horns' ? 0.5 : id === 'pumpkin' ? 0.3 : 0.22;
       const holder = new Entity(`costume-${id}`);
       holder.addChild(e);
       attach(holder, h.joint, trs(h.cx, h.top - drop * h.r, h.cz, id === 'witch' ? -6 : 0, 0, id === 'witch' ? 8 : 0, h.r * (id === 'witch' ? 0.78 : 1)));
@@ -118,12 +133,14 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
 
   /** Reads the head's size and place from the avatar's own meshes (bind pose), so hats fit every Bitmoji. */
   function measure(b) {
-    let top = -Infinity, head = null;
+    let top = -Infinity, head = null, back = Infinity, half = 0;
     for (const r of b.entity.findComponents('render')) {
       for (const mi of r.meshInstances) {
         const a = mi.mesh.aabb;
         if (/head_GEO$/i.test(r.entity.name) && !/mouth/i.test(r.entity.name)) head = a;
         if (/(head|hair|headwear)_GEO$/i.test(r.entity.name)) top = Math.max(top, a.center.y + a.halfExtents.y);
+        if (/(outfit_top|outfit_outerwear|body)_GEO$/i.test(r.entity.name)) back = Math.min(back, a.center.z - a.halfExtents.z); // the back, for the cape
+        if (/outfit_top_GEO$/i.test(r.entity.name)) half = a.halfExtents.x;
       }
     }
     const joint = b.joint('Head'), spine = b.joint('Spine1') ?? b.joint('Spine'), neck = b.joint('Neck');
@@ -136,6 +153,8 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       cx: head ? head.center.x : jp.x, cz: head ? head.center.z : jp.z + 0.01,
       r: head ? Math.max(0.12, Math.min(0.24, Math.max(head.halfExtents.x, head.halfExtents.z))) : 0.16,
       neckY: np.y, neckZ: np.z,
+      back: Number.isFinite(back) && back < np.z - 0.04 && back > np.z - 0.3 ? back : np.z - 0.12,
+      half: half > 0.08 && half < 0.3 ? half : 0.14,
     };
   }
 
@@ -196,7 +215,7 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       figure.setLocalPosition(0, float, 0);
       if (cape) { // the cape streams back as you run
         capeSway += (Math.min(1, moveSpeed / 6) - capeSway) * Math.min(1, dt * 4);
-        cape.setLocalEulerAngles(-capeSway * 38 - Math.sin(performance.now() / 160) * 4 * capeSway, 0, 0);
+        cape.setLocalEulerAngles(capeSway * 22 + Math.sin(performance.now() / 160) * 3 * capeSway, 0, Math.sin(performance.now() / 310) * 2 * capeSway); // (+X: the hem swings back)
       }
     },
     destroy() {

@@ -50,6 +50,17 @@ const PAINTERS = {
     g.fillRect(0, 0, 64, 64);
     return c;
   },
+  // Across a lightning ribbon: a white-hot core a few pixels wide inside a broad blue-white glow.
+  bolt() {
+    const [c, g] = canvas(128, 4), img = g.createImageData(128, 4);
+    for (let x = 0; x < 128; x++) {
+      const d = Math.abs(x / 127 - 0.5) * 2, core = Math.exp(-((d / 0.07) ** 2)), halo = 0.5 * Math.exp(-((d / 0.42) ** 2)) + 0.12 * (1 - d);
+      const px = [core + halo * 0.62, core + halo * 0.72, core + halo, Math.min(1, core + halo)].map((v) => Math.round(Math.min(1, v) * 255));
+      for (let y = 0; y < 4; y++) img.data.set(px, (y * 128 + x) * 4);
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  },
   // A lit window pane: warm glow brightest low in the middle, four panes behind dark mullions.
   window() {
     const [c, g] = canvas(128, 128);
@@ -110,9 +121,9 @@ const PAINTERS = {
   },
 };
 
-const PHOTOS = ['grass', 'dirt', 'rock', 'bark', 'siding', 'slates', 'cobbles', 'flags', 'masonry'];
-const CLAMPED = new Set(['glow', 'window', 'clock', 'moon']);
-const AVERAGE = { grass: '#968359', dirt: '#4b3c2c', rock: '#8c775f', bark: '#665240', siding: '#a59388', slates: '#a7a6a0', cobbles: '#897d60', flags: '#8d8d88', masonry: '#887e6f' };
+const PHOTOS = ['grass', 'dirt', 'rock', 'bark', 'siding', 'slates', 'cobbles', 'flags', 'masonry', 'velvet'];
+const CLAMPED = new Set(['glow', 'window', 'clock', 'moon', 'bolt']);
+const AVERAGE = { grass: '#968359', dirt: '#4b3c2c', rock: '#8c775f', bark: '#665240', siding: '#a59388', slates: '#a7a6a0', cobbles: '#897d60', flags: '#8d8d88', masonry: '#887e6f', velvet: '#aaaaaa' };
 
 /** { plain, glow, window, ..., grass, siding, slates, ... } and `normals.<photo>`; `ready` resolves when the photos are in. */
 export function createTextures(device, { base = './assets/' } = {}) {

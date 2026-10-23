@@ -30,7 +30,8 @@ app.start();
 if (!new URLSearchParams(location.search).has("avatars")) tex.ready.then(() => setTimeout(() => { window.__ready = true; }, 1500));
 // ?avatars: four default Bitmojis in costume, each playing a different clip.
 if (new URLSearchParams(location.search).has('avatars')) {
-  const { createAvatar } = await import('../actors/avatar.js');
+  const { createAvatar, setAssetBase } = await import('../actors/avatar.js');
+  setAssetBase('../assets/');
   const list = [['witch', 'walk'], ['pumpkin', 'run'], ['horns', 'knock'], ['cape', 'cheer']];
   const all = [];
   list.forEach(([c, a], i) => {

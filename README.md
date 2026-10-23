@@ -102,8 +102,17 @@ arte final de un artista**: el equipo puede reemplazar piezas sin tocar la lógi
 
 Personajes: el Bitmoji 3D del jugador (vía API oficial; el Bitmoji por defecto de Snap si no tiene o falla), animado
 con clips propios (`idle, walk, run, knock, hit, cheer, sad`) horneados por `npm run clips` desde `src/poses.js`.
-Disfraces (sombrero de bruja, sombrero-calabaza, cuernos, capa) como piezas aparte sobre las articulaciones de la
-cabeza o la espalda, medidas sobre las mallas de cada Bitmoji: no modifican el avatar.
+Disfraces como piezas aparte sobre las articulaciones de la cabeza o la espalda, medidas sobre las mallas de cada
+Bitmoji (no modifican el avatar), con materiales de verdad: **sombrero de bruja** de terciopelo arrugado con la punta
+caída, cinta de satén y hebilla de bronce; **calabaza** con gajos marcados, tallada y encendida por dentro; **cuernos**
+brillantes con anillos, rojo oscuro a negro en la punta; **vampiro**: capa de terciopelo negro forrada de satén rojo,
+pegada a la espalda (se ajusta a la espalda medida de cada Bitmoji y se balancea un poco al correr), con puntas en el
+borde, cuello alto de Drácula y cadena dorada con medallón. En el menú, el vampiro tiene su cara dibujada
+(`src/ui/vampire.js`).
+
+Rayos de la tormenta: un canal nuevo en cada descarga (desplazamiento de punto medio, con ramas), cintas planas
+vueltas a la cámara con núcleo blanco y halo azulado, 3–4 parpadeos en 0,4 s, y una luz que ilumina el suelo, la nube
+desde adentro y el pueblo con cada parpadeo.
 
 ## Estructura
 

@@ -83,6 +83,8 @@
       .costumes { display: flex; justify-content: center; gap: 8px; margin-top: 4px; }
       .costumes button { width: 52px; height: 52px; border-radius: 50%; font-size: 26px; background: radial-gradient(#3e2652, #1a0f24); border: 2px solid #6d5a87; transition: transform .15s; }
       .costumes button.on { border-color: var(--gold); box-shadow: 0 0 14px rgba(240,190,90,.6); transform: scale(1.12) rotate(-6deg); }
+      .costumes button svg.face { width: 44px; height: 44px; display: block; margin: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+      .ci svg.face { width: 1.35em; height: 1.35em; vertical-align: middle; }
       .costumeName { text-align: center; color: var(--gold); font-size: 15px; min-height: 20px; }
       .field { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 14px; color: var(--lav); margin-top: 6px; }
       .field input { font: inherit; font-size: 18px; width: 150px; padding: 6px 10px; color: #fff; background: rgba(0,0,0,.35); border: 2px solid #6d5a87; border-radius: 10px 3px 10px 3px; text-align: center; letter-spacing: .08em; user-select: text; -webkit-user-select: text; }
@@ -161,7 +163,7 @@
       @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 12px) scale(.7) rotate(-4deg); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1) rotate(-4deg); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(1) rotate(-4deg); } }
       #flash { background: radial-gradient(ellipse at center, rgba(120,20,60,0) 35%, rgba(140,20,40,.6) 100%); opacity: 0; transition: opacity .5s; }
       #flash.on { opacity: 1; transition: none; }
-      #bolt { background: radial-gradient(ellipse at 50% 20%, rgba(240,235,255,.5), rgba(190,180,255,.25)); opacity: 0; transition: opacity .3s; }
+      #bolt { background: radial-gradient(ellipse at 50% 20%, rgba(235,242,255,.5), rgba(185,200,255,.22)); opacity: 0; transition: opacity .3s; }
       #madVeil { background: radial-gradient(ellipse at center, rgba(80,0,40,0) 55%, rgba(90,10,50,.26) 100%); opacity: 0; transition: opacity 2s; }
       #madVeil.on { opacity: 1; }
       #tags { overflow: hidden; }

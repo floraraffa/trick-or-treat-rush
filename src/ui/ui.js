@@ -1,10 +1,13 @@
 // UIManager: every screen and the HUD, as plain DOM over the 3D canvas (index.html holds the
 // markup and the gothic-storybook styles). It only shows what it is told; game rules live elsewhere.
 import { COSTUMES, COSTUME_ICON } from '../actors/costumes.js';
+import { vampireFace } from './vampire.js';
 import { t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const SCREENS = ['loading', 'menu', 'how', 'lobby', 'results'];
+/** A costume's icon as HTML: the drawn vampire face, emoji for the rest. */
+const icon = (id, other = '🙂') => (id === 'cape' ? vampireFace() : COSTUME_ICON[id] ?? other);
 const POWER_ICON = { rain: '🍬', shield: '🛡️', magnet: '🧲', double: '✖2' };
 const FX_ICON = { ...POWER_ICON, rain: '🌧️', slow: '🕸️', giant: '⛰️', thief: '🔮', ghost: '👻' };
 const LEVELS = ['easy', 'medium', 'hard'];
@@ -39,7 +42,7 @@ export function createUI(on) {
   const costumes = $('costumes');
   for (const id of COSTUMES) {
     const b = document.createElement('button');
-    b.textContent = COSTUME_ICON[id];
+    b.innerHTML = icon(id);
     b.dataset.id = id;
     b.setAttribute('aria-label', id);
     b.addEventListener('click', () => { on.click?.(); on.costume(id); });
@@ -112,7 +115,7 @@ export function createUI(on) {
       for (let i = 0; i < 4; i++) {
         const p = roster[i];
         if (!p) { slots.push(`<div class="slot empty">· · ·</div>`); continue; }
-        slots.push(`<div class="slot${p.me ? ' me' : ''}"><span>${COSTUME_ICON[p.costume] ?? '🙂'}</span><span>${esc(p.name)}${p.me ? ` (${t('you')})` : ''}</span>${p.host ? `<span class="tag">${t('host')}</span>` : ''}</div>`);
+        slots.push(`<div class="slot${p.me ? ' me' : ''}"><span class="ci">${icon(p.costume)}</span><span>${esc(p.name)}${p.me ? ` (${t('you')})` : ''}</span>${p.host ? `<span class="tag">${t('host')}</span>` : ''}</div>`);
       }
       $('slots').innerHTML = slots.join('');
       const busy = phase === 'countdown' || phase === 'playing';
@@ -196,7 +199,7 @@ export function createUI(on) {
     results({ hero, king, rows, note, friends }) {
       $('resHero').textContent = hero;
       $('resKing').textContent = king;
-      $('ranking').innerHTML = rows.map((r) => `<div class="rank${r.win ? ' win' : ''}${r.me ? ' me' : ''}"><span class="pos"><span>${r.pos}</span></span><span>${COSTUME_ICON[r.costume] ?? '🎃'}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`).join('');
+      $('ranking').innerHTML = rows.map((r) => `<div class="rank${r.win ? ' win' : ''}${r.me ? ' me' : ''}"><span class="pos"><span>${r.pos}</span></span><span class="ci">${icon(r.costume, '🎃')}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`).join('');
       $('resNote').textContent = note ?? '';
       $('btnFriends').classList.toggle('hidden', !friends);
       show('results');
