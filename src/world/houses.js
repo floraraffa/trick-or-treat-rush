@@ -60,7 +60,7 @@ export function buildHouse(app, h, B) {
   const stepTop = 0.45;
 
   // Stone footing so the crooked house sits on something.
-  B.get('rock').add(box(h.w + 0.3, 0.5, h.d + 0.3), H.clone().mul(trs(0, 0.2, 0)), [0.42, 0.38, 0.46]);
+  B.get('masonry').add(box(h.w + 0.3, 0.5, h.d + 0.3, 0.6), H.clone().mul(trs(0, 0.2, 0)), [0.42, 0.38, 0.46]);
 
   let top = null;
   h.floors.forEach((f, i) => {
@@ -114,7 +114,7 @@ export function buildHouse(app, h, B) {
     const pts = [];
     for (let k = 0; k <= 5; k++) { const t = k / 5; pts.push([cx + lean * t * t, tfh + 0.3 + t * (h.roof.h * 0.55 + 1.6), cz + Math.sin(t * 2.5) * 0.3]); }
     pts.push([pts[5][0] + lean * 0.05, pts[5][1] + 0.05, pts[5][2]], [pts[5][0] + lean * 0.06, pts[5][1] + 0.3, pts[5][2]]);
-    B.get('rock').add(tube(pts, [0.32, 0.32, 0.31, 0.3, 0.29, 0.28, 0.4, 0.4], 8), TM, [0.45, 0.3, 0.32]);
+    B.get('masonry').add(tube(pts, [0.32, 0.32, 0.31, 0.3, 0.29, 0.28, 0.4, 0.4], 8, { uvScale: 0.7 }), TM, [0.45, 0.3, 0.32]);
   }
 
   // Side tower with a witch-hat roof.

@@ -1,8 +1,9 @@
 // CandyManager (the drawing side): the candy, power-up orbs and gems the authority has put on the
 // streets, exaggerated and glowing, bobbing and turning above a pool of their own light (gems also
-// send a beam up into the fog, so they can be spotted from across the village). A candy
-// the local player reaches is asked for once (the authority says who gets it); with the magnet it
-// drifts towards its player first. Nothing is removed until the authority says so.
+// send a beam up into the fog, so they can be spotted from across the village). Candy rain falls
+// from the sky with a sparkling trail and lands where the authority put it. A candy the local player
+// reaches is asked for once (the authority says who gets it); with the magnet it drifts towards its
+// player first. Nothing is removed until the authority says so.
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, box, cylinder, texturedMaterial, trs } from '../geo.js';
 import { circleOutline, extrude, flat, lathe, tube } from '../world/shapes.js';
@@ -10,8 +11,9 @@ import { CANDY, GEMS, GEM_R, ORB_R, PICKUP_R, POWERUPS } from '../game/config.js
 
 const HUES = [[1, 0.3, 0.35], [1, 0.62, 0.15], [1, 0.95, 0.3], [0.35, 0.95, 0.5], [0.3, 0.7, 1], [0.7, 0.4, 1]];
 export const CANDY_GLOW = { caramel: [1, 0.6, 0.2], lollipop: [1, 0.4, 0.7], chocolate: [0.75, 0.45, 1], pumpkin: [1, 0.8, 0.25], rainbow: [0.6, 0.9, 1] };
-export const ORB_COLOR = { speed: [1, 0.86, 0.2], shield: [0.35, 0.85, 1], magnet: [1, 0.3, 0.3], double: [0.8, 0.4, 1] };
-export const GEM_COLOR = { giant: [1, 0.3, 0.22], thief: [0.35, 1, 0.85] };
+export const ORB_COLOR = { rain: [1, 0.5, 0.85], shield: [0.35, 0.85, 1], magnet: [1, 0.3, 0.3], double: [0.8, 0.4, 1] };
+export const GEM_COLOR = { giant: [1, 0.3, 0.22], thief: [0.35, 1, 0.85], ghost: [0.88, 0.86, 1] };
+const FALL_FROM = 14; // candy rain starts this high
 
 /** A spiral swirl coloured by angle and radius (lollipops), in the disc's local XY plane. */
 const swirl = (cols, turns = 3) => (x, y) => {
@@ -54,9 +56,9 @@ function candyGeo(type) {
 function orbGeo(kind) {
   const inner = new Geo();
   const c = ORB_COLOR[kind];
-  if (kind === 'speed') { // a lightning bolt in two convex pieces
-    inner.add(extrude([[-0.02, 0.24], [-0.12, 0], [0.04, 0], [0.12, 0.24]], 0.06), null, c);
-    inner.add(extrude([[-0.04, 0.04], [-0.1, -0.26], [0.12, 0.06]], 0.06), null, c);
+  if (kind === 'rain') { // a little cloud dropping sweets
+    for (const [x, y, r] of [[-0.1, 0.08, 0.1], [0.02, 0.13, 0.12], [0.12, 0.07, 0.09]]) inner.add(blob(r, 10), trs(x, y, 0), [1, 0.9, 1]);
+    for (const [x, y, k] of [[-0.12, -0.1, 0], [0.01, -0.18, 1], [0.13, -0.08, 2]]) inner.add(blob(0.045, 8), trs(x, y, 0), HUES[k * 2]);
   }
   if (kind === 'shield') inner.add(extrude([[-0.16, 0], [0, -0.22], [0.16, 0], [0.17, 0.18], [-0.17, 0.18]], 0.07), null, c);
   if (kind === 'magnet') {
@@ -164,6 +166,7 @@ export function createCandy(app, tex, fx) {
           const big = c.type === 'rainbow' ? 1.25 : c.type === 'pumpkin' ? 1.15 : 1;
           const s = addEntity(protos[c.type], c.x, c.z, CANDY_GLOW[c.type], 0.9 * big, `candy-${id}`);
           s.spin.setLocalScale(big, big, big);
+          if (c.fall) { s.born = 1; s.fall = c.fall; s.pool = s.e.children[1]; }
           shown.set(id, s);
         }
       }
@@ -176,22 +179,32 @@ export function createCandy(app, tex, fx) {
         s.type = c.type;
         s.t += dt;
         s.born = Math.min(1, s.born + dt * 3);
-        // Magnet: candy within reach drifts to its player (drawn only; the authority decides).
-        if (me?.magnet) {
+        // Magnet: candy within its reach flies to its player (drawn only; the authority decides), and
+        // drifts back to where it really is if the player gets away.
+        const real = me ? Math.hypot(me.x - c.x, me.z - c.z) : Infinity, pulled = me?.magnet && real < POWERUPS.magnet.radius;
+        if (pulled) {
           const dx = me.x - s.x, dz = me.z - s.z, d = Math.hypot(dx, dz);
-          if (d < POWERUPS.magnet.radius && d > 0.2) { const k = Math.min(1, dt * (3 + 6 / d)); s.x += dx * k * 0.5; s.z += dz * k * 0.5; }
+          if (d > 0.2) { const k = Math.min(1, dt * (2 + 8 / d)); s.x += dx * k * 0.5; s.z += dz * k * 0.5; }
+        } else if (s.x !== c.x || s.z !== c.z) { const k = Math.min(1, dt * 4); s.x += (c.x - s.x) * k; s.z += (c.z - s.z) * k; }
+        let bob = 0.95 + Math.sin(s.t * 2.4) * 0.13;
+        // Candy rain: falls (accelerating), lands with a hop and a puff of sparkles.
+        const k = s.fall ? Math.min(1, (now - c.born) / s.fall) : 1;
+        if (s.fall) {
+          bob += (1 - k * k) * FALL_FROM;
+          s.pool.enabled = k > 0.6;
+          if (k < 1 && Math.random() < dt * 30) fx?.emit({ x: s.x, y: bob + 0.3, z: s.z }, { x: 0, y: 2, z: 0 }, { n: 1, spread: 0.2, size: 0.16, grow: 0.2, life: 0.5, color: CANDY_GLOW[c.type], gravity: 0, alpha: 0.9, twinkle: true });
+          if (k >= 1 && !s.landed) { s.landed = true; fx?.emit({ x: s.x, y: 0.4, z: s.z }, { x: 0, y: 1.2, z: 0 }, { n: 10, spread: 2.5, size: 0.2, grow: 0.4, life: 0.5, color: CANDY_GLOW[c.type], gravity: -3, alpha: 0.9 }); }
         }
-        const bob = 0.95 + Math.sin(s.t * 2.4) * 0.13;
         s.e.setPosition(s.x, 0, s.z);
         s.spin.setLocalPosition(0, bob, 0);
         s.spin.setLocalEulerAngles(0, s.t * 90, Math.sin(s.t * 1.3) * 10);
         const sc = s.born * (c.type === 'rainbow' ? 1.25 : c.type === 'pumpkin' ? 1.15 : 1);
         s.spin.setLocalScale(sc, sc, sc);
         if ((c.type === 'rainbow' || c.type === 'pumpkin') && Math.random() < dt * 6) fx?.emit({ x: s.x, y: bob, z: s.z }, { x: 0, y: 0.5, z: 0 }, { n: 1, spread: 1, size: 0.12, grow: 0.3, life: 0.7, color: CANDY_GLOW[c.type], gravity: 0.5, alpha: 0.9, twinkle: true });
-        if (me && view.phase === 'playing') {
-          const d = Math.hypot(me.x - s.x, me.z - s.z), reach = (me.magnet ? Math.min(PICKUP_R + 0.5, POWERUPS.magnet.radius) : PICKUP_R) * (me.giant ? GEMS.giant.reach : 1);
-          const real = Math.hypot(me.x - c.x, me.z - c.z);
-          if ((d < reach || (me.magnet && real < POWERUPS.magnet.radius)) && (!asked.has(id) || now - asked.get(id) > 1.5)) { asked.set(id, now); ask('pickup', id); }
+        if (me && view.phase === 'playing' && k >= 1) {
+          // Asked for once it is in reach as drawn: a magnet's candy has flown to its player by then.
+          const d = Math.hypot(me.x - s.x, me.z - s.z), reach = (pulled ? PICKUP_R + 0.5 : PICKUP_R) * (me.giant ? GEMS.giant.reach : 1);
+          if ((d < reach || (pulled && d < 2.5)) && (!asked.has(id) || now - asked.get(id) > 1.5)) { asked.set(id, now); ask('pickup', id); }
         }
       }
       for (const [id, o] of view.orbs) {

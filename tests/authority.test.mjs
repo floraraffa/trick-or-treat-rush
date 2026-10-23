@@ -55,7 +55,7 @@ assert.equal(of('house').length, 2, 'usable again after 15 s');
   const n = 20000, counts = { treat: 0, trick: 0, jackpot: 0 };
   for (let i = 0; i < n; i++) {
     B.houses[3].until = -1;
-    B.players.get('x').held = 'speed';
+    B.players.get('x').held = 'shield';
     B.setPose('x', HOUSES[3].door.x, HOUSES[3].door.z);
     B.players.get('x').inv = 0;
     B.intent('x', { kind: 'knock', house: 3 });
@@ -183,10 +183,97 @@ function fresh(seed = 7) {
   for (let i = 0; i < 60 && z.state !== 'banished'; i++) { X.setPose('a', z.x, z.z); X.tick(0.1); }
   const sc = of('scare')[0];
   assert.ok(sc && sc.kind === 'zombie' && sc.power === 'thief' && sc.pts === C.SCARE_LOOT.zombie, 'caught zombie drops candy');
-  assert.ok(C.GEMS.thief.dur > C.GEMS.giant.dur);
-  console.log(`✔ candy thief: zombies flee too, a caught one drops ${sc.pts}; lasts ${C.GEMS.thief.dur} s`);
+  console.log(`✔ candy thief: zombies flee too, a caught one drops ${sc.pts}`);
 }
-{ // gems appear during the round and are picked up through the authority
+{ // every gem and power-up lasts 20 s
+  for (const [k, v] of Object.entries({ ...C.GEMS, ...C.POWERUPS })) assert.equal(v.dur, 20, `${k} lasts 20 s`);
+  assert.equal(C.ROUND_SECONDS, 180);
+  assert.ok(!('speed' in C.POWERUPS) && 'rain' in C.POWERUPS && 'ghost' in C.GEMS);
+  console.log(`✔ every power lasts 20 s (${[...C.GEM_KINDS, ...C.POWERUP_KINDS].join(', ')}); the round lasts 180 s`);
+}
+{ // ghost gem: monsters can't see you, a chasing one gives up, nothing hurts you, webs don't stick
+  const { X, of } = fresh();
+  X.players.get('a').score = 30;
+  X.setPose('a', 0, 12); X.setPose('b', 0, -20);
+  const g = X.addMonster('ghost', [[0, 14], [5, 14]], 1.5, 12); Object.assign(g, { state: 'chase', target: 'a', cool: 0 });
+  X.players.get('a').fx.ghost = X.rt + C.GEMS.ghost.dur;
+  for (let i = 0; i < 40; i++) { X.setPose('a', g.x, g.z); X.tick(0.1); } // float right through it
+  assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'a ghost takes no hits');
+  assert.notEqual(g.state, 'chase', 'the monster lost sight of the player');
+  assert.equal(of('spot').filter((e) => e.target === 'a').length, 0, 'and never spots them again');
+  const z = X.addMonster('zombie', [[0, 12], [3, 12]], 0.4, 12); Object.assign(z, { cool: 0 });
+  for (let i = 0; i < 20; i++) { X.setPose('a', z.x, z.z); X.tick(0.1); }
+  assert.equal(of('hit').filter((h) => h.id === 'a').length, 0, 'zombies ignore a ghost too');
+  assert.equal(X.players.get('a').score, 30);
+  X.monsters = [];
+  // a web trick doesn't hold a ghost
+  for (let i = 0; i < 400 && !of('house').some((e) => e.trick === 'web'); i++) {
+    X.houses[2].until = -1; X.setPose('a', HOUSES[2].door.x, HOUSES[2].door.z); X.intent('a', { kind: 'knock', house: 2 });
+  }
+  assert.ok(of('house').some((e) => e.trick === 'web'), 'got a web trick');
+  assert.ok(!of('hit').some((h) => h.id === 'a' && h.by === 'web'), 'a ghost floats through webs');
+  const left = X.players.get('a').fx.ghost - X.rt;
+  for (let i = 0; i < (left + 0.3) * 10; i++) X.tick(0.1);
+  assert.ok(of('fx-end').some((e) => e.id === 'a' && e.kind === 'ghost'), 'ghost form ends');
+  console.log('✔ ghost gem: monsters lose you, no hits from ghosts or zombies, webs don\'t stick, it wears off');
+}
+{ // candy rain: candy falls round its player, can be taken once it lands, and melts away if left
+  const { X, of } = fresh();
+  X.setPose('a', 0, 12); X.setPose('b', 0, -20);
+  X.players.get('a').held = 'rain';
+  const streets = X.candies.size;
+  X.intent('a', { kind: 'use' });
+  X.tick(0.05);
+  const first = of('candy+').filter((e) => e.fall);
+  assert.equal(first.length, 1, 'the first piece falls at once');
+  const c = first[0];
+  const r = Math.hypot(c.x - 0, c.z - 12);
+  assert.ok(r <= C.POWERUPS.rain.radius[1] + 1, `falls near its player (${r.toFixed(1)} m)`);
+  X.setPose('a', c.x, c.z);
+  X.intent('a', { kind: 'pickup', id: c.id });
+  assert.equal(of('candy-').length, 0, 'not while it is still falling');
+  for (let i = 0; i < 12; i++) X.tick(0.1);
+  X.setPose('a', c.x, c.z);
+  X.intent('a', { kind: 'pickup', id: c.id });
+  assert.equal(of('candy-')[0]?.id, c.id, 'taken once it has landed');
+  X.setPose('a', 0, 12);
+  for (let i = 0; i < 100; i++) X.tick(0.1); // 10 s of rain, standing still
+  const fell = of('candy+').filter((e) => e.fall).length;
+  const want = 11 * C.POWERUPS.rain.rate;
+  assert.ok(Math.abs(fell - want) <= 3, `about ${C.POWERUPS.rain.rate} a second (${fell} in 11 s)`);
+  assert.ok([...X.candies.values()].filter((k) => k.spot >= 0).length <= Math.max(streets, C.CANDY_ON_MAP), 'rain candy does not stop the streets refilling');
+  for (let i = 0; i < 260; i++) X.tick(0.1); // the rain stops; what nobody took melts away
+  assert.ok(of('fx-end').some((e) => e.id === 'a' && e.kind === 'rain'), 'the rain stops after 20 s');
+  assert.equal([...X.candies.values()].filter((k) => k.spot < 0).length, 0, 'fallen candy does not pile up');
+  assert.ok(of('candy-').some((e) => e.gone), 'left-over rain candy melts away');
+  console.log(`✔ candy rain: ${fell} pieces in the first 11 s round its player, taken once landed, the rest melts away`);
+}
+{ // magnet: pulls candy in from far away (16 m)
+  const { X, of } = fresh();
+  const c = [...X.candies.values()][0];
+  X.setPose('a', c.x + 15, c.z);
+  X.intent('a', { kind: 'pickup', id: c.id });
+  assert.equal(of('candy-').length, 0, 'out of reach without the magnet');
+  X.players.get('a').fx.magnet = X.rt + C.POWERUPS.magnet.dur;
+  X.intent('a', { kind: 'pickup', id: c.id });
+  assert.equal(of('candy-')[0]?.id, c.id, 'the magnet reaches 15 m');
+  console.log(`✔ magnet: reaches ${C.POWERUPS.magnet.radius} m`);
+}
+{ // gems: the first soon after GO, up to two out at once and of different kinds
+  const { X, of } = fresh();
+  X.setPose('a', 0, 40); X.setPose('b', 0, 40);
+  let firstAt = null;
+  while (X.gems.size < 2 && X.rt < 60) { X.tick(0.1); if (firstAt === null && X.gems.size) firstAt = X.rt; }
+  const out = of('gem+');
+  assert.ok(out[0], 'a gem appears');
+  assert.ok(Math.abs(firstAt - C.GEM_FIRST) < 0.2, `${C.GEM_FIRST} s after GO`);
+  assert.equal(X.gems.size, 2, 'two at a time');
+  assert.notEqual(out[0].kind, out[1].kind, 'of different kinds');
+  for (let i = 0; i < 200; i++) X.tick(0.1);
+  assert.equal(X.gems.size, C.GEMS_ON_MAP, 'never more than two');
+  console.log(`✔ gems: ${out[0].kind} at ${C.GEM_FIRST} s, then ${out[1].kind}; at most ${C.GEMS_ON_MAP} out`);
+}
+{ // gems are picked up through the authority
   const { X, of } = fresh();
   while (!X.gems.size && X.rt < 40) X.tick(0.1);
   const gem = [...X.gems.values()][0];

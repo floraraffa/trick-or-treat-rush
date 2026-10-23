@@ -2,8 +2,9 @@
 
 Juego de Halloween para el **Halloween Challenge de Lenslist**, hecho como **Snap Web Lens** sobre la misma base
 que *Cruise Rush* (PlayCanvas + Vite + `@snap/web-lens-api`). Tu Bitmoji recorre un pueblo embrujado de cuento
-gótico, golpea puertas (*¡dulce o truco!*), junta caramelos, esquiva fantasmas y zombies (o los espanta con una gema)
-y, en el último minuto, sobrevive a la **Monster Madness**. Gana quien tenga más caramelos a los 180 segundos.
+gótico, golpea puertas (*¡dulce o truco!*), junta caramelos (o hace que lluevan del cielo), esquiva fantasmas y zombies
+(o los espanta con una gema, o se vuelve fantasma y los atraviesa) y, en el último minuto, sobrevive a la
+**Monster Madness**. Gana quien tenga más caramelos a los 3 minutos (180 segundos).
 
 ## Cómo correrlo
 
@@ -13,6 +14,7 @@ npm run dev            # http://localhost:3000 (vista de celular)
 npm run pack           # build + chequeos de Snap → submission/trick-or-treat-rush-v<versión>.zip
 npm test               # reglas de la autoridad (rápido, sin navegador)
 npm run test:e2e       # además: una noche completa y una sala de 3 jugadores en Chromium headless
+npm run textures       # vuelve a bajar y preparar las texturas de Poly Haven (necesita red)
 ```
 
 **Jugarlo sin Snapchat:** `npm run artifact -- <carpeta>` arma una versión para publicar como página de claude.ai
@@ -56,23 +58,27 @@ no es posible hoy jugar en vivo entre teléfonos.**
 | Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). Hard es la primera versión del juego; Medium y Easy tienen menos monstruos, más lentos, que ven menos y se rinden antes, y más protección tras un golpe |
 | Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (sale un fantasma o te atrapa una telaraña), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
 | Caramelos | caramelo 1, piruleta 5, chocolate 10, calabaza dorada 25, caramelo arcoíris 50; flotan, giran y brillan; un caramelo no se cobra dos veces |
-| Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2,5 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan |
-| Gemas | aparecen cada 20–30 s con un haz de luz; **gema gigante** (roja, 8 s): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven 5 s después); **gema ladrona** (verde, 18 s): todos los monstruos huyen (fantasmas y zombies) y al atrapar uno le robás 10 caramelos más lo que le haya quitado a los jugadores |
-| Power-ups | velocidad ×2 (8 s), escudo mágico (para un ataque), imán de caramelos (8 s), caramelos dobles (10 s); un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
+| Monstruos | fantasma: −10 caramelos (y se los guarda); zombie: te frena 5 s; protección después de cada golpe (5 / 3,5 / 2,5 s según el nivel); patrulla → detección → persecución → ataque → retirada → retorno, o huida si los asusta una gema; zombies rodean paredes, fantasmas las atraviesan; no ven a un jugador convertido en fantasma |
+| Gemas | **todas duran 20 s**; la primera a los 10 s, después una cada 10–16 s, hasta 2 a la vez y de clases distintas, con un haz de luz; **gigante** (roja): crecés ×2,2, los monstruos no te dañan, huyen, y al tocarlos los espantás (sueltan caramelos y vuelven 5 s después); **ladrona** (verde): todos los monstruos huyen y al atrapar uno le robás 10 caramelos más lo que le haya quitado a los jugadores; **fantasma** (blanca): tu Bitmoji se vuelve un fantasma translúcido que flota, los monstruos no te ven ni te dañan, atravesás a los fantasmas, las paredes y las telarañas |
+| Power-ups | **todos duran 20 s**: **lluvia de caramelos** (caen del cielo alrededor tuyo, ~1,6 por segundo, se pueden agarrar al tocar el suelo; los que nadie agarra se desvanecen a los 14 s), escudo mágico (para un ataque), **imán** (atrae caramelos desde **16 m**: vuelan hacia vos), caramelos dobles; un orbe guardado en la ranura para el botón POWER-UP (si ya tenés uno, el orbe que tocás se activa en el acto: siempre se pueden agarrar); indicadores en el HUD y auras visibles para todos; se reinician en cada ronda |
 | Madness | "MONSTER MADNESS!", campanadas de medianoche, más niebla, luna roja, faroles que titilan, monstruos más rápidos (×1,1 / ×1,2 / ×1,35), caramelos especiales |
 | Cámara | estilo GTA: **tercera persona** (detrás y arriba, órbita con el dedo derecho, pellizco para la distancia, se recentra al caminar, las paredes no tapan la vista) y **primera persona** (altura de los ojos, el cuerpo se oculta); botón **CAMERA**; local, nunca se sincroniza |
-| Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr), **SPRINT** (mantener: ~3 s más rápido que cualquier monstruo, se recarga en 4,5 s), mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD + Shift, Q (sprint), E, Espacio, C |
+| Controles | joystick izquierdo (empujar poco = caminar, a fondo = correr); **carrera automática**: si seguís para el mismo lado 1,1 s, el Bitmoji acelera solo hasta ×1,5 la velocidad de correr (7,5 m/s, más que cualquier monstruo); al frenar o girar más de 100° vuelve al paso del joystick. Sin botón de sprint. Mirar con el lado derecho, TRICK OR TREAT / POWER-UP / CAMERA abajo a la derecha. Teclado: WASD (+ Shift para correr), E, Espacio, C |
 
 ## Dificultad medida
 
-Choques de monstruos por ronda de 3 minutos, con un jugador simulado que junta caramelos y huye corriendo cuando
-un monstruo se acerca (30 rondas por nivel, simulación de la autoridad en Node):
+Golpes de monstruos por ronda de 3 minutos, con un jugador simulado que corre siempre a fondo hacia el caramelo más
+cercano y escapa cuando un monstruo lo persigue; no usa gemas ni power-ups (30 rondas por nivel, simulación de la
+autoridad en Node). Es un bot torpe, sirve para comparar niveles, no para predecir a una persona:
 
-| Nivel | sin sprint | con sprint |
+| Nivel | corriendo (5 m/s) | con carrera automática |
 |---|---|---|
-| Hard | 15,8 | 5,8 |
-| Medium | 3,8 | 1,5 |
-| Easy | 0,4 | 0,3 |
+| Hard | 11,9 golpes · 88 caramelos | 10,2 golpes · 115 caramelos |
+| Medium | 5,2 · 84 | 4,4 · 97 |
+| Easy | 2,2 · 90 | 2,9 · 80 |
+
+Al huir, el bot da media vuelta y eso reinicia la carrera automática: por eso ayuda más a juntar caramelos que a
+escapar. (La tabla anterior, con el botón de sprint, se midió con otro bot y no es comparable.)
 
 ## Arte
 
@@ -85,7 +91,10 @@ enormes, escalones asimétricos, cercas torcidas, árboles con ramas como manos 
 con reja de lanzas y mausoleo, torre-reloj (sus agujas van de las 11:57 a la medianoche durante la ronda), hongos
 luminosos, flores oscuras, topiarios raros, calabazas deformadas y talladas. Paleta violeta / azul petróleo / negro
 azulado / lavanda / musgo / rosa empolvado con naranja calabaza, amarillo cálido, dorado viejo y rojo oscuro.
-Texturas fotográficas CC0 de Poly Haven teñidas por vértice. **Son modelos procedurales hechos para este juego, no
+Texturas fotográficas CC0 de Poly Haven **con normal maps** (relieve con la luz): tablas de las fachadas, pizarras de
+los techos, adoquines con musgo, lajas de la plaza, mampostería de cimientos, chimeneas, mausoleo y torre, piedra,
+corteza y el musgo del suelo (1024 px), con oclusión ambiental horneada en el color, desaturadas y teñidas por
+vértice con la paleta (`tools/fetch-textures.mjs`). **Son modelos procedurales hechos para este juego, no
 arte final de un artista**: el equipo puede reemplazar piezas sin tocar la lógica.
 
 Personajes: el Bitmoji 3D del jugador (vía API oficial; el Bitmoji por defecto de Snap si no tiene o falla), animado
@@ -114,9 +123,11 @@ cabeza o la espalda, medidas sobre las mallas de cada Bitmoji: no modifican el a
 ## Estado y pendientes
 
 - Probado en Chromium headless (WebGL por software): noche completa en solitario, controles táctiles y de teclado,
-  cambio de cámara, casas, caramelos, power-ups, Madness, fin a los 180 s, y una sala de 3 instancias (lobby,
+  carrera automática, cambio de cámara, casas, caramelos, power-ups, lluvia de caramelos, forma fantasma (atraviesa
+  una casa y vuelve a ser sólida), gemas, Madness, fin a los 180 s, y una sala de 3 instancias (lobby,
   anfitrión único, inicio, posiciones, caramelo sin duplicar, cooldown compartido, mismo ranking, segunda ronda).
 - **Pendiente de validar en un teléfono dentro de Snapchat** (sólo es posible después de la revisión de Snap):
   el Bitmoji real del jugador y su retrato, el leaderboard, el guardado, el rendimiento real y los márgenes seguros.
 - Pendiente del equipo: ícono 512×512, video de preview 720×1280, activar el leaderboard de la Lens en My Lenses.
-- Build actual: ~3,9 MB descomprimido (límite 8 MB).
+- Build actual: ~5,1 MB descomprimido (zip 3,2 MB; `npm run pack` lo mantiene bajo 7,2 MB porque My Lenses cuenta
+  ~10 % más que la suma de los archivos; límite 8 MB).

@@ -1,7 +1,7 @@
 // What each player's power-ups and troubles look like, for everyone in the session: a shimmering
-// bubble (shield), a turning ring at the feet (magnet), golden streaks (speed), violet sparkles
-// (double candy), green goo (slowed by a zombie or a web), spectral wisps (candy thief) and red dust
-// round a giant's feet.
+// bubble (shield), a turning ring at the feet and a sparkling circle as far as it reaches (magnet),
+// a pink cloud overhead (candy rain), violet sparkles (double candy), green goo (slowed by a zombie
+// or a web), spectral wisps (candy thief), pale trailing mist (ghost) and red dust round a giant's feet.
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, trs } from '../geo.js';
 import { circleOutline, tube } from '../world/shapes.js';
@@ -53,9 +53,11 @@ export function createAuras(app, fx) {
       a.shield.enabled = shield && !fp;
       if (shield) { const s = 1 + Math.sin(a.t * 5) * 0.04; a.shield.setLocalScale(s, s, s); }
       a.mag.enabled = magnet;
-      if (magnet) { a.mag.setLocalEulerAngles(0, a.t * 120, 0); const s = 1 + 0.15 * Math.sin(a.t * 6); a.mag.setLocalScale(s * POWERUPS.magnet.radius / 4, 1, s * POWERUPS.magnet.radius / 4); }
+      if (magnet) { a.mag.setLocalEulerAngles(0, a.t * 120, 0); const s = 1 + 0.15 * Math.sin(a.t * 6); a.mag.setLocalScale(s * 2.2, 1, s * 2.2); }
       if (!fx) return;
-      if (fxLeft('speed') > 0 && Math.random() < dt * 30) fx.emit({ x: x + (Math.random() - 0.5) * 0.4, y: 0.3 + Math.random() * 0.9, z: z + (Math.random() - 0.5) * 0.4 }, { x: 0, y: 0.2, z: 0 }, { n: 1, spread: 0.2, size: 0.18, grow: -0.5, life: 0.45, color: [1, 0.85, 0.3], gravity: 0, alpha: 0.9 });
+      if (magnet && Math.random() < dt * 40) { const ang = Math.random() * Math.PI * 2, R = POWERUPS.magnet.radius; fx.emit({ x: x + Math.cos(ang) * R, y: 0.25, z: z + Math.sin(ang) * R }, { x: -Math.cos(ang) * 1.5, y: 0.4, z: -Math.sin(ang) * 1.5 }, { n: 1, spread: 0.2, size: 0.22, grow: 0.3, life: 0.9, color: [1, 0.4, 0.35], gravity: 0, alpha: 0.9, twinkle: true }); }
+      if (fxLeft('rain') > 0 && Math.random() < dt * 16) fx.emit({ x: x + (Math.random() - 0.5) * 1.6, y: 3.4 + Math.random() * 0.3, z: z + (Math.random() - 0.5) * 1.6 }, { x: 0, y: 0.1, z: 0 }, { n: 1, spread: 0.3, size: 0.7, grow: 0.6, life: 1.1, color: [1, 0.55, 0.9], gravity: 0, alpha: 0.4 });
+      if (fxLeft('ghost') > 0 && Math.random() < dt * 18) fx.emit({ x: x + (Math.random() - 0.5) * 0.5, y: 0.3 + Math.random() * 1.2, z: z + (Math.random() - 0.5) * 0.5 }, { x: 0, y: 0.35, z: 0 }, { n: 1, spread: 0.2, size: 0.3, grow: 1.2, life: 1.1, color: [0.85, 0.85, 1], gravity: 0, alpha: 0.5 });
       if (fxLeft('double') > 0 && Math.random() < dt * 14) { const ang = a.t * 4 + Math.random(); fx.emit({ x: x + Math.cos(ang) * 0.6, y: 1.2 + Math.sin(a.t * 3) * 0.4, z: z + Math.sin(ang) * 0.6 }, { x: 0, y: 0.6, z: 0 }, { n: 1, spread: 0.3, size: 0.14, grow: 0.2, life: 0.7, color: [0.85, 0.45, 1], gravity: 0, alpha: 1, twinkle: true }); }
       if (fxLeft('thief') > 0 && Math.random() < dt * 22) { const ang = -a.t * 5 + Math.random() * 0.5; fx.emit({ x: x + Math.cos(ang) * 0.75, y: 0.4 + Math.random() * 1.4, z: z + Math.sin(ang) * 0.75 }, { x: 0, y: 0.5, z: 0 }, { n: 1, spread: 0.2, size: 0.2, grow: 0.8, life: 0.8, color: [0.35, 1, 0.85], gravity: 0.2, alpha: 0.9, twinkle: true }); }
       if (fxLeft('giant') > 0 && Math.random() < dt * 10) fx.emit({ x: x + (Math.random() - 0.5) * 2, y: 0.15, z: z + (Math.random() - 0.5) * 2 }, { x: 0, y: 0.4, z: 0 }, { n: 1, spread: 1.2, size: 0.5, grow: 1.5, life: 0.8, color: [1, 0.45, 0.3], gravity: 0, alpha: 0.6 });

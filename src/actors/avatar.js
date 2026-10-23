@@ -3,7 +3,8 @@
 // baked from src/poses.js. Other players are shown with Snap's default Bitmoji: the API serves only
 // the current user's avatar (its `participant` parameter is reserved and rejected). Until a GLB has
 // loaded, a jointed stand-in plays the same clips. Costumes ride on the head or spine joints.
-import { Entity, Mat4, Quat } from 'playcanvas';
+// A ghost gem turns the same Bitmoji into a ghost of itself: see-through, pale and floating.
+import { BLEND_NORMAL, Color, Entity, Mat4, Quat } from 'playcanvas';
 import { unpackGlb } from '../lib/meshopt-glb.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { snapchat } from '../lib/snap.js';
@@ -50,6 +51,8 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
   const status = { state: 'loading', real: false, error: null };
   let bitmoji = null, anim = 'idle', speed = 1, visible = true;
   let worn = [], costumeId = costume, cape = null, capeSway = 0;
+  let ghost = false, ghostT = 0, float = 0;
+  const original = new WeakMap(), ghostly = new Map(); // mesh instance → its own material; material → its ghost copy
   // Where the head is, in the figure's (unscaled) frame: puppet values until a Bitmoji arrives.
   let headInfo = { joint: puppet.joints[J.Head], spine: puppet.joints[J.Spine1], top: 1.12, cx: 0, cz: 0, r: 0.12, neckY: 0.86, neckZ: 0 };
 
@@ -85,6 +88,32 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       worn.push(holder);
     }
     for (const e of worn) e.enabled = visible;
+    dress();
+  }
+
+  /** The ghost look: every material of the figure (Bitmoji, stand-in, costume) swapped for a pale, see-through copy. */
+  function ghostOf(m) {
+    let g = ghostly.get(m);
+    if (!g) {
+      g = m.clone();
+      g.blendType = BLEND_NORMAL;
+      g.opacity = 0.45;
+      g.depthWrite = false;
+      g.diffuse = new Color(0.75, 0.75, 0.95);
+      g.emissive = new Color(0.5, 0.48, 0.72);
+      g.update();
+      ghostly.set(m, g);
+    }
+    return g;
+  }
+  function dress() {
+    for (const r of figure.findComponents('render')) {
+      for (const mi of r.meshInstances) {
+        if (!original.has(mi)) original.set(mi, mi.material);
+        mi.material = ghost ? ghostOf(original.get(mi)) : original.get(mi);
+      }
+      r.castShadows = !ghost;
+    }
   }
 
   /** Reads the head's size and place from the avatar's own meshes (bind pose), so hats fit every Bitmoji. */
@@ -118,7 +147,7 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       for (const r of b.entity.findComponents('render')) r.castShadows = true;
       puppet.entity.enabled = false;
       measure(b);
-      wear(costumeId);
+      wear(costumeId); // (and dresses the new meshes for a ghost, if one)
       b.play(anim, { fade: 0, speed });
       b.entity.enabled = visible;
       Object.assign(status, { state: b.isReal ? 'bitmoji' : 'default', real: b.isReal });
@@ -149,6 +178,9 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       puppet.play(name, fade);
     },
     get anim() { return anim; },
+    /** Ghost form on or off (a ghost gem). */
+    setGhost(on) { if (on !== ghost) { ghost = on; dress(); } },
+    get ghost() { return ghost; },
     /** First person hides the body (and its hat) from its own camera; the clips keep playing. */
     setVisible(v) {
       visible = v;
@@ -158,6 +190,10 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
     },
     update(dt, moveSpeed = 0) {
       if (!bitmoji && puppet.entity.enabled) puppet.update(dt * speed);
+      // A ghost floats a little off the ground, bobbing.
+      ghostT += dt;
+      float += ((ghost ? 0.3 + Math.sin(ghostT * 2.2) * 0.08 : 0) - float) * Math.min(1, dt * 4);
+      figure.setLocalPosition(0, float, 0);
       if (cape) { // the cape streams back as you run
         capeSway += (Math.min(1, moveSpeed / 6) - capeSway) * Math.min(1, dt * 4);
         cape.setLocalEulerAngles(-capeSway * 38 - Math.sin(performance.now() / 160) * 4 * capeSway, 0, 0);

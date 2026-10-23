@@ -7,7 +7,7 @@ const canvas = document.getElementById('app');
 const app = new Application(canvas, { graphicsDeviceOptions: { antialias: false } });
 app.setCanvasFillMode(FILLMODE_FILL_WINDOW);
 app.setCanvasResolution(RESOLUTION_AUTO);
-const tex = createTextures(app.graphicsDevice);
+const tex = createTextures(app.graphicsDevice, { base: '../assets/' }); // this page lives in dev/
 const village = createVillage(app, tex);
 app.root.addChild(village.root);
 const camera = new Entity('camera');

@@ -1,6 +1,6 @@
 // Multiplayer over a room: three separate game instances (pages) in one browser, linked by the
 // BroadcastChannel transport. Checks the lobby, one host, a shared start, synced positions, candy
-// taken once, a shared house cooldown, and the same ranking everywhere at the end.
+// taken once, a shared house cooldown, shared powers (ghost, candy rain), and the same ranking everywhere at the end.
 //   node tests/room.mjs <outdir>
 import assert from 'node:assert/strict';
 import { launch } from './browser.mjs';
@@ -63,6 +63,14 @@ assert.ok(Math.max(...cools) - Math.min(...cools) < 2.5, `same cooldown everywhe
 console.log(`✔ house visited once, cooldown seen by all: ${cools.join(' / ')} s`);
 await others[0].screenshot({ path: `${out}/r1-client.png` });
 await host.screenshot({ path: `${out}/r2-host.png` });
+
+// Powers are shared: a client turns ghost and calls a candy rain; everyone sees both.
+await host.evaluate((id) => { const a = window.__game.session.authority; a.players.get(id).fx.ghost = a.rt + 20; a.players.get(id).held = 'rain'; }, id1);
+await others[0].waitForFunction(() => window.__game.view.players.get(window.__game.me.id).held === 'rain', null, { timeout: 150000 });
+await others[0].click('#btnPower');
+await Promise.all(pages.map((p) => p.waitForFunction((id) => window.__game.view.fx(id, 'ghost') > 0 && window.__game.view.fx(id, 'rain') > 0 && [...window.__game.view.candies.values()].some((c) => c.fall), id1, { timeout: 150000 })));
+const rain = await all(() => JSON.stringify([...window.__game.view.candies.values()].filter((c) => c.fall).map((c) => c.id).slice(0, 1)));
+console.log(`✔ a client turned ghost and called a candy rain; all three see it (first drop ${rain[0]})`);
 
 // Fast-forward the host to the end: everyone gets the same ranking and winner.
 await host.evaluate(() => window.__game.skip(Math.max(0, 180.3 - window.__game.view.rt())));

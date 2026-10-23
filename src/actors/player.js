@@ -1,23 +1,26 @@
 // BitmojiPlayerController: moves the local player's Bitmoji from the joystick, relative to the
 // camera (third person: turns to face where it walks; first person: faces the view and strafes),
 // slides along walls, and picks the clip (idle / walk / run, knock at doors, a spook when hit).
-// Sprint (its own button) bursts past any monster while stamina lasts; a giant gem makes the Bitmoji
-// huge for a while. Movement is the device's own; only the resulting pose is shared, at 15 Hz.
-import { GEMS, MOVE, POWERUPS, SLOW_MUL, SPRINT } from '../game/config.js';
-import { PLAYER_R } from '../world/layout.js';
+// Keep going the same way and it breaks into a full run on its own (faster than any monster); a
+// giant gem makes the Bitmoji huge for a while, a ghost gem lets it float through walls.
+// Movement is the device's own; only the resulting pose is shared, at 15 Hz.
+import { AUTORUN, GEMS, MOVE, SLOW_MUL } from '../game/config.js';
+import { MAP_R, PLAYER_R } from '../world/layout.js';
 import { slide } from '../world/collide.js';
 
 const D2R = Math.PI / 180;
 
 export function createPlayer(avatar) {
-  const p = { x: 0, z: 0, yaw: 0, vx: 0, vz: 0, speed: 0, lock: 0, hit: 0, ending: null, moving: false, stamina: 1, rest: 0, sprinting: false, scale: 1 };
+  // run: seconds spent going the same way; dir: that way (degrees); boost: 0..1 how far into the run.
+  const p = { x: 0, z: 0, yaw: 0, vx: 0, vz: 0, speed: 0, lock: 0, hit: 0, ending: null, moving: false, run: 0, dir: 0, boost: 0, sprinting: false, scale: 1 };
 
   return {
     state: p,
     avatar,
     place(x, z, yaw) {
-      Object.assign(p, { x, z, yaw, vx: 0, vz: 0, speed: 0, lock: 0, hit: 0, ending: null, stamina: 1, rest: 0, sprinting: false, scale: 1 });
+      Object.assign(p, { x, z, yaw, vx: 0, vz: 0, speed: 0, lock: 0, hit: 0, ending: null, run: 0, dir: yaw, boost: 0, sprinting: false, scale: 1 });
       avatar.root.setLocalScale(1, 1, 1);
+      avatar.setGhost(false);
       avatar.root.setPosition(x, 0, z);
       avatar.root.setEulerAngles(0, yaw, 0);
       avatar.setAnim('idle', 1, 0);
@@ -36,36 +39,44 @@ export function createPlayer(avatar) {
      * @param {number} dt
      * @param {{ x, y, mag }} move joystick
      * @param {*} cam camera controller (directions, mode)
-     * @param {{ speed: boolean, slow: boolean, frozen: boolean, sprint: boolean, giant: boolean }} mods
+     * @param {{ slow: boolean, frozen: boolean, giant: boolean, ghost: boolean }} mods
      */
     update(dt, move, cam, mods) {
       const fp = cam.mode === 'first';
       let want = 0, dx = 0, dz = 0;
       const free = !mods.frozen && p.lock <= 0 && p.hit <= 0 && !p.ending;
-      p.sprinting = free && mods.sprint && p.stamina > 0;
-      if (free && (move.mag > 0 || p.sprinting)) {
-        if (move.mag > 0) {
-          const [fx, fz] = cam.forward(), [rx, rz] = cam.right();
-          dx = fx * move.y + rx * move.x; dz = fz * move.y + rz * move.x;
-        } else { // sprint with no direction given: straight ahead
-          dx = Math.sin(p.yaw * D2R); dz = Math.cos(p.yaw * D2R);
-        }
+      if (free && move.mag > 0) {
+        const [fx, fz] = cam.forward(), [rx, rz] = cam.right();
+        dx = fx * move.y + rx * move.x; dz = fz * move.y + rz * move.x;
         const l = Math.hypot(dx, dz) || 1;
         dx /= l; dz /= l;
-        // A light push walks (a little faster the further you push), a full push runs, sprint bursts.
-        const base = p.sprinting ? MOVE.run * SPRINT.mul : move.mag > 0.8 ? MOVE.run : MOVE.walk * (0.6 + 0.4 * Math.min(1, move.mag / 0.8));
-        want = base * (mods.speed ? POWERUPS.speed.mul : 1) * (mods.slow ? SLOW_MUL : 1) * (mods.giant ? GEMS.giant.speed : 1);
+        // Running on its own: the clock runs while the heading holds; a sharp turn starts it again.
+        const heading = Math.atan2(dx, dz) / D2R;
+        if (p.run === 0 || Math.abs(((((heading - p.dir) % 360) + 540) % 360) - 180) > AUTORUN.turn) { p.run = 0; p.dir = heading; }
+        p.run += dt;
+        p.dir += ((((heading - p.dir) % 360) + 540) % 360 - 180) * Math.min(1, dt * 4); // the way you're going, smoothed
+      } else p.run = 0;
+      const into = Math.min(1, Math.max(0, (p.run - AUTORUN.after) / AUTORUN.ramp));
+      p.boost = into > p.boost ? into : Math.max(into, p.boost - dt * 4);
+      p.sprinting = p.boost > 0.5;
+      p.ghost = !!mods.ghost;
+      if (free && move.mag > 0) {
+        // A light push walks (a little faster the further you push), a full push runs; keep going and it speeds up by itself.
+        const pace = move.mag > 0.8 ? MOVE.run : MOVE.walk * (0.6 + 0.4 * Math.min(1, move.mag / 0.8));
+        const base = pace + (MOVE.run * AUTORUN.mul - pace) * p.boost;
+        want = base * (mods.slow ? SLOW_MUL : 1) * (mods.giant ? GEMS.giant.speed : 1) * (mods.ghost ? GEMS.ghost.speed : 1);
       }
-      // Stamina: drains while sprinting, refills after a breath.
-      if (p.sprinting) { p.stamina = Math.max(0, p.stamina - dt / SPRINT.last); p.rest = SPRINT.breath; }
-      else if ((p.rest -= dt) <= 0) p.stamina = Math.min(1, p.stamina + dt / SPRINT.refill);
       // Giant: grow (and shrink back) smoothly.
       const targetScale = mods.giant ? GEMS.giant.scale : 1;
       p.scale += (targetScale - p.scale) * Math.min(1, dt * 3);
       avatar.root.setLocalScale(p.scale, p.scale, p.scale);
       const tvx = dx * want, tvz = dz * want, a = Math.min(1, dt * MOVE.accel);
       p.vx += (tvx - p.vx) * a; p.vz += (tvz - p.vz) * a;
-      [p.x, p.z] = slide(p.x + p.vx * dt, p.z + p.vz * dt, PLAYER_R);
+      if (mods.ghost) { // through walls, fences and trees, but not out of the village
+        p.x += p.vx * dt; p.z += p.vz * dt;
+        const d = Math.hypot(p.x, p.z), lim = MAP_R - PLAYER_R;
+        if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
+      } else [p.x, p.z] = slide(p.x + p.vx * dt, p.z + p.vz * dt, PLAYER_R);
       p.speed = Math.hypot(p.vx, p.vz);
       p.moving = p.speed > 0.3;
       if (fp) p.yaw = cam.yaw; // first person: the body faces the view

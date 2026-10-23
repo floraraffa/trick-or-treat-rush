@@ -31,28 +31,33 @@ export const CANDY_RESPAWN = [2.5, 5];
 export const PICKUP_R = 1.15;
 export const PICKUP_SLACK = 1.2; // the session forgives this much lag on top
 
-// Power-ups: held one at a time, used with the action button.
+// Power-ups: held one at a time, used with the action button. Every power lasts POWER_SECONDS.
+export const POWER_SECONDS = 20;
 export const POWERUPS = {
-  speed: { dur: 8, mul: 2 },
-  shield: { dur: 20 }, // blocks one attack, or fades after this long
-  magnet: { dur: 8, radius: 7 },
-  double: { dur: 10 },
+  rain: { dur: POWER_SECONDS, rate: 1.6, radius: [1.8, 7], fall: 1.1, life: 14 }, // candy rain: pieces a second, how far, fall time, how long they wait
+  shield: { dur: POWER_SECONDS }, // blocks one attack, or fades after this long
+  magnet: { dur: POWER_SECONDS, radius: 16 },
+  double: { dur: POWER_SECONDS },
 };
 export const POWERUP_KINDS = Object.keys(POWERUPS);
+export const RAIN_MIX = { caramel: 40, lollipop: 34, chocolate: 20, pumpkin: 6 };
 export const ORBS_ON_MAP = 3;
 export const ORB_RESPAWN = 12;
 export const ORB_R = 1.5;
 
-// Gems: rare crystals that give a power the moment you grab one.
+// Gems: crystals that give a power the moment you grab one.
 //   giant: you grow huge, monsters can't hurt you, and any you touch is scared off and drops candy.
 //   thief: every monster takes fright and flees; catch one to steal its candy (what it took, and more).
+//   ghost: you turn into a ghost; monsters can't see or touch you, and you float through them and through walls.
 export const GEMS = {
-  giant: { dur: 8, scale: 2.2, speed: 1.25, reach: 2 },
-  thief: { dur: 18 },
+  giant: { dur: POWER_SECONDS, scale: 2.2, speed: 1.25, reach: 2 },
+  thief: { dur: POWER_SECONDS },
+  ghost: { dur: POWER_SECONDS, speed: 1.1 },
 };
 export const GEM_KINDS = Object.keys(GEMS);
-export const GEM_FIRST = 18; // the first gem appears this long after GO
-export const GEM_EVERY = [20, 30]; // and the next one this long after the last was taken
+export const GEM_FIRST = 10; // the first gem appears this long after GO
+export const GEM_EVERY = [10, 16]; // and the next one this long after the last appeared or was taken
+export const GEMS_ON_MAP = 2;
 export const GEM_R = 1.3;
 export const SCARE_LOOT = { ghost: 10, zombie: 10 }; // candy a scared-off monster drops, on top of what it stole
 export const BANISHED = 5; // a scared-off monster stays away this long, then comes back on its route
@@ -60,9 +65,10 @@ export const BANISHED = 5; // a scared-off monster stays away this long, then co
 // Players.
 export const MOVE = { walk: 2.4, run: 5.0, accel: 16, turn: 10 };
 export const SLOW_MUL = 0.5;
-// Sprint: a burst faster than any monster, on its own button. Stamina runs out in `last` seconds
-// of sprinting and refills in `refill` seconds once you let go (after a short breath).
-export const SPRINT = { mul: 1.55, last: 3, refill: 4.5, breath: 0.6 };
+// Running on its own: keep going the same way for `after` seconds and the Bitmoji speeds up over
+// `ramp` seconds to `mul` × the run speed, faster than any monster. Stopping, or turning more than
+// `turn` degrees at once, drops back to the joystick's pace.
+export const AUTORUN = { after: 1.1, ramp: 0.9, mul: 1.5, turn: 100 };
 
 // Monsters: what every level shares (speeds on patrol, reach, what a hit costs, as asked).
 export const MONSTERS = {

@@ -116,8 +116,9 @@
       @keyframes throb { 50% { transform: rotate(1.5deg) scale(1.08); } }
       #effects { position: absolute; top: calc(var(--safe-top) + 58px); left: calc(var(--safe-left) + 10px); display: flex; flex-direction: column; gap: 5px; }
       .fx { font-size: 14px; padding: 3px 10px; border-radius: 10px 3px 10px 3px; background: rgba(20,12,30,.8); border: 1px solid; }
-      .fx.speed { border-color: #ffd84a; color: #ffe58a; } .fx.shield { border-color: #6fd8ff; color: #b5ecff; }
+      .fx.rain { border-color: #ffb0e0; color: #ffd6ef; } .fx.shield { border-color: #6fd8ff; color: #b5ecff; }
       .fx.magnet { border-color: #ff5a5a; color: #ffb0a8; } .fx.double { border-color: #c27bff; color: #e3c2ff; } .fx.slow { border-color: #8aff60; color: #c8ffb0; }
+      .fx.giant { border-color: #ff6a4a; color: #ffc0b0; } .fx.thief { border-color: #5affd8; color: #bfffef; } .fx.ghost { border-color: #e6e0ff; color: #f4f0ff; }
       #madTag { position: absolute; top: calc(var(--safe-top) + 62px); left: 50%; transform: translateX(-50%); font-size: 13px; color: #ff8a7a; letter-spacing: .2em; animation: blink 1.2s infinite; }
       @keyframes blink { 50% { opacity: .35; } }
 
@@ -134,14 +135,7 @@
       .round .i { font-size: 26px; line-height: 1; }
       .round:active { transform: translateY(3px); box-shadow: 0 1px 0 #120a18; }
       #btnCam { width: 58px; height: 58px; grid-column: 2; grid-row: 1; }
-      #btnPower { grid-column: 1; grid-row: 1; position: relative; }
-      #btnSprint { grid-column: 1; grid-row: 2; width: 84px; height: 84px; font-family: var(--title); font-size: 15px; color: #f3e9d8; touch-action: none;
-        background: radial-gradient(circle at 50% 35%, #2f6a5a, #10261f); border: 3px solid #7fe0b8;
-        box-shadow: 0 4px 0 #0b1a14, 0 0 14px rgba(110,230,180,.35); position: relative; }
-      #btnSprint::before { content: ''; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
-        background: conic-gradient(#8dffcf calc(var(--st, 1) * 360deg), rgba(255,255,255,.08) 0); -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%); mask: radial-gradient(circle, transparent 60%, #000 61%); }
-      #btnSprint.on { transform: scale(.94); background: radial-gradient(circle at 50% 35%, #5cc79f, #1b4a3b); }
-      #btnSprint.tired { filter: grayscale(.7) brightness(.7); }
+      #btnPower { grid-column: 1; grid-row: 2; width: 80px; height: 80px; position: relative; }
       .levels { display: flex; justify-content: center; gap: 6px; }
       .levels button { font: inherit; font-size: 15px; letter-spacing: .08em; padding: 7px 12px; color: var(--lav); background: rgba(0,0,0,.35); border: 2px solid #6d5a87; border-radius: 12px 4px 12px 4px; }
       .levels button.on { color: #2a0f20; background: linear-gradient(180deg, #ffe0a0, #ff9a3c); border-color: #3a1208; }
@@ -215,7 +209,6 @@
       <div class="pad">
         <button id="btnCam" class="round ui-block" aria-label="camera"><span class="i">👁</span><span id="camLbl">3RD</span></button>
         <button id="btnPower" class="round ui-block empty" aria-label="power-up"><span class="i" id="powerIcon">✦</span><span id="powerLbl">POWER-UP</span></button>
-        <button id="btnSprint" class="round ui-block" aria-label="sprint"><span class="i">💨</span><span id="sprintLbl">SPRINT</span></button>
         <button id="btnKnock" class="ui-block hidden">TRICK OR TREAT!</button>
       </div>
       <div id="banner" class="ink"></div>

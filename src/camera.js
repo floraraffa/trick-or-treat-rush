@@ -75,9 +75,10 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
       // Walls pull the camera right in; a trunk or lamp post only as far as a shoulder view (if the
       // camera ends up inside a trunk, its inner faces aren't drawn, so the view stays clear).
       const o = [px, py, pz], back = [-fx, -fy, -fz];
-      const want = st.wantDist * (1 + (k - 1) * 0.7) + (pl.sprinting ? 0.6 : 0);
+      const want = st.wantDist * (1 + (k - 1) * 0.7) + 0.6 * (pl.boost ?? 0);
       const wall = raycast(o, back, want + 0.3, { big: true }), thin = raycast(o, back, want + 0.3, { big: false });
-      const allowed = Math.max(0.7, Math.min(want, wall - 0.3, Math.max(2.2, thin - 0.3)));
+      // A ghost floats through walls, and so does its camera (from inside, a house's walls aren't drawn).
+      const allowed = pl.ghost ? want : Math.max(0.7, Math.min(want, wall - 0.3, Math.max(2.2, thin - 0.3)));
       st.curDist += (allowed - st.curDist) * Math.min(1, dt * (allowed < st.curDist ? 18 : 3)); // snap in, ease out
       third.p.set(px - fx * st.curDist, Math.max(0.35, py - fy * st.curDist), pz - fz * st.curDist);
       third.t.set(px, py, pz);
@@ -98,7 +99,7 @@ export function createCameraController(cameraEntity, { distance = CAMERA.distanc
       }
       cameraEntity.setPosition(pos);
       cameraEntity.lookAt(target);
-      st.kick += ((pl.sprinting ? 7 : 0) - st.kick) * Math.min(1, dt * 5); // a little speed rush when sprinting
+      st.kick += (7 * (pl.boost ?? 0) - st.kick) * Math.min(1, dt * 5); // a little speed rush when running flat out
       cameraEntity.camera.fov = CAMERA.fovThird + (CAMERA.fovFirst - CAMERA.fovThird) * b + st.kick;
       cameraEntity.camera.nearClip = 0.1 - 0.06 * b;
     },

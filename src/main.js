@@ -48,7 +48,6 @@ const ui = createUI({
   friends: () => showLeaderboard(),
   menu: () => toMenu(),
   camera: () => input.press('camera'),
-  sprint: (on) => input.holdSprint(on),
   level: (id) => setLevel(id),
   power: () => input.press('use'),
   knock: () => input.press('knock'),
@@ -410,7 +409,7 @@ function playFrame(dt, now) {
   const playing = view.phase === 'playing';
   if (input.take('camera')) { saveData.camera = camCtl.toggle(); save(saveData); sfx.click(); }
   const move = input.read();
-  const mods = { speed: view.fx(me.id, 'speed') > 0, slow: view.fx(me.id, 'slow') > 0, frozen: !playing, sprint: input.sprinting(), giant: view.fx(me.id, 'giant') > 0 };
+  const mods = { slow: view.fx(me.id, 'slow') > 0, frozen: !playing, giant: view.fx(me.id, 'giant') > 0, ghost: view.fx(me.id, 'ghost') > 0 };
   const pose = player.update(dt, move, camCtl, mods);
   const ps = player.state;
   session.authority?.setPose(me.id, ps.x, ps.z); // the host's own position, every frame
@@ -421,6 +420,7 @@ function playFrame(dt, now) {
   const meP = view.players.get(me.id);
   const blink = meP && meP.inv > now && Math.floor(now * 10) % 2 === 0;
   myAvatar.setVisible(!camCtl.hideBody && !blink);
+  myAvatar.setGhost(mods.ghost);
 
   // The door within reach, if any.
   let door = null;
@@ -466,6 +466,7 @@ function playFrame(dt, now) {
     const rk = view.fx(id, 'giant') > 0 ? GEMS.giant.scale : 1; // remote giants grow too
     r.scale = (r.scale ?? 1) + (rk - (r.scale ?? 1)) * Math.min(1, dt * 3);
     r.avatar.root.setLocalScale(r.scale, r.scale, r.scale);
+    r.avatar.setGhost(view.fx(id, 'ghost') > 0);
     const rblink = p.inv > now && Math.floor(now * 10) % 2 === 0;
     r.avatar.setVisible(!rblink);
     r.avatar.update(dt, (ex.s ?? 0) * 5);
@@ -479,13 +480,13 @@ function playFrame(dt, now) {
   // HUD.
   const left = view.phase === 'countdown' ? ROUND_SECONDS : view.remaining();
   const leader = view.leader();
-  const effects = ['giant', 'thief', 'speed', 'shield', 'magnet', 'double', 'slow'].map((k) => ({ kind: k, left: view.fx(me.id, k) })).filter((e) => e.left > 0);
+  const effects = ['giant', 'thief', 'ghost', 'rain', 'shield', 'magnet', 'double', 'slow'].map((k) => ({ kind: k, left: view.fx(me.id, k) })).filter((e) => e.left > 0);
   const solo = session.solo;
   ui.hud({
     time: Math.ceil(left - 1e-6), mad: view.madness, myCandy: meP?.score ?? 0,
     leaderLabel: solo ? t('best') : t('leader'),
     leaderName: solo ? String(Math.max(bestFor(view.level ?? saveData.level), meP?.score ?? 0)) : leader ? (leader.id === me.id ? t('you') : leader.name) : '—',
-    effects, held: meP?.held ?? null, camMode: camCtl.mode, stamina: ps.stamina, sprinting: ps.sprinting,
+    effects, held: meP?.held ?? null, camMode: camCtl.mode,
     knock: { visible: !!door && playing, ready: coolLeft <= 0, left: coolLeft, name: door?.h.name ?? '' },
   });
   if (playing && left <= 10 && Math.ceil(left) !== lastTick) { lastTick = Math.ceil(left); sfx.tick(); }

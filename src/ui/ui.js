@@ -5,8 +5,8 @@ import { t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const SCREENS = ['loading', 'menu', 'how', 'lobby', 'results'];
-const POWER_ICON = { speed: '⚡', shield: '🛡️', magnet: '🧲', double: '✖2' };
-const FX_ICON = { ...POWER_ICON, slow: '🕸️', giant: '⛰️', thief: '🔮' };
+const POWER_ICON = { rain: '🍬', shield: '🛡️', magnet: '🧲', double: '✖2' };
+const FX_ICON = { ...POWER_ICON, rain: '🌧️', slow: '🕸️', giant: '⛰️', thief: '🔮', ghost: '👻' };
 const LEVELS = ['easy', 'medium', 'hard'];
 const pad3 = (n) => String(Math.max(0, n | 0)).padStart(3, '0');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -31,11 +31,6 @@ export function createUI(on) {
   bind('btnKnock', () => on.knock());
   $('paused').addEventListener('click', () => on.resume());
   for (const b of ['btnCam', 'btnPower', 'btnKnock']) $(b).addEventListener('pointerdown', (e) => e.stopPropagation());
-  // SPRINT works while held: press, keep your thumb on it, let go.
-  const sprint = $('btnSprint');
-  sprint.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); try { sprint.setPointerCapture(e.pointerId); } catch { /* fine */ } on.sprint(true); });
-  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) sprint.addEventListener(ev, () => on.sprint(false));
-  sprint.addEventListener('contextmenu', (e) => e.preventDefault());
   $('nameInput').addEventListener('change', (e) => on.name(e.target.value));
   $('nameInput').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
   let taps = 0, tapT = 0;
@@ -82,7 +77,6 @@ export function createUI(on) {
     $('lblCandy').textContent = t('myCandy');
     $('powerLbl').textContent = t('powerup');
     $('btnKnock').textContent = t('trickOrTreat');
-    $('sprintLbl').textContent = t('sprint');
     for (const b of levels.children) b.textContent = t(`levels.${b.dataset.id}`);
     $('lblName').textContent = t('name');
     $('pausedTitle').textContent = t('paused');
@@ -146,10 +140,6 @@ export function createUI(on) {
       setText('powerIcon', h.held ? POWER_ICON[h.held] : '✦');
       setText('powerLbl', h.held ? t(`powerName.${h.held}`).toUpperCase() : t('powerup'));
       setText('camLbl', h.camMode === 'first' ? t('first') : t('third'));
-      const sp = $('btnSprint'), st = h.stamina.toFixed(2);
-      if (lastHud.st !== st) { lastHud.st = st; sp.style.setProperty('--st', st); }
-      sp.classList.toggle('on', h.sprinting);
-      sp.classList.toggle('tired', h.stamina < 0.05);
       const k = $('btnKnock');
       const wasHidden = k.classList.contains('hidden');
       k.classList.toggle('hidden', !h.knock.visible);

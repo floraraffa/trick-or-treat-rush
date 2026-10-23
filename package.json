@@ -12,7 +12,8 @@
     "test": "node tests/run.mjs",
     "test:e2e": "node tests/run.mjs --e2e",
     "viewer": "vite --open /dev/viewer.html",
-    "artifact": "npm run build && node tools/artifact.mjs"
+    "artifact": "npm run build && node tools/artifact.mjs",
+    "textures": "node tools/fetch-textures.mjs"
   },
   "dependencies": {
     "@snap/web-lens-api": "^0.1.2",
@@ -25,6 +26,7 @@
     "@gltf-transform/extensions": "^4.5.1",
     "archiver": "^7.0.1",
     "meshoptimizer": "^0.22.0",
+    "sharp": "^0.34.4",
     "vite": "^6.3.0"
   }
 }

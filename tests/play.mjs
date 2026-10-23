@@ -1,5 +1,6 @@
 // A full solo night in headless Chromium, checking the rules from the outside:
-// movement, camera switch, a door visit and its cooldown, a candy pickup, a power-up, madness, the end.
+// movement and running on its own, camera switch, a door visit and its cooldown, a candy pickup, a
+// power-up, candy rain, gems (a ghost floats through a house), madness, the end.
 //   node tests/play.mjs <outdir>
 import assert from 'node:assert/strict';
 import { launch } from './browser.mjs';
@@ -21,12 +22,16 @@ await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x -
 await page.keyboard.up('ShiftLeft'); await page.keyboard.up('KeyW');
 console.log('✔ moves with the keyboard');
 
-// Sprint: hold Q to burst past a run while stamina lasts.
-await page.keyboard.down('KeyW'); await page.keyboard.down('KeyQ');
-const sprint = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.sprinting && s.speed > 6.5 ? { speed: s.speed, stamina: s.stamina } : null; }, null, { timeout: 60000 })).jsonValue();
-await page.keyboard.up('KeyQ'); await page.keyboard.up('KeyW');
-assert.ok(sprint.stamina < 1, 'sprinting uses stamina');
-console.log(`✔ sprint: ${sprint.speed.toFixed(1)} m/s (running is 5), stamina ${Math.round(sprint.stamina * 100)}%`);
+// Running on its own: keep walking the same way (W alone walks) and the Bitmoji breaks into a sprint.
+assert.equal(await page.$('#btnSprint'), null, 'no SPRINT button any more');
+await page.waitForFunction(() => window.__game.player.state.speed < 0.05, null, { timeout: 30000 });
+await G(() => { const g = window.__game; g.player.place(0, 9, 0); g.camCtl.snapBehind(0); }); // up the north street
+await page.keyboard.down('KeyW');
+const walk = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.speed > 1.5 ? s.speed : null; }, null, { timeout: 60000 })).jsonValue();
+const sprint = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.sprinting && s.speed > 6.5 ? { speed: s.speed, run: s.run } : null; }, null, { timeout: 90000 })).jsonValue();
+await page.keyboard.up('KeyW');
+assert.ok(walk < 3, `starts at a walk (${walk.toFixed(1)} m/s)`);
+console.log(`✔ runs on its own: walk ${walk.toFixed(1)} m/s → ${sprint.speed.toFixed(1)} m/s after ${sprint.run.toFixed(1)} s going the same way`);
 
 // Touch: the left thumb walks (joystick), the right thumb turns the camera.
 {
@@ -91,12 +96,44 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/p3-power.png` });
 console.log(`✔ power-up ${orb.kind} picked and active`);
 
+// Candy rain: candy falls from the sky round the player, and can be picked up once it has landed.
+await page.waitForFunction(() => !window.__game.view.players.get(window.__game.me.id).held, null, { timeout: 20000 });
+await G(() => { const g = window.__game; g.player.place(0, 9, 0); g.session.authority.players.get(g.me.id).held = 'rain'; });
+await page.waitForFunction(() => window.__game.view.players.get(window.__game.me.id).held === 'rain', null, { timeout: 20000 });
+await page.click('#btnPower');
+const drop = await (await page.waitForFunction(() => { const c = [...window.__game.view.candies.values()].find((k) => k.fall); return c ? { id: c.id, x: c.x, z: c.z } : null; }, null, { timeout: 30000 })).jsonValue();
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/p3b-rain.png` });
+await page.waitForFunction((id) => performance.now() / 1000 - window.__game.view.candies.get(id).born > 1.4, drop.id, { timeout: 30000 });
+await G((c) => window.__game.player.place(c.x, c.z, 0), drop);
+await page.waitForFunction((id) => !window.__game.view.candies.has(id), drop.id, { timeout: 60000 });
+const fallen = await G(() => [...window.__game.view.candies.values()].filter((k) => k.fall).length);
+console.log(`✔ candy rain: a piece fell ${Math.hypot(drop.x, drop.z - 9).toFixed(1)} m away and was picked up once landed (${fallen} more falling or waiting)`);
+
+// Ghost: the Bitmoji turns ghostly and floats through a house.
+{
+  await G(() => { const g = window.__game; g.session.authority.players.get(g.me.id).fx.ghost = g.session.authority.rt + 20; });
+  await page.waitForFunction(() => window.__game.player.avatar.ghost, null, { timeout: 20000 });
+  const h = await G(() => { const h = window.__game.houses[5], yaw = Math.atan2(h.x - h.door.x, h.z - h.door.z) * 57.2958; window.__game.player.place(h.door.x, h.door.z, yaw); window.__game.camCtl.snapBehind(yaw); return { x: h.x, z: h.z }; });
+  await page.waitForFunction(() => window.__game.player.avatar.ghost, null, { timeout: 20000 });
+  await page.keyboard.down('KeyW');
+  await page.waitForFunction((c) => Math.hypot(window.__game.player.state.x - c.x, window.__game.player.state.z - c.z) < 1, h, { timeout: 90000 });
+  await page.keyboard.up('KeyW');
+  await page.screenshot({ path: `${out}/p3c-ghost.png` });
+  await G(() => { const g = window.__game; delete g.session.authority.players.get(g.me.id).fx.ghost; });
+  await page.waitForFunction(() => !window.__game.player.avatar.ghost, null, { timeout: 20000 });
+  await page.keyboard.down('KeyS'); await page.waitForTimeout(300); await page.keyboard.up('KeyS'); // solid again: pushed back out of the walls
+  await page.waitForFunction((c) => Math.hypot(window.__game.player.state.x - c.x, window.__game.player.state.z - c.z) > 1.5, h, { timeout: 60000 });
+  console.log('✔ ghost: the Bitmoji turns ghostly, floats into a house, and is solid again afterwards');
+}
+
 // A gem: wait for one, walk onto it, get its power (a giant grows).
-await G(() => window.__game.skip(Math.max(0, 19 - window.__game.view.rt())));
+await G(() => window.__game.skip(Math.max(0, 11 - window.__game.view.rt())));
 const gem = await (await page.waitForFunction(() => { const g = [...window.__game.view.gems.values()][0]; return g ? { id: g.id, kind: g.kind, x: g.x, z: g.z } : null; }, null, { timeout: 60000 })).jsonValue();
 await G((g) => window.__game.player.place(g.x, g.z, 0), gem);
 await page.waitForFunction((k) => window.__game.view.fx(window.__game.me.id, k) > 0, gem.kind, { timeout: 60000 });
 const grown = gem.kind === 'giant' ? await (await page.waitForFunction(() => { const k = window.__game.player.state.scale; return k > 1.6 ? k : null; }, null, { timeout: 60000 })).jsonValue() : null;
+if (gem.kind === 'ghost') await page.waitForFunction(() => window.__game.player.avatar.ghost, null, { timeout: 20000 });
 await page.screenshot({ path: `${out}/p4-gem.png` });
 console.log(`✔ gem ${gem.kind}: power on${grown ? `, grew to ×${grown.toFixed(2)}` : ''}`);
 

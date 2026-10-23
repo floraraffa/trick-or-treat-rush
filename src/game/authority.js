@@ -3,12 +3,12 @@
 // generator, checks every request (knock, pickup, power-up) against the shared state, and announces
 // the outcome as numbered events plus 10 Hz snapshots. Clients never roll dice or award points.
 //
-// Houses (trick or treat, 15 s cooldown), candy (one id, one owner), monsters (patrol → chase →
-// attack → recover → return, or flee and get scared off), power-ups, gems, the level and Monster
-// Madness all live here.
+// Houses (trick or treat, 15 s cooldown), candy (one id, one owner; a candy rain drops more round
+// its player), monsters (patrol → chase → attack → recover → return, or flee and get scared off,
+// blind to anyone turned ghost), power-ups, gems, the level and Monster Madness all live here.
 import { rng } from '../rng.js';
 import * as C from './config.js';
-import { CANDY_SPOTS, DOOR_RANGE, HOUSES, ORB_SPOTS, PATROLS, SPAWNS } from '../world/layout.js';
+import { CANDY_SPOTS, DOOR_RANGE, HOUSES, MAP_R, ORB_SPOTS, PATROLS, SPAWNS } from '../world/layout.js';
 import { slide } from '../world/collide.js';
 
 const dist = (ax, az, bx, bz) => Math.hypot(ax - bx, az - bz);
@@ -48,7 +48,7 @@ export class Authority {
     this.players = new Map();
     roster.slice(0, C.MAX_PLAYERS).forEach((p, i) => {
       const s = SPAWNS[i];
-      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, x: s.x, z: s.z });
+      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, rain: 0, x: s.x, z: s.z });
     });
     this.houses = HOUSES.map(() => ({ until: -Infinity }));
     this.candies = new Map();
@@ -125,9 +125,19 @@ export class Authority {
     }
     while (this.candyQueue.length && this.candyQueue[0] <= rt) { this.candyQueue.shift(); this.spawnCandy(); }
     while (this.orbQueue.length && this.orbQueue[0] <= rt) { this.orbQueue.shift(); this.spawnOrb(); }
+    let onStreets = 0;
+    for (const c of this.candies.values()) {
+      if (c.spot >= 0) onStreets++;
+      else if (c.gone <= rt) { this.candies.delete(c.id); this.emit({ e: 'candy-', id: c.id, gone: true }); } // rain candy nobody took
+    }
     const target = this.madness ? C.CANDY_ON_MAP_MADNESS : C.CANDY_ON_MAP;
-    if (this.candies.size + this.candyQueue.length < target) this.queueCandy();
-    if (!this.gems.size && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
+    if (onStreets + this.candyQueue.length < target) this.queueCandy();
+    for (const p of this.players.values()) {
+      if (p.gone || !(p.fx.rain > rt)) continue;
+      p.rain += h * C.POWERUPS.rain.rate;
+      while (p.rain >= 1) { p.rain -= 1; this.rainCandy(p); }
+    }
+    if (this.gems.size < C.GEMS_ON_MAP && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
 
     for (const m of [...this.monsters]) this.stepMonster(m, h);
   }
@@ -158,20 +168,21 @@ export class Authority {
     if (msg.kind === 'pickup') {
       const c = this.candies.get(msg.id);
       if (!c) return; // already someone else's: a candy can't be taken twice
+      if (c.land > rt + 0.15) return; // still falling from the sky
       const reach = (p.fx.magnet > rt ? C.POWERUPS.magnet.radius : C.PICKUP_R) * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK;
       if (dist(p.x, p.z, c.x, c.z) > reach) return;
       this.candies.delete(c.id);
       const pts = C.CANDY[c.type].points * (p.fx.double > rt ? 2 : 1);
       p.score += pts;
       this.emit({ e: 'candy-', id: c.id, by: p.id, type: c.type, pts, score: p.score });
-      this.queueCandy();
+      if (c.spot >= 0) this.queueCandy();
     } else if (msg.kind === 'orb') {
       // Always yours to take: into the empty slot for the POWER-UP button, or straight on if the slot is full.
       const o = this.orbs.get(msg.id);
       if (!o || dist(p.x, p.z, o.x, o.z) > C.ORB_R * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK) return;
       this.orbs.delete(o.id);
       const used = !!p.held;
-      if (used) p.fx[o.kind] = rt + C.POWERUPS[o.kind].dur; else p.held = o.kind;
+      if (used) { p.fx[o.kind] = rt + C.POWERUPS[o.kind].dur; if (o.kind === 'rain') p.rain = 1; } else p.held = o.kind;
       this.emit({ e: 'orb-', id: o.id, by: p.id, kind: o.kind, used, until: used ? p.fx[o.kind] : undefined });
       this.orbQueue.push(rt + C.ORB_RESPAWN);
       this.orbQueue.sort((a, b) => a - b);
@@ -180,13 +191,14 @@ export class Authority {
       if (!g || dist(p.x, p.z, g.x, g.z) > C.GEM_R * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK) return;
       this.gems.delete(g.id);
       p.fx[g.kind] = rt + C.GEMS[g.kind].dur;
-      this.nextGem = rt + C.GEM_EVERY[0] + this.R() * (C.GEM_EVERY[1] - C.GEM_EVERY[0]);
+      this.nextGem = Math.max(this.nextGem, rt + 4); // not straight back in the gap it left
       this.emit({ e: 'gem-', id: g.id, by: p.id, kind: g.kind, until: p.fx[g.kind] });
     } else if (msg.kind === 'use') {
       if (!p.held) return;
       const kind = p.held;
       p.held = null;
       p.fx[kind] = rt + C.POWERUPS[kind].dur;
+      if (kind === 'rain') p.rain = 1; // the first piece falls at once
       this.emit({ e: 'power', id: p.id, kind, until: p.fx[kind] });
     } else if (msg.kind === 'knock') {
       const i = msg.house | 0, h = HOUSES[i], st = this.houses?.[i];
@@ -214,7 +226,7 @@ export class Authority {
       if (trick === 'ghost') {
         const m = this.addMonster('ghost', null, h.door.x, h.door.z);
         Object.assign(m, { trick: true, life: this.D.trickLife, state: 'chase', target: p.id, t: 0 });
-      } else if (!(p.fx.giant > rt) && !this.protect(p, 'web')) { // a giant tears straight through a web
+      } else if (!(p.fx.giant > rt) && !(p.fx.ghost > rt) && !this.protect(p, 'web')) { // a giant tears through a web, a ghost floats through it
         p.fx.slow = rt + C.TRAP_SLOW;
         this.emit({ e: 'hit', id: p.id, by: 'web', slow: p.fx.slow });
       }
@@ -262,6 +274,7 @@ export class Authority {
 
   spawnCandy(special = false) {
     const taken = new Set([...this.candies.values()].map((c) => c.spot));
+    for (const g of this.gems.values()) taken.add(g.spot);
     const s = this.freeSpot(CANDY_SPOTS, taken, special ? 2 : 4);
     if (!s) return;
     const type = special ? (this.R() < 0.65 ? 'pumpkin' : 'rainbow') : this.pick(this.madness ? C.CANDY_MADNESS_WEIGHTS : Object.fromEntries(Object.entries(C.CANDY).map(([k, v]) => [k, v.weight])));
@@ -270,13 +283,30 @@ export class Authority {
     this.emit({ e: 'candy+', id: c.id, type, x: c.x, z: c.z });
   }
 
-  /** A gem, somewhere worth running to: away from everyone. */
+  /** Candy rain: a piece falls from the sky somewhere round this player (anyone may grab it once it lands). */
+  rainCandy(p) {
+    const { radius: [r0, r1], fall, life } = C.POWERUPS.rain;
+    const a = this.R() * Math.PI * 2, r = r0 + this.R() * (r1 - r0);
+    let [x, z] = slide(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r, 0.4);
+    const d = Math.hypot(x, z), lim = MAP_R - 1.5;
+    if (d > lim) { x *= lim / d; z *= lim / d; }
+    const rt = this.rt, type = this.pick(C.RAIN_MIX);
+    const c = { id: ++this.candySeq, type, x: +x.toFixed(2), z: +z.toFixed(2), spot: -1, land: rt + fall, gone: rt + fall + life };
+    this.candies.set(c.id, c);
+    this.emit({ e: 'candy+', id: c.id, type, x: c.x, z: c.z, fall });
+  }
+
+  /** A gem, somewhere worth running to: away from everyone, and not the same kind as one already out. */
   spawnGem() {
     const taken = new Set([...this.candies.values()].map((c) => c.spot));
+    for (const g of this.gems.values()) taken.add(g.spot);
     const s = this.freeSpot(CANDY_SPOTS, taken, 9);
     if (!s) return;
-    const g = { id: ++this.gemSeq, kind: C.GEM_KINDS[Math.floor(this.R() * C.GEM_KINDS.length)], x: s.x, z: s.z };
+    const out = new Set([...this.gems.values()].map((g) => g.kind));
+    const kinds = C.GEM_KINDS.filter((k) => !out.has(k));
+    const g = { id: ++this.gemSeq, kind: kinds[Math.floor(this.R() * kinds.length)], x: s.x, z: s.z, spot: s.i };
     this.gems.set(g.id, g);
+    this.nextGem = this.rt + C.GEM_EVERY[0] + this.R() * (C.GEM_EVERY[1] - C.GEM_EVERY[0]);
     this.emit({ e: 'gem+', id: g.id, kind: g.kind, x: g.x, z: g.z });
   }
 
@@ -329,11 +359,14 @@ export class Authority {
     return p.fx.giant > rt || p.fx.thief > rt;
   }
 
-  /** The nearest player in range that isn't protected and doesn't frighten it. */
+  /** A player turned ghost: monsters can't see them or touch them. */
+  hidden(p) { return p.fx.ghost > this.rt; }
+
+  /** The nearest player in range that isn't protected, hidden, or frightening to it. */
   nearestPlayer(m, range) {
     let best = null, bd = range;
     for (const p of this.players.values()) {
-      if (p.gone || p.inv > this.rt || this.frightens(p, m)) continue;
+      if (p.gone || p.inv > this.rt || this.hidden(p) || this.frightens(p, m)) continue;
       const d = dist(m.x, m.z, p.x, p.z);
       if (d < bd) { bd = d; best = p; }
     }
@@ -404,7 +437,7 @@ export class Authority {
       }
       case 'chase': {
         const p = this.players.get(m.target);
-        if (!p || p.gone || this.frightens(p, m)) { this.giveUp(m); break; }
+        if (!p || p.gone || this.hidden(p) || this.frightens(p, m)) { this.giveUp(m); break; }
         const d = dist(m.x, m.z, p.x, p.z);
         if (!m.trick && (d > cfg.giveUp || m.t > cfg.maxChase)) { this.giveUp(m); break; }
         this.moveToward(m, p.x, p.z, cfg.chase * mad, h);

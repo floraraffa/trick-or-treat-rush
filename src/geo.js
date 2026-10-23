@@ -287,7 +287,7 @@ void getNormal() {
 }
 `;
 
-export function texturedMaterial(texture, { gloss = 0.2, metal = 0, alphaTest = 0, emissive = null, unlit = false, fog = true, twoSided = false, blend = false, opacity = 1, normal = null, bumpiness = 1, macro = null, macroTiling = 1 / 14, noTile = false, drift = 0, groom = 0 } = {}) {
+export function texturedMaterial(texture, { gloss = 0.2, metal = 0, alphaTest = 0, emissive = null, unlit = false, fog = true, twoSided = false, blend = false, opacity = 1, normal = null, bumpiness = 1, macro = null, macroTiling = 1 / 14, noTile = false, drift = 0, groom = 0, tiling = 1 } = {}) {
   const m = new StandardMaterial();
   if (noTile) {
     const chunks = m.getShaderChunks(SHADERLANGUAGE_GLSL);
@@ -297,6 +297,10 @@ export function texturedMaterial(texture, { gloss = 0.2, metal = 0, alphaTest = 
   }
   m.diffuseMap = texture;
   if (normal) { m.normalMap = normal; m.bumpiness = bumpiness; }
+  if (tiling !== 1) { // scales the photo on every mesh that uses the material (and its normal map with it)
+    m.diffuseMapTiling = new Vec2(tiling, tiling);
+    if (normal) m.normalMapTiling = new Vec2(tiling, tiling);
+  }
   if (macro) { // a big, slow light/dark variation over a tiled ground texture
     m.diffuseDetailMap = macro;
     m.diffuseDetailMapTiling = new Vec2(macroTiling, macroTiling);

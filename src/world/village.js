@@ -39,17 +39,18 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
   const heightFog = installHeightFog(app.graphicsDevice); // before any material is built
   const N = tex.normals;
   const materials = {
-    wood: texturedMaterial(tex.wood, { normal: N.wood, gloss: 0.22, bumpiness: 0.8 }),
-    shingle: texturedMaterial(tex.shingles, { gloss: 0.4 }),
-    stone: texturedMaterial(tex.sidewalk, { normal: N.sidewalk, gloss: 0.3 }),
+    wood: texturedMaterial(tex.siding, { normal: N.siding, gloss: 0.22, bumpiness: 1.3 }),
+    shingle: texturedMaterial(tex.slates, { normal: N.slates, gloss: 0.45, bumpiness: 1.4, tiling: 0.75 }),
+    stone: texturedMaterial(tex.flags, { normal: N.flags, gloss: 0.38, bumpiness: 1.2 }),
+    masonry: texturedMaterial(tex.masonry, { normal: N.masonry, gloss: 0.2, bumpiness: 1.3 }),
     rock: texturedMaterial(tex.rock, { normal: N.rock, gloss: 0.18 }),
-    bark: texturedMaterial(tex.bark, { normal: N.bark, gloss: 0.15 }),
+    bark: texturedMaterial(tex.bark, { normal: N.bark, gloss: 0.15, bumpiness: 1.3 }),
     woods: texturedMaterial(tex.bark, { gloss: 0.1 }), // the far woods: no normal map, no shadows
     plain: texturedMaterial(tex.plain, { gloss: 0.32 }),
     glossy: texturedMaterial(tex.plain, { gloss: 0.7, metal: 0.65 }),
     glow: texturedMaterial(tex.window, { emissive: new Color(1, 1, 1), gloss: 0.8 }),
     emit: texturedMaterial(tex.plain, { emissive: new Color(1, 1, 1) }),
-    cobble: texturedMaterial(tex.cobbles, { gloss: 0.5 }),
+    cobble: texturedMaterial(tex.cobbles, { normal: N.cobbles, gloss: 0.5, bumpiness: 1.5 }), // damp with mist: a little shine
     ground: texturedMaterial(tex.grass, { normal: N.grass, gloss: 0.12, noTile: true }),
     dirt: texturedMaterial(tex.dirt, { normal: N.dirt, gloss: 0.1 }),
     silhouette: texturedMaterial(tex.plain, { gloss: 0 }),

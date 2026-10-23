@@ -99,7 +99,7 @@ export class View {
       case 'count': this.rtBase = -ev.n; this.rtAt = now; break;
       case 'go': this.phase = 'playing'; this.rtBase = 0; this.rtAt = now; break;
       case 'madness': this.madness = true; break;
-      case 'candy+': this.candies.set(ev.id, { id: ev.id, type: ev.type, x: ev.x, z: ev.z, born: now }); break;
+      case 'candy+': this.candies.set(ev.id, { id: ev.id, type: ev.type, x: ev.x, z: ev.z, born: now, fall: ev.fall ?? 0 }); break;
       case 'candy-': this.candies.delete(ev.id); if (p) p.score = ev.score; break;
       case 'orb+': this.orbs.set(ev.id, { id: ev.id, kind: ev.kind, x: ev.x, z: ev.z, born: now }); break;
       case 'orb-': this.orbs.delete(ev.id); if (p) { if (ev.used) p.fx[ev.kind] = now + (ev.until - this.rt()); else p.held = ev.kind; } break;

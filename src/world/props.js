@@ -134,8 +134,8 @@ export function addCemetery(B, tombs) {
   run([x0, z1], [cx - gate / 2, z1]); run([cx + gate / 2, z1], [x1, z1]);
   // Gate pillars and a wrought arch with a crescent moon.
   for (const s of [-1, 1]) {
-    B.get('rock').add(box(0.55, 2.3, 0.55, 0.8), trs(cx + s * (gate / 2 + 0.1), 1.15, z1), [0.45, 0.42, 0.5]);
-    B.get('rock').add(lathe([[0.36, 0], [0.38, 0.12], [0.2, 0.2], [0.18, 0.42], [0, 0.48]], 8), trs(cx + s * (gate / 2 + 0.1), 2.3, z1), [0.5, 0.47, 0.54]);
+    B.get('masonry').add(box(0.55, 2.3, 0.55, 0.8), trs(cx + s * (gate / 2 + 0.1), 1.15, z1), [0.45, 0.42, 0.5]);
+    B.get('masonry').add(lathe([[0.36, 0], [0.38, 0.12], [0.2, 0.2], [0.18, 0.42], [0, 0.48]], 8), trs(cx + s * (gate / 2 + 0.1), 2.3, z1), [0.5, 0.47, 0.54]);
   }
   const arch = [];
   for (let k = 0; k <= 12; k++) { const a = (k / 12) * Math.PI; arch.push([cx - Math.cos(a) * (gate / 2 + 0.1), 2.5 + Math.sin(a) * 0.9, z1]); }
@@ -168,11 +168,11 @@ export function addCemetery(B, tombs) {
 
   // The mausoleum: columns, a pediment, a dark door with a ghostly green light leaking out.
   const m = MAUSOLEUM, MM = trs(m.x, 0, m.z);
-  B.get('rock').add(box(m.w + 0.6, 0.35, m.d + 0.9, 0.8), MM.clone().mul(trs(0, 0.17, 0.2)), [0.5, 0.48, 0.55]);
-  B.get('rock').add(box(m.w, m.h, m.d, 0.8), MM.clone().mul(trs(0, 0.35 + m.h / 2, -0.15)), [0.55, 0.53, 0.6]);
+  B.get('masonry').add(box(m.w + 0.6, 0.35, m.d + 0.9, 0.8), MM.clone().mul(trs(0, 0.17, 0.2)), [0.5, 0.48, 0.55]);
+  B.get('masonry').add(box(m.w, m.h, m.d, 0.8), MM.clone().mul(trs(0, 0.35 + m.h / 2, -0.15)), [0.55, 0.53, 0.6]);
   for (const s of [-1, -0.36, 0.36, 1]) B.get('rock').add(cylinder(0.16, 0.14, m.h - 0.1, 10, { uvScale: 0.8 }), MM.clone().mul(trs(s * (m.w / 2 - 0.15), 0.35, m.d / 2 + 0.25)), [0.66, 0.64, 0.7]);
-  B.get('rock').add(box(m.w + 0.3, 0.25, 0.7, 0.8), MM.clone().mul(trs(0, 0.35 + m.h, m.d / 2)), [0.6, 0.58, 0.64]);
-  B.get('rock').add(extrude([[-m.w / 2 - 0.2, 0], [m.w / 2 + 0.2, 0], [0, 1.1]], m.d + 0.6), MM.clone().mul(trs(0, 0.6 + m.h, 0.1)), [0.55, 0.53, 0.6]);
+  B.get('masonry').add(box(m.w + 0.3, 0.25, 0.7, 0.8), MM.clone().mul(trs(0, 0.35 + m.h, m.d / 2)), [0.6, 0.58, 0.64]);
+  B.get('masonry').add(extrude([[-m.w / 2 - 0.2, 0], [m.w / 2 + 0.2, 0], [0, 1.1]], m.d + 0.6), MM.clone().mul(trs(0, 0.6 + m.h, 0.1)), [0.55, 0.53, 0.6]);
   B.get('plain').add(flat(archOutline(1.1, 2.0)), MM.clone().mul(trs(0, 0.35, m.d / 2 - 0.13)), [0.05, 0.04, 0.07]);
   B.get('emit').add(box(0.04, 1.6, 0.02), MM.clone().mul(trs(0.05, 1.2, m.d / 2 - 0.1)), [0.45, 1, 0.6]);
   B.get('glossy').add(tube(circleOutline(0.35, 10).map(([x, y]) => [x, y + 0.6 + m.h + 1.4, m.d / 2 + 0.2]).concat([[0.35, 0.6 + m.h + 1.4, m.d / 2 + 0.2]]), 0.04, 4, { caps: false }), MM, PAL.gold);
@@ -235,7 +235,7 @@ export function addBush(B, b) {
  */
 export function addClockTower(app, B, clockMat) {
   const R = rng(77);
-  B.get('rock').add(lathe([[TOWER_R + 0.4, 0], [TOWER_R + 0.35, 0.3], [TOWER_R, 0.45], [TOWER_R, 1.4], [TOWER_R - 0.15, 1.6], [0, 1.6]], 8, { uvScale: 0.8 }), trs(0, 0, 0, 0, 22.5, 0), [0.45, 0.42, 0.5]);
+  B.get('masonry').add(lathe([[TOWER_R + 0.4, 0], [TOWER_R + 0.35, 0.3], [TOWER_R, 0.45], [TOWER_R, 1.4], [TOWER_R - 0.15, 1.6], [0, 1.6]], 8, { uvScale: 0.8 }), trs(0, 0, 0, 0, 22.5, 0), [0.45, 0.42, 0.5]);
   let M = trs(0, 1.6, 0);
   const stages = [[2.3, 3.4, 4], [2.0, 3.0, -6], [1.8, 2.4, 9]];
   for (const [w, h, tw] of stages) {
