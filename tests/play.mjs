@@ -96,11 +96,13 @@ assert.ok(cool > 12 && cool <= 15.1, `house cools down ~15 s (got ${cool.toFixed
 const btn = await page.textContent('#btnKnock');
 console.log(`✔ knocked: cooldown ${cool.toFixed(1)} s, button now "${btn.trim()}"`);
 
-// Candy: stand on one; the authority credits it once.
+// Candy: stand on one; the authority credits it once. (Popups are recorded as they appear: each lives about a
+// second, which a slow software-WebGL frame rate can let slip by between checks.)
+await G(() => { window.__popups = []; new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => n.classList?.contains('popup') && window.__popups.push(n.textContent)))).observe(document.getElementById('popups'), { childList: true }); });
 const c = await G(() => { const [id, c] = [...window.__game.view.candies][0]; window.__game.player.place(c.x, c.z, 0); return { id, type: c.type }; });
 await page.waitForFunction((id) => !window.__game.view.candies.has(id), c.id, { timeout: 60000 });
 const scoreAfter = await G(() => window.__game.view.players.get(window.__game.me.id).score);
-await page.waitForFunction(() => [...document.querySelectorAll('.popup')].some((e) => /\+\d+/.test(e.textContent)), null, { timeout: 20000 });
+await page.waitForFunction(() => window.__popups.some((t) => /\+\d+/.test(t)), null, { timeout: 20000 });
 console.log(`✔ candy ${c.type} picked, "+N CANDY!" shown: score ${scoreBefore} → ${scoreAfter} (door visit included)`);
 
 // Power-up orb: pick it, use it, it shows and expires.
