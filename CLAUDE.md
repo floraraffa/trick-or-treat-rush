@@ -74,17 +74,29 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   panel, so the buttons hide on desktop (`?board` shows them). `src/audio.js` synthesised sound + music box.
 - `src/poses.js` → `npm run clips` → `public/assets/clips.glb` (idle, walk, run, knock, hit, cheer, sad).
 - `src/lib/` snap wrapper, `bitmoji-anim.js` (MIT, vendored; added `setSpeed`), meshopt GLB unpacker.
+- Snap Specs version (WebXR, the glasses' browser; the Lens is untouched): `specs.html` + `src/specs/main.js`, same
+  game code, built by `npm run build:specs` (`vite.specs.config.js` → `dist-specs/index.html`; needs an https host).
+  A table-top miniature: the camera hangs from a rig scaled `S` = 24, which follows the Bitmoji; only a round board
+  (`BOARD.radius` 0.45 m) is drawn: `village.setBoard` → `tf_clip` in `heightfog.js` discards past the edge (lamp
+  halos and candy off the board are disabled), a glowing torus rim marks it. `hands.js`: pinch-drag = joystick in
+  the player's space, quick pinch = action (knock / use, play again), still pinch 2 s = hold (back to the menu).
+  `panels.js`: canvas cards on the UI layer, hung from `face`, which tags along with the gaze (small FOV). No Snapchat
+  API there: default Bitmoji, bests in localStorage, one player. Brighter (`scene.exposure`, ambient ×1.35) because
+  see-through displays add light (black is clear). Dev: `specs.html?emulate` (IWER, dev only; `&fov=33`,
+  `&emulate=stereo`), `?scale`, `?bright`; test `tests/specs.mjs`.
 
 ## Commands
 
 `npm run dev`, `npm run build`, `npm run pack`, `npm run clips`, `npm test` (authority rules),
-`npm run test:e2e` (solo night + 3-instance room in headless Chromium; slow with software WebGL),
+`npm run test:e2e` (solo night + 3-instance room + Specs in an emulated headset, headless Chromium; slow with software
+WebGL), `npm run build:specs`,
 `node tests/showcase.mjs <dir>` (README screenshots), `dev/viewer.html?view=cx,cy,cz,tx,ty,tz` (scene viewer).
 
 ## Status
 
 - Verified in headless Chromium only. Pending on a phone inside Snapchat (after review): real Bitmoji + portrait,
-  leaderboard, storage, performance, safe areas.
+  leaderboard, storage, performance, safe areas. Specs version: verified only in the IWER emulator; pending on real
+  Specs (pinch as WebXR select on their hands, panel size, brightness, board placement, performance) and a host.
 - Store assets in `art/store/`: `icon.png` (512×512, `tools/make-icon.mjs`: the cat creature's head from its drawing
   over a Halloween moon, circle-safe) and `preview-en.mp4` (9 s, 720×1280, 30 fps, silent, `tools/make-preview.mjs`
   with the dev server running: the real game in five shots on a virtual clock that advances 1/30 s per captured frame,

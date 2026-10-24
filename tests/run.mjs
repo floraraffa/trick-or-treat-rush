@@ -1,5 +1,6 @@
 // npm test: the authority's rules and the texts in every language (fast, no browser).
-// npm run test:e2e: also a solo night and a three-player room in headless Chromium (slow: software WebGL).
+// npm run test:e2e: also a solo night, a three-player room and the Specs version in an emulated headset, in
+// headless Chromium (slow: software WebGL).
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 
@@ -17,5 +18,6 @@ if (process.argv.includes('--e2e')) {
   try {
     run(['tests/play.mjs', 'tests/out'], { URL: `http://localhost:${port}/` });
     run(['tests/room.mjs', 'tests/out'], { URL: `http://localhost:${port}/` });
+    run(['tests/specs.mjs', 'tests/out'], { URL: `http://localhost:${port}/` });
   } finally { vite.kill(); }
 }

@@ -6,7 +6,7 @@ import { ADDRESS_CLAMP_TO_EDGE, BLEND_NORMAL, CULLFACE_NONE, Color, Entity, FILT
 export const TITLE_FONT = 'Griffy', BODY_FONT = 'Mystery Quest';
 
 /** A card `width` × `height` metres, drawn at `px` canvas pixels a metre. Returns { entity, draw(key, fn), opacity, visible }. */
-export function createPanel(app, { width, height, px = 1600, name = 'panel' }) {
+export function createPanel(app, { width, height, px = 1600, name = 'panel', order = 1 }) {
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(width * px); canvas.height = Math.round(height * px);
   const ctx = canvas.getContext('2d');
@@ -20,8 +20,9 @@ export function createPanel(app, { width, height, px = 1600, name = 'panel' }) {
   mat.blendType = BLEND_NORMAL; mat.depthWrite = false; mat.depthTest = false; mat.cull = CULLFACE_NONE;
   mat.update();
   const holder = new Entity(name), card = new Entity(`${name}-card`);
-  card.addComponent('render', { type: 'plane', material: mat, castShadows: false, receiveShadows: false });
-  card.render.meshInstances[0].drawOrder = 1000; // over the world
+  // On the UI layer (drawn after the world, in drawOrder): over the village, never hidden by it.
+  card.addComponent('render', { type: 'plane', material: mat, castShadows: false, receiveShadows: false, layers: [app.scene.layers.getLayerByName('UI').id] });
+  card.render.meshInstances[0].drawOrder = order;
   card.setLocalEulerAngles(90, 0, 0); // the plane primitive faces up: turn it to face the player (+Z)
   card.setLocalScale(width, 1, height);
   holder.addChild(card);

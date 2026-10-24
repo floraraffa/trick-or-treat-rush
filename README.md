@@ -13,7 +13,8 @@ npm install
 npm run dev            # http://localhost:3000 (vista de celular)
 npm run pack           # build + chequeos de Snap → submission/trick-or-treat-rush-v<versión>.zip
 npm test               # reglas de la autoridad (rápido, sin navegador)
-npm run test:e2e       # además: una noche completa y una sala de 3 jugadores en Chromium headless
+npm run test:e2e       # además: una noche completa, una sala de 3 jugadores y la versión Specs (emulada) en Chromium headless
+npm run build:specs    # la versión para Snap Specs (WebXR) → dist-specs/, ver más abajo
 npm run textures       # vuelve a bajar y preparar las texturas de Poly Haven (necesita red)
 ```
 
@@ -166,6 +167,7 @@ desde adentro y el pueblo con cada parpadeo.
 | `src/world/layout.js` | plano del pueblo (datos puros compartidos), colisionadores, rutas de patrulla |
 | `src/world/village.js`, `houses.js`, `props.js`, `sky.js`, `shapes.js`, `collide.js` | escenario, iluminación, cielo, geometría, colisiones |
 | `src/ui/ui.js`, `i18n.js`, `tutorial.js`, `flags.js` | UIManager; textos en inglés, español, francés y alemán, con selector de idioma con banderas; el tutorial de tarjetas |
+| `specs.html`, `src/specs/` | la versión para Snap Specs (WebXR): maqueta, manos (`hands.js`), paneles (`panels.js`), visor emulado para desarrollo (`emulate.js`) |
 | `src/lib/` | envoltorio de la API de Snapchat, `bitmoji-anim.js` (MIT), descompresión meshopt (heredados de Cruise Rush) |
 
 ## Ícono y video para My Lenses
@@ -182,6 +184,38 @@ En `art/store/`, hechos con el juego mismo y con herramientas que se pueden volv
   `--every 10` para ver sólo algunos cuadros). La página corre con un **reloj virtual**: cada cuadro avanza
   exactamente 1/30 s del juego (su reloj, sus timers y las animaciones CSS) y recién ahí se captura, así el video
   sale fluido aunque la máquina dibuje lento (con WebGL por software, unos segundos por cuadro).
+
+## Versión para Snap Specs (WebXR)
+
+Las Web Lenses son para la app de Snapchat del teléfono, y las Lenses de los **Specs** (los anteojos de realidad
+aumentada de Snap) se hacen en Lens Studio, con otro motor. El camino para llevar este juego web a los Specs es su
+**navegador con WebXR**, y ahí corre este mismo juego como página web: `specs.html` es otra puerta de entrada al
+mismo código (reglas, pueblo, criaturas, sonidos), con su propia vista, controles y paneles (`src/specs/`). La Lens
+no cambia.
+
+- **El pueblo sobre la mesa.** Una maqueta a escala 1:24 delante del jugador, unos 45 cm por debajo de los ojos: se ve
+  un tablero redondo de 90 cm (con un borde naranja que brilla) alrededor del Bitmoji, que lo sigue suavemente
+  mientras camina; lo que queda afuera del tablero se desvanece (en una pantalla transparente el negro no se ve).
+  Más luz que en el teléfono, porque los Specs suman su imagen a la luz de la habitación.
+- **Controles con las manos** (no hay pantalla que tocar): pellizcar y arrastrar en el aire es el joystick (el punto
+  donde empezó el pellizco es el centro); un pellizco rápido golpea la puerta que está al lado o usa el poder; al
+  final de la noche, un pellizco rápido juega otra y un pellizco quieto 2 s vuelve al menú.
+- **Paneles**: el reloj, los caramelos, los carteles y los resultados flotan a 1 m y siguen la mirada (con un poco de
+  demora), porque la ventana de los Specs es chica (unos 46° en diagonal) y un panel fijo se perdería de vista.
+- **Limitaciones**: en el navegador de los Specs no está la API de Snapchat, así que el jugador es el Bitmoji por
+  defecto, los récords se guardan en el navegador de los anteojos y no hay ranking de amigos. Es de un jugador:
+  jugar entre varios Specs necesitaría un servidor, que el juego no tiene (y no se inventan jugadores).
+- **Publicarlo**: `npm run build:specs` arma `dist-specs/` (`index.html` en la raíz, rutas relativas, ~5,5 MB). WebXR
+  sólo funciona en páginas **https**, así que hay que subir esa carpeta a un hosting estático (GitHub Pages,
+  Netlify...) y abrir el link en el navegador de los Specs → **JUGAR SOBRE LA MESA**.
+- **Probarlo sin anteojos**: `npm run dev` y abrir `http://localhost:3000/specs.html?emulate` → un visor emulado con
+  manos (IWER de Meta, sólo en desarrollo; no va al build). `&fov=33` muestra más o menos la ventana de los Specs,
+  `&emulate=stereo` los dos ojos. Otros parámetros: `?scale=24` (escala de la maqueta), `?bright=1.7` (exposición),
+  `?lang=es`. La prueba `node tests/specs.mjs <carpeta>` (también en `npm run test:e2e`) entra a la sesión, camina
+  con un pellizco, golpea una puerta, llega a los resultados, juega otra noche y vuelve al menú.
+- **Pendiente de validar en unos Specs de verdad** (sólo se probó en el emulador): que el pellizco llegue como
+  evento `select` de WebXR en las manos de los Specs, el tamaño y la lectura de los paneles, el brillo y los colores
+  en la pantalla transparente, la altura y distancia de la maqueta, y el rendimiento.
 
 ## Estado y pendientes
 

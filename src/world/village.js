@@ -175,7 +175,7 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
     return { e, at: sp.at };
   });
 
-  let madness = 0, time = 0, storm = 0, flash = 0;
+  let madness = 0, time = 0, storm = 0, flash = 0, board = null;
   const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
   return {
     root,
@@ -208,6 +208,8 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       moon.light.color = new Color(...lerp(MOON_CALM, MOON_MAD, k));
       sky.setMadness(k);
     },
+    /** Specs: draw only a round board of `radius` m round (x, z) (radius 0: everything). */
+    setBoard(x, z, radius, fade = radius * 0.12) { heightFog.clip(x, z, radius, fade); board = radius > 0 ? { x, z, r: radius } : null; },
     /** A candy storm overhead (k 0..1): darker, mistier. */
     setStorm(k) { storm = k; },
     /** Lightning brightness here right now (0..1, set every frame while a storm flashes). */
@@ -231,6 +233,7 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       });
       const flick = madness > 0 ? 0.75 + 0.25 * Math.sin(time * 19) : 0.92 + 0.08 * Math.sin(time * 2.3);
       for (const h of halos) {
+        h.e.enabled = !board || Math.hypot(h.at[0] - board.x, h.at[2] - board.z) < board.r - 0.5; // (Specs: none past the board's edge)
         // a soft glow at a distance, shrinking away as the camera comes close (no orange blotches)
         const d = Math.hypot(c.x - h.at[0], c.y - h.at[1], c.z - h.at[2]), k = 1.15 * Math.max(0.25, Math.min(1, (d - 1.5) / 5));
         h.e.setLocalScale(k, k, k);

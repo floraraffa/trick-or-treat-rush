@@ -40,7 +40,7 @@ export const STRINGS = {
     specs: {
       sub: 'A HAUNTED VILLAGE ON YOUR TABLE', enter: 'PLAY ON THE TABLE', noXr: 'Open this page in the Specs browser (or another headset with WebXR) to play.',
       how: ['🤏 Pinch and drag in the air to walk; keep going and you sprint.', '🚪 Quick pinch at a door: trick or treat! (anywhere else: your power-up)', '👻 Dodge the monsters, grab the candy: most candy in 3 minutes wins.'],
-      knockHint: 'PINCH: TRICK OR TREAT!', useHint: 'PINCH: {p}', again: 'Quick pinch: play again', exit: 'Palm button: back to the menu', best: 'Best', place: 'Look at the village: it sits on your table',
+      knockHint: 'PINCH: TRICK OR TREAT!', useHint: 'PINCH: {p}', again: 'Quick pinch: play again', exit: 'Hold a pinch still for 2 s: back to the menu', best: 'Best', place: 'Look at the village: it sits on your table',
     },
     tips: ['Doors glow gold when they are ready', 'Keep running straight and you outrun everything', 'The clock tower counts down to midnight', 'A shield blocks one hit: save it for the madness'],
   },
@@ -81,7 +81,7 @@ export const STRINGS = {
     specs: {
       sub: 'UN PUEBLO EMBRUJADO SOBRE TU MESA', enter: 'JUGAR SOBRE LA MESA', noXr: 'Abrí esta página en el navegador de los Specs (u otros anteojos con WebXR) para jugar.',
       how: ['🤏 Pellizcá y arrastrá en el aire para caminar; si seguís derecho, corrés solo.', '🚪 Pellizco rápido en una puerta: ¡dulce o truco! (en otro lado: tu poder)', '👻 Esquivá los monstruos y juntá dulces: gana quien junte más en 3 minutos.'],
-      knockHint: 'PELLIZCÁ: ¡DULCE O TRUCO!', useHint: 'PELLIZCÁ: {p}', again: 'Pellizco rápido: jugar de nuevo', exit: 'Botón de la palma: volver al menú', best: 'Récord', place: 'Mirá el pueblo: está sobre tu mesa',
+      knockHint: 'PELLIZCÁ: ¡DULCE O TRUCO!', useHint: 'PELLIZCÁ: {p}', again: 'Pellizco rápido: jugar de nuevo', exit: 'Mantené el pellizco quieto 2 s: volver al menú', best: 'Récord', place: 'Mirá el pueblo: está sobre tu mesa',
     },
     tips: ['Las puertas brillan doradas cuando están listas', 'Corré derecho y no te alcanza nadie', 'La torre del reloj cuenta hasta la medianoche', 'El escudo para un golpe: guardalo para la locura'],
   },
@@ -122,7 +122,7 @@ export const STRINGS = {
     specs: {
       sub: 'UN VILLAGE HANTÉ SUR TA TABLE', enter: 'JOUER SUR LA TABLE', noXr: 'Ouvre cette page dans le navigateur des Specs (ou un autre casque WebXR) pour jouer.',
       how: ['🤏 Pince et glisse dans l’air pour marcher ; continue tout droit et tu sprintes.', '🚪 Pincement rapide à une porte : un bonbon ou un sort ! (ailleurs : ton pouvoir)', '👻 Évite les monstres, ramasse les bonbons : le plus de bonbons en 3 minutes gagne.'],
-      knockHint: 'PINCE : UN BONBON OU UN SORT !', useHint: 'PINCE : {p}', again: 'Pincement rapide : rejouer', exit: 'Bouton de la paume : retour au menu', best: 'Record', place: 'Regarde le village : il est sur ta table',
+      knockHint: 'PINCE : UN BONBON OU UN SORT !', useHint: 'PINCE : {p}', again: 'Pincement rapide : rejouer', exit: 'Pince immobile 2 s : retour au menu', best: 'Record', place: 'Regarde le village : il est sur ta table',
     },
     tips: ['Les portes brillent en or quand elles sont prêtes', 'Cours tout droit et personne ne te rattrape', 'L’horloge compte jusqu’à minuit', 'Le bouclier bloque un coup : garde-le pour la folie'],
   },
@@ -163,7 +163,7 @@ export const STRINGS = {
     specs: {
       sub: 'EIN SPUKDORF AUF DEINEM TISCH', enter: 'AUF DEM TISCH SPIELEN', noXr: 'Öffne diese Seite im Browser der Specs (oder einer anderen WebXR-Brille), um zu spielen.',
       how: ['🤏 Kneif und zieh in der Luft, um zu gehen; lauf weiter und du sprintest.', '🚪 Kurz kneifen an einer Tür: Süßes oder Saures! (sonst: deine Kraft)', '👻 Weich den Monstern aus, sammle Süßes: wer in 3 Minuten am meisten hat, gewinnt.'],
-      knockHint: 'KNEIFEN: SÜSSES ODER SAURES!', useHint: 'KNEIFEN: {p}', again: 'Kurz kneifen: noch mal', exit: 'Handflächen-Knopf: zurück zum Menü', best: 'Rekord', place: 'Schau auf das Dorf: es steht auf deinem Tisch',
+      knockHint: 'KNEIFEN: SÜSSES ODER SAURES!', useHint: 'KNEIFEN: {p}', again: 'Kurz kneifen: noch mal', exit: '2 s still kneifen: zurück zum Menü', best: 'Rekord', place: 'Schau auf das Dorf: es steht auf deinem Tisch',
     },
     tips: ['Türen leuchten golden, wenn sie bereit sind', 'Lauf geradeaus und dich holt keiner ein', 'Der Uhrturm zählt bis Mitternacht', 'Ein Schild blockt einen Treffer: heb ihn für den Wahnsinn auf'],
   },

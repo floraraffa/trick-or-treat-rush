@@ -19,6 +19,7 @@ uniform float tf_ground;  // extra density at ground level
 uniform float tf_falloff; // how fast that thins with height (per metre)
 uniform float tf_time;
 uniform vec3 tf_mist;     // colour of the low mist, lit by the moon
+uniform vec4 tf_clip;     // the Specs table-top: centre x, z, radius, edge fade in metres (radius 0: no edge)
 
 #ifdef VERTEXSHADER
 	float getFogFactor(float depth) {
@@ -69,7 +70,12 @@ uniform vec3 tf_mist;     // colour of the low mist, lit by the moon
 		#if (FOG != NONE)
 			float low = exp(-max(vPositionW.y, 0.0) * tf_falloff * 0.6);
 			vec3 fogCol = mix(fog_color, tf_mist, low);
-			return mix(fogCol * dBlendModeFogFactor, color, getFogFactor());
+			color = mix(fogCol * dBlendModeFogFactor, color, getFogFactor());
+			if (tf_clip.z > 0.0) { // a round board: nothing past its edge, fading to black (clear on see-through glasses)
+				float d = distance(vPositionW.xz, tf_clip.xy);
+				if (d > tf_clip.z) discard;
+				color *= smoothstep(tf_clip.z, tf_clip.z - tf_clip.w, d);
+			}
 		#endif
 		return color;
 	}
@@ -80,9 +86,12 @@ uniform vec3 tf_mist;     // colour of the low mist, lit by the moon
 export function installHeightFog(device) {
   ShaderChunks.get(device, SHADERLANGUAGE_GLSL).set('fogPS', FOG_GLSL);
   const scope = device.scope;
-  const u = { ground: scope.resolve('tf_ground'), falloff: scope.resolve('tf_falloff'), time: scope.resolve('tf_time'), mist: scope.resolve('tf_mist') };
-  const mist = new Float32Array(3);
+  const u = { ground: scope.resolve('tf_ground'), falloff: scope.resolve('tf_falloff'), time: scope.resolve('tf_time'), mist: scope.resolve('tf_mist'), clip: scope.resolve('tf_clip') };
+  const mist = new Float32Array(3), clip = new Float32Array(4);
+  u.clip.setValue(clip);
   return {
+    /** The Specs board: only what lies within `radius` of (x, z) is drawn, the last `fade` metres darkening. */
+    clip(x, z, radius, fade) { clip.set([x, z, radius, fade]); u.clip.setValue(clip); },
     /** ground: extra density at ground level; falloff: per metre; mist: [r, g, b]. */
     update(time, { ground, falloff, color }) {
       u.time.setValue(time % 1000);

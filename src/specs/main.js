@@ -6,11 +6,14 @@
 //   The miniature: the camera hangs from a rig scaled S times, so the world (built in metres) looks 1:S, both
 //   eyes included; the rig follows the Bitmoji so it stays in the middle of the board.
 //   Controls (hands.js): pinch and drag in the air to walk; a quick pinch knocks at a door or uses the power-up.
-//   Panels (panels.js): HUD, banners, hints and results drawn on canvases, shown in front of the player.
+//   Only a round board of the village is drawn (BOARD.radius round the Bitmoji, a glowing rim at its edge):
+//   the rest fades out, so the village is a diorama and never spills over the room.
+//   Panels (panels.js): HUD, banners, hints and results drawn on canvases. The glasses see a small window of
+//   the world, so the panels tag along with the gaze (they catch up when the head turns away).
 // Dev: specs.html?emulate on the dev server emulates a headset with hands (IWER) for trying and testing.
 import '@fontsource/griffy/latin-400.css';
 import '@fontsource/mystery-quest/latin-400.css';
-import { Application, Color, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO, TONEMAP_NEUTRAL, Vec3, XRSPACE_LOCAL, XRTYPE_AR } from 'playcanvas';
+import { Application, Color, Entity, FILLMODE_FILL_WINDOW, Mesh, MeshInstance, Quat, RESOLUTION_AUTO, StandardMaterial, TONEMAP_NEUTRAL, TorusGeometry, Vec3, XRSPACE_LOCAL, XRTYPE_AR } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
 import { DOOR_RANGE, HOUSES } from '../world/layout.js';
@@ -34,7 +37,7 @@ const params = new URLSearchParams(location.search);
 if (import.meta.env.DEV && params.has('emulate')) await import('./emulate.js'); // before the engine: it must see navigator.xr
 
 const S = +params.get('scale') || 24; // the miniature: 1:S
-const BOARD = { below: 0.45, ahead: 0.85 }; // where the Bitmoji stands, from the eyes at the start (metres)
+const BOARD = { below: 0.45, ahead: 0.85, radius: 0.45 }; // where the Bitmoji stands, from the eyes at the start, and the board's size (metres)
 const BRIGHT = +params.get('bright') || 1.7; // see-through glasses add light to the room (black is clear): lift the night
 const $ = (id) => document.getElementById(id);
 
@@ -108,18 +111,58 @@ const hands = createHands(app, toUser);
 // The joystick's "forward" is away from the player, along the board (the rig never turns).
 const steer = { mode: 'third', forward: () => [0, -1], right: () => [1, 0] };
 
-const hud = createPanel(app, { width: 0.44, height: 0.075, name: 'hud' });
-hud.entity.setLocalPosition(0, -0.1, -1.2);
-const banner = createPanel(app, { width: 0.7, height: 0.2, name: 'banner' });
-banner.entity.setLocalPosition(0, 0.04, -1.15);
-const hint = createPanel(app, { width: 0.4, height: 0.05, name: 'hint' });
-hint.entity.setLocalPosition(0, -0.165, -1.15);
-const toast = createPanel(app, { width: 0.36, height: 0.05, name: 'toast' });
-toast.entity.setLocalPosition(0, -0.045, -1.15);
-const results = createPanel(app, { width: 0.6, height: 0.36, name: 'results' });
-results.entity.setLocalPosition(0, -0.02, -1.15);
+// The board's rim: a thin glowing ring where the village fades out (in the player's space, under the Bitmoji).
+const rimMat = new StandardMaterial();
+rimMat.useLighting = false; rimMat.useFog = false; rimMat.useSkybox = false;
+rimMat.diffuse = new Color(0, 0, 0); rimMat.emissive = new Color(1, 0.55, 0.16);
+rimMat.update();
+const rim = new Entity('board-rim');
+rim.addComponent('render', { meshInstances: [new MeshInstance(Mesh.fromGeometry(app.graphicsDevice, new TorusGeometry({ ringRadius: BOARD.radius, tubeRadius: 0.0025, segments: 120, sides: 6 })), rimMat)], castShadows: false });
+rim.setLocalPosition(0, -BOARD.below, -BOARD.ahead);
+rim.enabled = false;
+rig.addChild(rim);
+
+// Panels hang from `face`, which tags along with the head: it stays put while the gaze wanders a little and
+// catches up when it turns further (a small field of view: a fixed panel would soon be out of sight).
+const face = new Entity('face');
+rig.addChild(face);
+const hud = createPanel(app, { width: 0.36, height: 0.06, name: 'hud' });
+hud.entity.setLocalPosition(0, 0.15, -1);
+const banner = createPanel(app, { width: 0.5, height: 0.15, name: 'banner', order: 2 });
+banner.entity.setLocalPosition(0, 0.03, -1);
+const toast = createPanel(app, { width: 0.3, height: 0.042, name: 'toast', order: 3 });
+toast.entity.setLocalPosition(0, -0.065, -1);
+const hint = createPanel(app, { width: 0.34, height: 0.045, name: 'hint' });
+hint.entity.setLocalPosition(0, -0.14, -1);
+const results = createPanel(app, { width: 0.46, height: 0.28, name: 'results' });
+results.entity.setLocalPosition(0, 0, -1);
 const panels = [hud, banner, hint, toast, results];
-for (const p of panels) { rig.addChild(p.entity); p.visible = false; }
+for (const p of panels) { face.addChild(p.entity); p.visible = false; }
+
+const gaze = { yaw: 0, pitch: 0, follow: false };
+const qYaw = new Quat(), qPitch = new Quat(), look = new Vec3();
+/** Moves `face` after the head; `snap`: at once (the start of a session). */
+function followHead(dt, snap = false) {
+  camera.getLocalRotation().transformVector(Vec3.FORWARD, look);
+  const yaw = Math.atan2(-look.x, -look.z) * 57.2958, pitch = Math.asin(Math.max(-1, Math.min(1, look.y))) * 57.2958;
+  const dy = ((yaw - gaze.yaw + 540) % 360) - 180, dp = pitch - gaze.pitch;
+  if (snap || Math.abs(dy) > 16 || Math.abs(dp) > 11) gaze.follow = true;
+  if (gaze.follow) {
+    const k = snap ? 1 : Math.min(1, dt * 4);
+    gaze.yaw += dy * k; gaze.pitch += dp * k;
+    if (Math.abs(dy) < 1.5 && Math.abs(dp) < 1.5) gaze.follow = false;
+  }
+  const hp = camera.getLocalPosition(), fp = face.getLocalPosition(), k = snap ? 1 : Math.min(1, dt * 6);
+  face.setLocalPosition(fp.x + (hp.x - fp.x) * k, fp.y + (hp.y - fp.y) * k, fp.z + (hp.z - fp.z) * k);
+  qYaw.setFromAxisAngle(Vec3.UP, gaze.yaw); qPitch.setFromAxisAngle(Vec3.RIGHT, gaze.pitch);
+  face.setLocalRotation(qYaw.mul(qPitch));
+}
+
+/** The rig, so the board's centre (the world point `board`) sits below and ahead of where the eyes started. */
+function placeRig() {
+  rig.setPosition(board.x, BOARD.below * S, board.z + BOARD.ahead * S);
+  village.setBoard(board.x, board.z, BOARD.radius * S);
+}
 
 let bannerT = 0, bannerMs = 0, toastT = 0;
 /** A big message in front of the player for `ms`; `kind`: good, bad, mad, big. */
@@ -178,7 +221,10 @@ app.xr?.on('start', () => {
   $('menu').classList.add('hidden');
   camera.camera.clearColor = CLEAR;
   rig.setLocalScale(S, S, S);
-  hud.visible = true;
+  board.set(player.state.x, 0, player.state.z);
+  placeRig();
+  rim.enabled = true;
+  followHead(0, true);
   hands.reset();
   say(t('specs.place'), '', 2400);
   setTimeout(() => { if (app.xr.active) startNight(); }, 1200);
@@ -191,6 +237,8 @@ app.xr?.on('end', () => {
   camera.camera.clearColor = OPAQUE;
   rig.setLocalScale(1, 1, 1);
   rig.setPosition(0, 0, 0);
+  rim.enabled = false;
+  village.setBoard(0, 0, 0);
   $('menu').classList.remove('hidden');
   menuTexts();
 });
@@ -301,9 +349,8 @@ app.on('update', () => {
   const dt = Math.min(realDt, 0.1), now = nowMs / 1000;
   session.update(realDt);
   hands.update(dt);
-  if (state === 'menu' || !app.xr?.active) menuFrame(dt);
-  else playFrame(dt, now);
-  if (app.xr?.active) panelsFrame(dt, now);
+  if (!app.xr?.active) menuFrame(dt);
+  else { playFrame(dt, now); followHead(dt); panelsFrame(dt, now); }
   village.update(dt, camera);
   app.scene.ambientLight.mulScalar(1.35); // (after the village sets it: a lighter night for see-through glasses)
   fx.update(dt, camera);
@@ -336,9 +383,11 @@ function playFrame(dt, now) {
   // The board follows the Bitmoji (gently), so it stays in the middle of the table.
   const k = Math.min(1, dt * 2.5);
   board.x += (ps.x - board.x) * k; board.z += (ps.z - board.z) * k;
-  rig.setPosition(board.x, BOARD.below * S, board.z + BOARD.ahead * S);
+  placeRig();
 
-  // A quick pinch: knock at the door in reach, else use the power-up; after a night, play again.
+  // A quick pinch: knock at the door in reach, else use the power-up; after a night, play again (a long
+  // still pinch: back to the menu).
+  if (hands.take('hold') && state === 'results') { app.xr.end(); return; }
   let door = null;
   for (const h of HOUSES) { const d = Math.hypot(ps.x - h.door.x, ps.z - h.door.z); if (d < DOOR_RANGE && (!door || d < door.d)) door = { h, d }; }
   const coolLeft = door ? Math.max(0, (view.houses[door.h.id] ?? 0) - now) : 0;
@@ -353,8 +402,16 @@ function playFrame(dt, now) {
       session.intent({ kind: 'knock', house: door.h.id });
     } else if (meP?.held && playing) session.intent({ kind: 'use' });
   }
-  hint.visible = state === 'game' && playing && (!!door || !!meP?.held);
-  if (hint.visible) {
+  const holding = state === 'results' ? hands.held : 0;
+  hint.visible = (state === 'game' && playing && (!!door || !!meP?.held)) || holding > 0;
+  if (holding > 0) { // a bar filling up while a still pinch heads for the menu
+    const k = Math.round(holding * 24) / 24;
+    hint.draw(`hold|${k}|${getLang()}`, (ctx, w, h) => {
+      plate(ctx, 0, 0, w, h);
+      ctx.fillStyle = 'rgba(255,179,71,0.55)'; ctx.beginPath(); ctx.roundRect(h * 0.12, h * 0.12, (w - h * 0.24) * k, h * 0.76, h * 0.3); ctx.fill();
+      ink(ctx, t('specs.exit'), w / 2, h / 2, { size: h * 0.42, max: w * 0.9 });
+    });
+  } else if (hint.visible) {
     const text = door ? (coolLeft > 0 ? t('cooling', { n: Math.ceil(coolLeft) }) : t('specs.knockHint')) : t('specs.useHint', { p: t(`powerName.${meP.held}`).toUpperCase() });
     hint.draw(text, (ctx, w, h) => { plate(ctx, 0, 0, w, h); ink(ctx, text, w / 2, h / 2, { size: h * 0.5, font: TITLE_FONT, color: door && coolLeft <= 0 ? '#ffe08a' : '#f3e9d8', max: w * 0.9 }); });
   }
@@ -380,6 +437,8 @@ function playFrame(dt, now) {
   village.setStorm(auras.stormAt(ps.x, ps.z, (id) => (id === me.id ? ps : null)));
   monsters.update(dt, view, now, camera.getPosition());
   candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant }, (kind, id) => session.intent({ kind, id }), now);
+  const edge = BOARD.radius * S; // (their beams and glows would float past the board's edge)
+  for (const c of candy.root.children) { const p = c.getPosition(); c.enabled = Math.hypot(p.x - board.x, p.z - board.z) < edge; }
 
   const left = view.phase === 'countdown' ? ROUND_SECONDS : view.remaining();
   if (playing && left <= 10 && Math.ceil(left) !== lastTick) { lastTick = Math.ceil(left); sfx.tick(); }
@@ -416,4 +475,10 @@ function panelsFrame(dt) {
   }
 }
 
-if (import.meta.env.DEV) window.__specs = { app, session, view, player, hands, rig, get state() { return state; } };
+if (import.meta.env.DEV) {
+  window.__specs = {
+    app, session, view, player, hands, rig, face, village, houses: HOUSES, panels: { hud, banner, hint, toast, results },
+    get state() { return state; },
+    skip(seconds) { for (let k = 0; k < seconds * 10; k++) session.authority?.tick(0.1); },
+  };
+}
