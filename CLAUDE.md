@@ -84,4 +84,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 ## Status
 
 - Verified in headless Chromium only. Pending on a phone inside Snapchat (after review): real Bitmoji + portrait,
-  leaderboard, storage, performance, safe areas. Team still owes the icon and the preview video.
+  leaderboard, storage, performance, safe areas.
+- Store assets in `art/store/`: `icon.png` (512×512, `tools/make-icon.mjs`: the cat creature's head from its drawing
+  over a Halloween moon, circle-safe) and `preview-en.mp4` (9 s, 720×1280, 30 fps, silent, `tools/make-preview.mjs`
+  with the dev server running: the real game in five shots on a virtual clock that advances 1/30 s per captured frame,
+  game timers and CSS animations included, so it is smooth however slowly software WebGL renders).

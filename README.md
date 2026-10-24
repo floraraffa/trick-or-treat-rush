@@ -168,6 +168,21 @@ desde adentro y el pueblo con cada parpadeo.
 | `src/ui/ui.js`, `i18n.js`, `tutorial.js`, `flags.js` | UIManager; textos en inglés, español, francés y alemán, con selector de idioma con banderas; el tutorial de tarjetas |
 | `src/lib/` | envoltorio de la API de Snapchat, `bitmoji-anim.js` (MIT), descompresión meshopt (heredados de Cruise Rush) |
 
+## Ícono y video para My Lenses
+
+En `art/store/`, hechos con el juego mismo y con herramientas que se pueden volver a correr:
+
+- **`icon.png`** (512×512): la cabeza del gato del equipo, recortada de su dibujo, delante de una luna de Halloween,
+  con calabaza, chupetín y caramelos sobre la noche violeta del juego. Snapchat muestra los íconos en un círculo:
+  todo queda adentro. `node tools/make-icon.mjs [salida.png] [criatura]` (otra criatura: `catgirl`, `lips`...).
+- **`preview-en.mp4`** (9 s, 720×1280, 30 fps, H.264, sin sonido): el juego real en cinco tomas: el menú, un sprint
+  con el imán de caramelos por la calle del cementerio, un truco en la puerta con la manada de monstruos saliendo,
+  la tormenta de caramelos con rayos y la gema gigante. `npm run dev` y después
+  `node tools/make-preview.mjs art/store/preview-en.mp4 --lang en` (`--lang es` para la versión en español,
+  `--every 10` para ver sólo algunos cuadros). La página corre con un **reloj virtual**: cada cuadro avanza
+  exactamente 1/30 s del juego (su reloj, sus timers y las animaciones CSS) y recién ahí se captura, así el video
+  sale fluido aunque la máquina dibuje lento (con WebGL por software, unos segundos por cuadro).
+
 ## Estado y pendientes
 
 - Probado en Chromium headless (WebGL por software): noche completa en solitario, controles táctiles y de teclado,
@@ -176,6 +191,6 @@ desde adentro y el pueblo con cada parpadeo.
   anfitrión único, inicio, posiciones, caramelo sin duplicar, cooldown compartido, mismo ranking, segunda ronda).
 - **Pendiente de validar en un teléfono dentro de Snapchat** (sólo es posible después de la revisión de Snap):
   el Bitmoji real del jugador y su retrato, el leaderboard, el guardado, el rendimiento real y los márgenes seguros.
-- Pendiente del equipo: ícono 512×512, video de preview 720×1280, activar el leaderboard de la Lens en My Lenses.
-- Build actual: ~5,1 MB descomprimido (zip 3,2 MB; `npm run pack` lo mantiene bajo 7,2 MB porque My Lenses cuenta
+- Pendiente del equipo: activar el leaderboard de la Lens en My Lenses (el ícono y el video ya están, ver abajo).
+- Build actual: ~5,8 MB descomprimido (zip 3,8 MB; `npm run pack` lo mantiene bajo 7,2 MB porque My Lenses cuenta
   ~10 % más que la suma de los archivos; límite 8 MB).
