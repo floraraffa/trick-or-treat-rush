@@ -21,6 +21,15 @@ for (const [l, word] of [['de', 'SPIELEN'], ['fr', 'JOUER'], ['es', 'JUGAR'], ['
 }
 console.log('✔ language picker: Deutsch, Français, Español, English');
 await page.click('#btnPlay');
+// The first night opens the tutorial: six cards, each a picture and one line; the last one starts the night.
+await page.waitForFunction(() => !document.getElementById('how').classList.contains('hidden'), null, { timeout: 10000 });
+for (let i = 0; i < 6; i++) {
+  const c = await G(() => ({ art: document.querySelector('#tutStep .art')?.children.length ?? 0, text: document.querySelector('#tutStep .tutText')?.textContent.length ?? 0, last: document.getElementById('btnTutSkip').classList.contains('hidden') }));
+  assert.ok(c.art > 0 && c.text > 10, `card ${i + 1} has a picture and a line`);
+  assert.equal(c.last, i === 5, 'SKIP on every card but the last');
+  await page.click('#btnTutNext');
+}
+console.log('✔ tutorial: the first PLAY shows 6 picture cards, then the night starts');
 await page.waitForFunction(() => window.__game.view.phase === 'playing', null, { timeout: 60000 });
 const p0 = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
 await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
@@ -31,11 +40,12 @@ console.log('✔ moves with the keyboard');
 // Running on its own: keep walking the same way (W alone walks) and the Bitmoji breaks into a sprint.
 assert.equal(await page.$('#btnSprint'), null, 'no SPRINT button any more');
 await page.waitForFunction(() => window.__game.player.state.speed < 0.05, null, { timeout: 30000 });
-await G(() => { const g = window.__game; g.player.place(0, 9, 0); g.camCtl.snapBehind(0); }); // up the north street
+await G(() => { const g = window.__game, A = g.session.authority; g.player.place(0, 9, 0); g.camCtl.snapBehind(0); A.players.get(g.me.id).inv = A.rt + 60; }); // up the south street (protected: a slow software-WebGL frame rate lets the monsters catch up)
 await page.keyboard.down('KeyW');
 const walk = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.speed > 1.5 ? s.speed : null; }, null, { timeout: 60000 })).jsonValue();
 const sprint = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.sprinting && s.speed > 6.5 ? { speed: s.speed, run: s.run } : null; }, null, { timeout: 90000 })).jsonValue();
 await page.keyboard.up('KeyW');
+await G(() => { const g = window.__game; g.session.authority.players.get(g.me.id).inv = 0; });
 assert.ok(walk < 3, `starts at a walk (${walk.toFixed(1)} m/s)`);
 console.log(`✔ runs on its own: walk ${walk.toFixed(1)} m/s → ${sprint.speed.toFixed(1)} m/s after ${sprint.run.toFixed(1)} s going the same way`);
 

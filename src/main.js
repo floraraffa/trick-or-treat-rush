@@ -45,11 +45,12 @@ const ui = createUI({
   start: () => session.startRound(),
   lobbyBack: () => toMenu(),
   again: () => onAgain(),
-  friends: () => showLeaderboard(),
+  friends: () => showBoard(),
   menu: () => toMenu(),
   camera: () => input.press('camera'),
   level: (id) => setLevel(id),
   lang: (id) => setLanguage(id),
+  tutorialSeen: () => { saveData.tutorial = true; save(saveData); },
   power: () => input.press('use'),
   knock: () => input.press('knock'),
   resume: () => setPaused(false),
@@ -60,6 +61,8 @@ const ui = createUI({
 ui.texts();
 ui.loadProgress(0.05, t('tips')[Math.floor(Math.random() * t('tips').length)]);
 let lastScreen = 'menu';
+let face = defaultFaceUrl; // the player's 2D Bitmoji (Snap's default face until theirs arrives)
+let board = false; // Snapchat's friends ranking is there
 
 // --- engine ---------------------------------------------------------------------------
 const canvas = $('app');
@@ -121,7 +124,7 @@ app.start();
 ui.loadProgress(0.2);
 
 // --- profile, session ------------------------------------------------------------------
-const DEFAULT_SAVE = { best: 0, bests: {}, level: DEFAULT_LEVEL, name: '', costume: 'witch', camera: 'third', nights: [], lang: null };
+const DEFAULT_SAVE = { best: 0, bests: {}, level: DEFAULT_LEVEL, name: '', costume: 'witch', camera: 'third', nights: [], lang: null, tutorial: false };
 const SPOOKY = ['Pumpkin', 'Raven', 'Moth', 'Wisp', 'Bat', 'Ghoul', 'Hex', 'Toad', 'Newt', 'Crow'];
 let saveData = structuredClone(DEFAULT_SAVE);
 const me = { id: `p${Math.random().toString(36).slice(2, 9)}`, name: params.get('name') || `${SPOOKY[Math.floor(Math.random() * SPOOKY.length)]}${Math.floor(Math.random() * 90 + 10)}`, costume: 'witch' };
@@ -174,8 +177,10 @@ async function boot() {
   myAvatar.ready.then(() => ui.loadProgress(1));
   if (camCtl.mode !== saveData.camera && saveData.camera === 'first') camCtl.setMode('first');
 
-  if (!snapchat.isStub) portraitUrl().then((url) => ui.setPortrait(url ?? defaultFaceUrl)); // the desktop stub's portrait is a placeholder
+  if (!snapchat.isStub) portraitUrl().then((url) => { face = url ?? defaultFaceUrl; ui.setPortrait(face); }); // the desktop stub's portrait is a placeholder
   ui.setPortrait(defaultFaceUrl);
+  board = has('leaderboards') && (!snapchat.isStub || params.has('board')); // (?board: the button on desktop too, for layout checks)
+  ui.showBoard(board);
   ui.setName(me.name);
   ui.showName(!session.solo);
   ui.setLevel(saveData.level);
@@ -214,6 +219,10 @@ function menuTexts() {
   ui.setModeNote(session.solo ? (snapchat.isStub ? `${t('soloShort')} · ${t('solo')}` : t('solo')) : `${t('room')}: ${transport.room}`);
   renderLobby();
 }
+/** Snapchat's own friends ranking (their Bitmojis and best nights); it needs a score sent first. */
+async function showBoard() {
+  if (!(await showLeaderboard())) ui.banner(t('boardEmpty'), '', 2000);
+}
 function setLanguage(id) {
   setLang(id);
   saveData.lang = getLang();
@@ -230,6 +239,7 @@ function setName(n) {
 
 function onPlay() {
   unlockAudio();
+  if (session.solo && !saveData.tutorial) { ui.tutorial(() => onPlay()); return; } // the first night: the visual tutorial first (it can be skipped)
   if (session.solo) { session.startRound(); return; }
   goTo('lobby');
   renderLobby();
@@ -373,25 +383,26 @@ async function finishRound() {
   saveData.nights = [...saveData.nights, { score: mine, at: Date.now(), players: ranking.length, level }].sort((a, b) => b.score - a.score).slice(0, 10);
   save(saveData);
   ui.setBest(bestFor(saveData.level));
-  submitScore(mine);
+  const best = submitScore(mine);
   setTimeout(() => {
     if (screen !== 'game') return;
     let rows, king, note = '';
     if (session.solo) {
       const nights = saveData.nights.filter((n) => (n.level ?? 'hard') === level);
       const idx = nights.findIndex((n) => n.score === mine);
-      rows = nights.slice(0, 5).map((n, i) => ({ pos: i + 1, name: i === idx ? `${me.name} · ${t('you')}` : new Date(n.at).toLocaleDateString(), score: n.score, win: i === idx && mine > prevBest, me: i === idx, costume: i === idx ? me.costume : 'none' }));
+      rows = nights.slice(0, 5).map((n, i) => ({ pos: i + 1, name: i === idx ? `${me.name} · ${t('you')}` : new Date(n.at).toLocaleDateString(), score: n.score, win: i === idx && mine > prevBest, me: i === idx, costume: i === idx ? me.costume : 'none', face }));
       king = mine > prevBest && mine > 0 ? `${t('newBest')} · ${t('king')}` : '';
       note = `${t(`levels.${level}`)} · ${t('solo')}`;
     } else {
       const tie = view.winners.length > 1;
       let pos = 0, last = null;
-      rows = ranking.map((r, i) => { if (r.score !== last) { pos = i + 1; last = r.score; } return { pos, name: r.id === me.id ? `${r.name} (${t('you')})` : r.name, score: r.score, win: view.winners.includes(r.id), me: r.id === me.id, costume: r.costume }; });
+      rows = ranking.map((r, i) => { if (r.score !== last) { pos = i + 1; last = r.score; } return { pos, name: r.id === me.id ? `${r.name} (${t('you')})` : r.name, score: r.score, win: view.winners.includes(r.id), me: r.id === me.id, costume: r.costume, face: r.id === me.id ? face : null }; });
       const names = ranking.filter((r) => view.winners.includes(r.id)).map((r) => r.name).join(' & ');
       king = tie ? `${t('tie')}: ${names}` : `${t('king')} ${won ? t('youWin') : names}`;
     }
-    ui.results({ hero: t('timesUp'), king, rows, note, friends: has('leaderboards') && !snapchat.isStub });
-    if (has('leaderboards') && !snapchat.isStub && session.solo) showLeaderboard();
+    ui.results({ hero: t('timesUp'), king, rows, note, friends: board });
+    best.then((n) => { if (screen === 'results' && board && n != null) ui.setBoardBest(n); }); // what Snapchat's board holds for the player
+    if (board && !snapchat.isStub && session.solo) showLeaderboard(); // after every night: the friends' ranking, with their Bitmojis
     screen = 'results';
   }, 2600);
 }

@@ -65,7 +65,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   (`tools/fetch-textures.mjs`, Poly Haven CC0, needs network; in Claude's cloud containers run it with
   `NODE_USE_ENV_PROXY=1`). Credits in `CREDITS.md`.
 - `src/ui/ui.js` + `index.html` screens and HUD; `src/ui/i18n.js` en/es/fr/de (`LANGS`): the player picks one in the menu
-  (saved as `saveData.lang`, else the phone's language; `?lang=de` to test); every new string needs all four. `src/audio.js` synthesised sound + music box.
+  with SVG flags (`flags.js`: US, AR, FR, DE, the variety each text is written in; saved as `saveData.lang`, else the
+  phone's language; `?lang=de` to test); every new string needs all four (`npm test` checks). How to play is
+  `tutorial.js`: six picture cards with one line each (`tut.<id>`), shown before the first solo night
+  (`saveData.tutorial`) and from HOW TO PLAY. Leaderboard: one Snapchat board per Lens; `submitScore` every night,
+  `show()` (Snapchat's panel, friends with their Bitmojis) after each solo night and from the gold 🏆 buttons (menu,
+  results); our own results show only the player's 2D Bitmoji and the `bestScore` Snapchat returns; the stub has no
+  panel, so the buttons hide on desktop (`?board` shows them). `src/audio.js` synthesised sound + music box.
 - `src/poses.js` → `npm run clips` → `public/assets/clips.glb` (idle, walk, run, knock, hit, cheer, sad).
 - `src/lib/` snap wrapper, `bitmoji-anim.js` (MIT, vendored; added `setSpeed`), meshopt GLB unpacker.
 

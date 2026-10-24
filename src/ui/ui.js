@@ -2,6 +2,8 @@
 // markup and the gothic-storybook styles). It only shows what it is told; game rules live elsewhere.
 import { COSTUMES, COSTUME_ICON } from '../actors/costumes.js';
 import { vampireFace } from './vampire.js';
+import { FLAGS } from './flags.js';
+import { STEPS } from './tutorial.js';
 import { LANGS, t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -22,12 +24,14 @@ export function createUI(on) {
   // Buttons: every one plays a click and calls its handler; none of them starts a camera drag.
   const bind = (id, fn) => $(id).addEventListener('click', (e) => { e.stopPropagation(); on.click?.(); fn(e); });
   bind('btnPlay', () => on.play());
-  bind('btnHow', () => show('how'));
-  bind('btnHowClose', () => show(on.backFromHow?.() ?? 'menu'));
+  bind('btnHow', () => tutorial());
+  bind('btnTutSkip', () => finishTutorial());
+  bind('btnTutNext', () => (step < STEPS.length - 1 ? goStep(step + 1) : finishTutorial()));
   bind('btnStart', () => on.start());
   bind('btnLobbyBack', () => on.lobbyBack());
   bind('btnAgain', () => on.again());
   bind('btnFriends', () => on.friends());
+  bind('btnBoard', () => on.friends());
   bind('btnMenu', () => on.menu());
   bind('btnCam', () => on.camera());
   bind('btnPower', () => on.power());
@@ -57,14 +61,48 @@ export function createUI(on) {
     levels.appendChild(b);
   }
 
-  const langs = $('langs'); // each language in its own words
+  const langs = $('langs'); // each language with its flag, in its own words
   for (const [id, label] of Object.entries(LANGS)) {
     const b = document.createElement('button');
     b.dataset.id = id;
     b.lang = id;
-    b.textContent = label;
+    b.innerHTML = `${FLAGS[id]}<span>${label}</span>`;
     b.addEventListener('click', () => { on.click?.(); on.lang(id); });
     langs.appendChild(b);
+  }
+
+  // How to play: one card at a time; NEXT, the dots or a swipe move between them.
+  let step = 0, after = null;
+  const dots = $('tutDots');
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.setAttribute('aria-label', String(i + 1));
+    d.addEventListener('click', (e) => { e.stopPropagation(); goStep(i); });
+    dots.appendChild(d);
+  });
+  let swipeX = null;
+  $('tut').addEventListener('pointerdown', (e) => { swipeX = e.clientX; });
+  $('tut').addEventListener('pointerup', (e) => {
+    const dx = swipeX == null ? 0 : e.clientX - swipeX;
+    swipeX = null;
+    if (Math.abs(dx) > 45) goStep(Math.max(0, Math.min(STEPS.length - 1, step + (dx < 0 ? 1 : -1))));
+  });
+  function goStep(i) {
+    step = i;
+    const s = STEPS[i], [title, line] = t(`tut.${s.id}`), last = i === STEPS.length - 1;
+    $('howTitle').textContent = title;
+    $('tutStep').innerHTML = `<div class="art ${s.id}">${s.art()}</div><div class="tutText">${line}</div>`;
+    [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
+    $('btnTutNext').textContent = last ? t(after ? 'letsGo' : 'close') : t('next');
+    $('btnTutSkip').classList.toggle('hidden', last);
+  }
+  /** Shows the tutorial from its first card; `then` runs when it's finished or skipped (else back to the menu). */
+  function tutorial(then = null) { after = then; goStep(0); show('how'); }
+  function finishTutorial() {
+    const then = after;
+    after = null;
+    on.tutorialSeen?.();
+    if (then) then(); else show('menu');
   }
 
   function show(id) {
@@ -79,13 +117,13 @@ export function createUI(on) {
     $('subtitle').textContent = t('subtitle');
     $('btnPlay').textContent = t('play');
     $('btnHow').textContent = t('how');
-    $('howTitle').textContent = t('how');
-    $('btnHowClose').textContent = t('close');
+    $('btnTutSkip').textContent = t('skip');
     $('btnStart').textContent = t('start');
     $('btnLobbyBack').textContent = t('back');
     $('lobbyTitle').textContent = t('lobby');
     $('btnAgain').textContent = t('playAgain');
-    $('btnFriends').textContent = t('friends');
+    $('btnFriends').textContent = `🏆 ${t('friends')}`;
+    $('btnBoard').textContent = `🏆 ${t('friends')}`;
     $('btnMenu').textContent = t('menu');
     $('lblCandy').textContent = t('myCandy');
     $('powerLbl').textContent = t('powerup');
@@ -94,7 +132,13 @@ export function createUI(on) {
     $('lblName').textContent = t('name');
     $('pausedTitle').textContent = t('paused');
     $('pausedSub').textContent = t('tapResume');
-    $('howRows').innerHTML = t('howBody').map(([i, s]) => `<div class="row"><span class="ico">${i}</span><span>${s}</span></div>`).join('');
+  }
+
+  /** The best score Snapchat's board holds for the player, under the results (null: none to show). */
+  function setBoardBest(n) {
+    const el = $('resBoard');
+    el.classList.toggle('hidden', n == null);
+    el.textContent = n == null ? '' : `🏆 ${t('boardBest', { n })}`;
   }
 
   let lastHud = {};
@@ -104,6 +148,7 @@ export function createUI(on) {
     get screen() { return screen; },
     show,
     texts,
+    tutorial,
     loadProgress(p, tip) {
       $('loadFill').style.width = `${Math.round(p * 100)}%`;
       if (tip) $('loadTip').textContent = tip;
@@ -119,6 +164,9 @@ export function createUI(on) {
     showName(v) { $('nameField').classList.toggle('hidden', !v); },
     setBest(n) { $('bestLine').innerHTML = n > 0 ? `${t('best')}: <b>${n}</b>` : ''; },
     setModeNote(s) { $('modeNote').textContent = s; },
+    /** The menu's button to Snapchat's friends ranking (only where there is one). */
+    showBoard(on) { $('btnBoard').classList.toggle('hidden', !on); },
+    setBoardBest,
 
     lobby({ room, roster, isHost, phase, meInRound, full, level }) {
       $('roomName').textContent = `${t('room')}: ${room} · ${t(`levels.${level}`)}`;
@@ -210,7 +258,9 @@ export function createUI(on) {
     results({ hero, king, rows, note, friends }) {
       $('resHero').textContent = hero;
       $('resKing').textContent = king;
-      $('ranking').innerHTML = rows.map((r) => `<div class="rank${r.win ? ' win' : ''}${r.me ? ' me' : ''}"><span class="pos"><span>${r.pos}</span></span><span class="ci">${icon(r.costume, '🎃')}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`).join('');
+      // the player's own rows carry their 2D Bitmoji (the API gives no one else's)
+      $('ranking').innerHTML = rows.map((r) => `<div class="rank${r.win ? ' win' : ''}${r.me ? ' me' : ''}"><span class="pos"><span>${r.pos}</span></span><span class="ci">${r.face ? `<img class="bitmoji" src="${esc(r.face)}" alt="" />` : icon(r.costume, '🎃')}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`).join('');
+      setBoardBest(null);
       $('resNote').textContent = note ?? '';
       $('btnFriends').classList.toggle('hidden', !friends);
       show('results');
