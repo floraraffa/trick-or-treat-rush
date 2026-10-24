@@ -21,15 +21,17 @@ for (const [l, word] of [['de', 'SPIELEN'], ['fr', 'JOUER'], ['es', 'JUGAR'], ['
 }
 console.log('✔ language picker: Deutsch, Français, Español, English');
 await page.click('#btnPlay');
-// The first night opens the tutorial: six cards, each a picture and one line; the last one starts the night.
+// The first night opens the tutorial: picture cards with one line each; the last one starts the night.
 await page.waitForFunction(() => !document.getElementById('how').classList.contains('hidden'), null, { timeout: 10000 });
-for (let i = 0; i < 6; i++) {
+const cards = await G(() => document.querySelectorAll('#tutDots button').length);
+assert.equal(cards, 8, 'eight cards (move, camera, knock, candy, monsters, powers, candy storm, win)');
+for (let i = 0; i < cards; i++) {
   const c = await G(() => ({ art: document.querySelector('#tutStep .art')?.children.length ?? 0, text: document.querySelector('#tutStep .tutText')?.textContent.length ?? 0, last: document.getElementById('btnTutSkip').classList.contains('hidden') }));
   assert.ok(c.art > 0 && c.text > 10, `card ${i + 1} has a picture and a line`);
-  assert.equal(c.last, i === 5, 'SKIP on every card but the last');
+  assert.equal(c.last, i === cards - 1, 'SKIP on every card but the last');
   await page.click('#btnTutNext');
 }
-console.log('✔ tutorial: the first PLAY shows 6 picture cards, then the night starts');
+console.log(`✔ tutorial: the first PLAY shows ${cards} picture cards, then the night starts`);
 await page.waitForFunction(() => window.__game.view.phase === 'playing', null, { timeout: 60000 });
 const p0 = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
 await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');

@@ -114,6 +114,27 @@
       .speed i { font-style: normal; font-family: var(--title); font-size: 70px; line-height: 1; color: var(--gold); opacity: .12; animation: tutSpeed 2.6s infinite; }
       .speed i:nth-child(2) { animation-delay: .18s; } .speed i:nth-child(3) { animation-delay: .36s; }
       @keyframes tutSpeed { 0%, 32% { opacity: .12; } 48%, 82% { opacity: 1; text-shadow: 0 0 14px rgba(240,190,90,.9); } 100% { opacity: .12; } }
+      /* look: a finger drags on the right half and the view pans; the eye button flips 3rd / 1st person */
+      .screenArt { position: relative; width: 124px; height: 150px; flex: none; border-radius: 16px; overflow: hidden; border: 3px solid #9a86b8; background: linear-gradient(#1c1430, #3a2450); box-shadow: 0 0 0 3px #160d20; }
+      .screenArt .pan { position: absolute; top: 34px; left: -40px; font-size: 40px; white-space: nowrap; animation: tutPan 2.8s ease-in-out infinite; }
+      @keyframes tutPan { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-80px); } }
+      .screenArt .half { position: absolute; top: 0; bottom: 0; right: 0; width: 50%; background: rgba(240,190,90,.16); border-left: 2px dashed rgba(240,190,90,.7); }
+      .screenArt .finger { position: absolute; bottom: 14px; right: 12px; font-size: 32px; animation: tutSwipe 2.8s ease-in-out infinite; }
+      @keyframes tutSwipe { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-26px); } }
+      .camArt { width: 66px; height: 66px; flex: none; animation: tutTap 2.8s infinite; }
+      .camArt .lbl { position: relative; display: block; width: 44px; height: 13px; }
+      .camArt .lbl i { position: absolute; left: 0; right: 0; text-align: center; font-style: normal; white-space: nowrap; animation: tutFlip 2.8s infinite; }
+      .camArt .lbl i + i { animation-delay: -1.4s; }
+      @keyframes tutFlip { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+      /* storm: a thundercloud raining candy, the POWER-UP button glowing */
+      .art.storm::after { content: ''; position: absolute; inset: 0; pointer-events: none; animation: tutFlash 2.2s infinite; }
+      @keyframes tutFlash { 0%, 57%, 67%, 100% { background: rgba(220,230,255,0); } 60% { background: rgba(220,230,255,.35); } 64% { background: rgba(220,230,255,.12); } }
+      .cloudArt { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 96px; line-height: 1; filter: brightness(.75) drop-shadow(0 6px 10px rgba(0,0,0,.6)); z-index: 2; }
+      .boltArt { position: absolute; top: 58px; left: 47%; font-size: 40px; font-style: normal; opacity: 0; z-index: 1; animation: tutBolt 2.2s infinite; }
+      @keyframes tutBolt { 0%, 57%, 67%, 100% { opacity: 0; } 59%, 65% { opacity: 1; } }
+      .drop { position: absolute; top: 56px; font-size: 26px; font-style: normal; opacity: 0; animation: tutFall 1.9s linear infinite; }
+      @keyframes tutFall { 0% { transform: translateY(0) rotate(0); opacity: 0; } 6%, 90% { opacity: 1; } 100% { transform: translateY(104px) rotate(220deg); opacity: 0; } }
+      .powArt { position: absolute; right: 10px; bottom: 10px; width: 62px; height: 62px; z-index: 3; border-color: var(--gold); animation: glowpulse 1s infinite; }
       /* knock: a door and the pumpkin button, tapped */
       .art.knock { padding-bottom: 30px; }
       .door { font-size: 86px; line-height: 1; filter: drop-shadow(0 0 18px rgba(255,180,80,.55)); }
