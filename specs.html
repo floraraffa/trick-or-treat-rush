@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Trick or Treat Rush · Specs</title>
+    <style>
+      :root { --gold: #f0be5a; --lav: #c3b8dc; --title: "Griffy", "Papyrus", fantasy; --ui: "Mystery Quest", "Georgia", serif; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0614; color: #f3e9d8; font-family: var(--ui); }
+      canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      #menu { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 14px; padding: 24px 16px; overflow-y: auto;
+        background: radial-gradient(ellipse at 50% 30%, rgba(30,14,46,.35), rgba(8,4,14,.8) 75%); }
+      #menu.hidden { display: none; }
+      h1 { font-family: var(--title); font-weight: normal; margin: 0; text-align: center; line-height: .9; font-size: 52px; color: var(--gold);
+        text-shadow: 0 3px 0 #3a1208, 0 0 24px rgba(255,140,40,.6); }
+      h1 small { display: block; font-size: 30px; color: #ffb347; }
+      .sub { letter-spacing: .2em; font-size: 14px; color: var(--lav); text-align: center; }
+      .how { max-width: 420px; display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.3; }
+      .how div { padding: 8px 12px; border-radius: 12px 4px 12px 4px; background: rgba(0,0,0,.35); border: 1px solid rgba(195,184,220,.25); }
+      .row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+      .row button { font: inherit; font-size: 15px; padding: 7px 11px; color: var(--lav); background: rgba(0,0,0,.35); border: 2px solid #6d5a87; border-radius: 12px 4px 12px 4px; display: flex; align-items: center; gap: 6px; }
+      .row button.on { color: #2a0f20; background: linear-gradient(180deg, #ffe0a0, #ff9a3c); border-color: #3a1208; }
+      .row .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+      #enter { font-family: var(--title); font-size: 30px; padding: 12px 26px; color: #2a0f20; border: 3px solid #3a1208; border-radius: 22px 8px 26px 8px;
+        background: linear-gradient(180deg, #ffe0a0, #ffb347 40%, #ff7a1a); box-shadow: 0 5px 0 #3a1208, 0 0 26px rgba(255,130,30,.6); }
+      #enter:disabled { filter: grayscale(.8) brightness(.6); }
+      .note { font-size: 14px; color: var(--lav); text-align: center; max-width: 420px; }
+      .best { color: var(--gold); font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="app"></canvas>
+    <div id="menu">
+      <h1>TRICK OR TREAT<small>RUSH</small></h1>
+      <div class="sub" id="sub"></div>
+      <div class="how" id="how"></div>
+      <div class="row" id="levels"></div>
+      <div class="row" id="langs"></div>
+      <div class="best" id="best"></div>
+      <button id="enter" disabled>…</button>
+      <div class="note" id="note"></div>
+    </div>
+    <script type="module" src="./src/specs/main.js"></script>
+  </body>
+</html>
