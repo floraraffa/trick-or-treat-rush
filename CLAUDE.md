@@ -85,12 +85,21 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   see-through displays add light (black is clear). Dev: `specs.html?emulate` (IWER, dev only; `&fov=33`,
   `&emulate=stereo`), `?scale`, `?bright`; test `tests/specs.mjs`.
 
+- Lens Studio 5.15 version for Spectacles (2024): its own repo `trick-or-treat-rush-spectacles` (the .esproj project).
+  `npm run lens -- <that folder>` (`tools/lens-studio/export.mjs`) fills its Assets/: the shared modules converted to
+  TypeScript (`Scripts/Generated`, `// @ts-nocheck`, `performance.now` → `getTime`), and via `dev/lens-export.html`
+  (`src/dev/lens-export.js`, headless Chromium) GLBs made with PlayCanvas's GltfExporter (village cut to a 39 m board,
+  vertex-clustering decimation, tiling baked into UVs, no normal maps, COLOR_0 marked normalized, a `unit-marker` node
+  at 1 m to read the import's unit), Bitmoji clips as per-joint local rotations recorded on the default Bitmoji
+  (`clips.ts`), sounds rendered offline to WAV (`renderOffline`, `musicPhrase` in audio.js), fonts → TTF (fontTools).
+  Lens texts: `lens.*` in i18n. Small hooks for it: `createCandy().models`, `ghostParts()` in monsters.js.
+
 ## Commands
 
 `npm run dev`, `npm run build`, `npm run pack`, `npm run clips`, `npm test` (authority rules),
 `npm run test:e2e` (solo night + 3-instance room + Specs in an emulated headset, headless Chromium; slow with software
 WebGL), `npm run build:specs`,
-`node tests/showcase.mjs <dir>` (README screenshots), `dev/viewer.html?view=cx,cy,cz,tx,ty,tz` (scene viewer).
+`npm run lens -- <Lens Studio project>`, `node tests/showcase.mjs <dir>` (README screenshots), `dev/viewer.html?view=cx,cy,cz,tx,ty,tz` (scene viewer).
 
 ## Status
 

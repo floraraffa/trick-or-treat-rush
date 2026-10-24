@@ -159,6 +159,8 @@ export function createCandy(app, tex, fx, { onLand = null } = {}) {
 
   return {
     root,
+    /** The prototypes (candy by type, orbs and gems by kind), for the Lens Studio export. */
+    models: { candy: protos, orbs: orbProtos, gems: gemProtos },
     /**
      * Mirrors view.candies/orbs; pulls magnet candy; asks for what the local player can reach.
      * `me`: { x, z, magnet, giant }; `ask(kind, id)` sends the request.

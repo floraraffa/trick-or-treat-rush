@@ -93,18 +93,34 @@ export const sfx = {
 
 // A little music-box waltz in A minor (a lullaby gone strange). Lower and wobblier in the madness.
 const TUNE = [[1, 4], [0, 2], [0, 1], [1, 5], [0, 2], [0, 3], [1, 4], [0, 7], [0, 5], [1, 4], [0, 2], [0, 3], [1, 1], [0, 2], [0, 0], [1, 4]];
+export const MUSIC_STEP = 0.26, MUSIC_STEPS = 48; // seconds a note; 48 notes: the tune (16) and its bass line (48) both come round
 let musicTimer = null, step = 0, madness = false;
+function musicNote(k, mad, delay = 0) {
+  const [accent, n] = TUNE[k % TUNE.length];
+  const f = A_MINOR[n] * (mad ? 1 : 2) * (mad && k % 4 === 0 ? 1.06 : 1);
+  tone(f, 0.5, { type: 'triangle', vol: accent ? 0.035 : 0.022, vibrato: mad ? 5 : 1.5, delay });
+  if (k % 3 === 0) tone(A_MINOR[[0, 3, 4, 2][Math.floor(k / 12) % 4]] / 2, 0.8, { type: 'sine', vol: 0.03, delay });
+}
 export function music(on) {
   if (!on) { clearInterval(musicTimer); musicTimer = null; return; }
   if (musicTimer || !ctx) return;
   musicTimer = setInterval(() => {
     if (!ctx || ctx.state !== 'running') return;
-    const [accent, n] = TUNE[step % TUNE.length];
-    const f = A_MINOR[n] * (madness ? 1 : 2) * (madness && step % 4 === 0 ? 1.06 : 1);
-    tone(f, 0.5, { type: 'triangle', vol: accent ? 0.035 : 0.022, vibrato: madness ? 5 : 1.5 });
-    if (step % 3 === 0) tone(A_MINOR[[0, 3, 4, 2][Math.floor(step / 12) % 4]] / 2, 0.8, { type: 'sine', vol: 0.03 });
+    musicNote(step, madness);
     step++;
-  }, 260);
+  }, MUSIC_STEP * 1000);
+}
+/** Tools only: the whole phrase scheduled at once (the Lens Studio export records it as a loop). */
+export function musicPhrase(mad) { for (let k = 0; k < MUSIC_STEPS; k++) musicNote(k, mad, k * MUSIC_STEP); }
+
+/** Tools only: plays `fn` into an offline context and returns what it rendered (an AudioBuffer). */
+export async function renderOffline(fn, seconds, rate = 44100) {
+  const keep = [ctx, master];
+  ctx = new OfflineAudioContext(1, Math.ceil(seconds * rate), rate);
+  master = ctx.createGain();
+  master.gain.value = 0.9;
+  master.connect(ctx.destination);
+  try { fn(); return await ctx.startRendering(); } finally { [ctx, master] = keep; }
 }
 export function musicMadness(on) {
   madness = on;

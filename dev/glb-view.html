@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>GLB view</title><style>html,body{margin:0;height:100%;background:#1a1426}canvas{width:100%;height:100%;display:block}</style>
+<script type="importmap">{"imports":{"playcanvas":"/node_modules/playcanvas/build/playcanvas.mjs"}}</script></head>
+<body><canvas id="c"></canvas>
+<!-- Dev only: looks at a GLB as a plain glTF viewer would (COLOR_0 multiplies the base colour), e.g. the Lens Studio
+     export: dev/glb-view.html?f=/@fs/<path>/Assets/Models/village.glb&view=cx,cy,cz,tx,ty,tz (&spread: children in a row). -->
+<script type="module">
+import * as pc from 'playcanvas';
+const q = new URLSearchParams(location.search);
+const app = new pc.Application(document.getElementById('c'), {});
+app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+app.scene.ambientLight = new pc.Color(0.45, 0.42, 0.5);
+const cam = new pc.Entity(); cam.addComponent('camera', { clearColor: new pc.Color(0.1, 0.08, 0.15), fov: 45, nearClip: 0.05, farClip: 500 });
+const v = (q.get('view') ?? '0,30,60,0,0,0').split(',').map(Number);
+cam.setPosition(v[0], v[1], v[2]); cam.lookAt(v[3], v[4], v[5]); app.root.addChild(cam);
+const light = new pc.Entity(); light.addComponent('light', { type: 'directional', intensity: 1.1, color: new pc.Color(0.85, 0.85, 1) }); light.setEulerAngles(50, 30, 0); app.root.addChild(light);
+app.start();
+app.assets.loadFromUrl(q.get('f'), 'container', (err, asset) => {
+  if (err) { document.title = 'ERR ' + err; return; }
+  const e = asset.resource.instantiateRenderEntity(); app.root.addChild(e);
+  for (const r of e.findComponents('render')) for (const mi of r.meshInstances) {
+    if (!mi.mesh.vertexBuffer.format.elements.some((el) => el.name === pc.SEMANTIC_COLOR)) continue;
+    const m = mi.material.clone(); m.diffuseVertexColor = true; m.update(); mi.material = m; // (glTF: COLOR_0 multiplies the base colour)
+  }
+  if (q.has('spread')) e.children.forEach((c, i) => c.setLocalPosition((i % 6) * 1.6 - 4, 0.8, Math.floor(i / 6) * 1.6 - 1));
+  window.__nodes = e.find(() => true).map((n) => n.name);
+  setTimeout(() => { window.__done = true; }, 1500);
+});
+</script></body></html>

@@ -217,6 +217,26 @@ no cambia.
   evento `select` de WebXR en las manos de los Specs, el tamaño y la lectura de los paneles, el brillo y los colores
   en la pantalla transparente, la altura y distancia de la maqueta, y el rendimiento.
 
+## Versión para Spectacles en Lens Studio 5.15
+
+Además de la versión web, el juego tiene un **proyecto de Lens Studio 5.15 para Spectacles (2024)**, en su propio
+repositorio (`trick-or-treat-rush-spectacles`): la maqueta del pueblo sobre la mesa, tu Bitmoji (componente
+oficial Bitmoji 3D) animado con los clips del juego, y se juega mirando adonde ir y pellizcando. Las reglas no
+se reescriben: se exportan de este repositorio.
+
+```bash
+pip install fonttools brotli                         # para convertir las fuentes a TTF
+npm run lens -- ../trick-or-treat-rush-spectacles    # modelos, clips, sonidos, fuentes y reglas → su carpeta Assets/
+```
+
+`tools/lens-studio/export.mjs` convierte a TypeScript los módulos compartidos (autoridad, config, plano, choques,
+movimiento, textos, animación de las criaturas) y abre `dev/lens-export.html` en Chromium headless, que exporta
+con el exportador glTF de PlayCanvas el pueblo (recortado a un tablero redondo, con las puertas, los faroles y
+las agujas del reloj como nodos), el fantasma, las cinco criaturas (cada parte en su pivote), dulces, orbes y
+gemas; graba los clips del Bitmoji como rotaciones de cada articulación (30 por segundo, sobre el Bitmoji por
+defecto) y los sonidos a WAV. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
+textos de esa versión están en `lens.*` de `src/ui/i18n.js`.
+
 ## Estado y pendientes
 
 - Probado en Chromium headless (WebGL por software): noche completa en solitario, controles táctiles y de teclado,

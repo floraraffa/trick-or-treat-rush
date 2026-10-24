@@ -39,6 +39,9 @@ function ghostFace() {
   return g;
 }
 
+/** The ghost's two meshes as geometry (sheet and face), for the Lens Studio export. */
+export const ghostParts = () => ({ body: ghostGeo(), face: ghostFace() });
+
 /**
  * Which of the five creatures a monster is: the same on every device (from its id and the round). The
  * five patrols (z1..z5) are always the five different creatures, on routes that change each round; a
