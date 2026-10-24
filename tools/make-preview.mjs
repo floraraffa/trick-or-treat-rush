@@ -163,6 +163,6 @@ console.log(`${frame} frames${every ? ` (every ${every}th kept)` : ''}${errors.l
 await browser.close();
 if (!every) {
   mkdirSync(out.replace(/[^/]+$/, '') || '.', { recursive: true });
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%04d.png'), '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out]);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%04d.png'), '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out]);
   console.log(`wrote ${out} (${(frame / FPS).toFixed(1)} s)`);
 } else console.log(`stills in ${frames}`);
