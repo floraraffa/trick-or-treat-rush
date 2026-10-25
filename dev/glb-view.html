@@ -23,6 +23,7 @@ app.assets.loadFromUrl(q.get('f'), 'container', (err, asset) => {
   }
   if (q.has('spread')) e.children.forEach((c, i) => c.setLocalPosition((i % 6) * 1.6 - 4, 0.8, Math.floor(i / 6) * 1.6 - 1));
   window.__nodes = e.find(() => true).map((n) => n.name);
+  window.__e = e; // (for scripted looks)
   setTimeout(() => { window.__done = true; }, 1500);
 });
 </script></body></html>

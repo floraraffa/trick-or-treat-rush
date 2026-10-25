@@ -34,7 +34,7 @@ const FLASH_LEN = 0.4;
  * makes the jagged, self-similar path real lightning has; forks split off downwards and peter out.
  * Returns polylines [{ pts, w }], w the relative width.
  */
-function lightningPaths(R, x0, y0, z0, x1, z1) {
+export function lightningPaths(R, x0, y0, z0, x1, z1) {
   const crooked = (a, b, depth, rough) => {
     let pts = [a, b];
     for (let d = 0; d < depth; d++) {
@@ -61,7 +61,7 @@ function lightningPaths(R, x0, y0, z0, x1, z1) {
 }
 
 /** Polylines → flat ribbons turned to the eye, narrowing towards their ends (UV u across, 0..1). */
-function ribbons(paths, eye, width) {
+export function ribbons(paths, eye, width) {
   const m = { p: [], n: [], uv: [], i: [] };
   for (const { pts, w } of paths) {
     const base = m.p.length / 3, last = pts.length - 1;
@@ -115,13 +115,19 @@ export function createRain(app) {
  * Per-player auras. `onStrike({ x, z, id })` hears every lightning strike of a candy storm (for the
  * flash, the thunder and the light), wherever it is.
  */
-export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
-  // The thundercloud: dark billows, faintly violet, lit from inside by the lightning.
+/** The thundercloud: dark billows, faintly violet (the same one every time). */
+export function stormCloudGeo() {
   const cloudGeo = new Geo(), CR = rng(21);
   for (let k = 0; k < 16; k++) {
     const a = (k / 16) * Math.PI * 2 + CR() * 0.5, r = k < 4 ? CR() * 1.2 : 2 + CR() * 2.6, s = 1.3 + CR() * 1.1;
     cloudGeo.add(blob(s, 10, { squashY: 0.62, rand: CR, jitter: 0.3 }), trs(Math.cos(a) * r, (CR() - 0.3) * 0.6, Math.sin(a) * r), [0.22 + CR() * 0.05, 0.22 + CR() * 0.05, 0.32 + CR() * 0.06]);
   }
+  return cloudGeo;
+}
+
+export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
+  // The thundercloud: dark billows, faintly violet, lit from inside by the lightning.
+  const cloudGeo = stormCloudGeo();
   const cloudMat = new StandardMaterial();
   cloudMat.diffuse = new Color(1, 1, 1); cloudMat.diffuseVertexColor = true;
   const CLOUD_GLOW = [0.08, 0.06, 0.14];

@@ -1,4 +1,4 @@
-// npm run lens -- <Lens Studio project folder>
+// npm run lens -- <Lens Studio project folder> [--rules]
 // Brings the game into its Lens Studio project for Spectacles (the Lens Studio 5.15 project lives in its
 // own repository): under <project>/Assets it writes
 //   Models/*.glb, Audio/*.wav, Scripts/Generated/clips.ts   from dev/lens-export.html, run in headless Chromium
@@ -75,6 +75,7 @@ for (const [font, out] of [['griffy', 'Griffy'], ['mystery-quest', 'MysteryQuest
 console.log('✔ fonts: Griffy, MysteryQuest (OFL)');
 
 // --- models, clips, sounds (in the browser) -------------------------------------------------------
+if (process.argv.includes('--rules')) process.exit(0); // (`--rules`: only the scripts and fonts above, in seconds)
 let server = null, url = process.env.URL;
 if (!url) {
   const port = 3800 + Math.floor(Math.random() * 400);
@@ -88,7 +89,9 @@ try {
   page.on('pageerror', (e) => console.error('page error:', e.message));
   await page.goto(`${url}dev/lens-export.html`);
   await page.waitForFunction(() => window.__ready, null, { timeout: 180000 });
-  const { files, report, errors } = await page.evaluate(() => window.__export(), null);
+  // (`--only=fx,sounds`: just those steps: village, ghost, creatures, pickups, fx, clips, sounds)
+  const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',') ?? null;
+  const { files, report, errors } = await page.evaluate((o) => window.__export(o), only);
   if (errors.length) throw new Error(errors.join('\n'));
   for (const [rel, b64] of Object.entries(files)) (rel.endsWith('.ts') ? writeScript : write)(rel, Buffer.from(b64, 'base64'));
   for (const [k, v] of Object.entries(report)) console.log(`✔ ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);

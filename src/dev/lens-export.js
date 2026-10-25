@@ -19,6 +19,8 @@ import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { unpackGlb } from '../lib/meshopt-glb.js';
 import { renderOffline, sfx, musicPhrase, MUSIC_STEP, MUSIC_STEPS } from '../audio.js';
 import { Geo, blob, trs } from '../geo.js';
+import { lightningPaths, ribbons, stormCloudGeo } from '../actors/effects.js';
+import { rng } from '../rng.js';
 
 const BASE = '../assets/';
 export const BOARD_R = 39; // metres: the round board (the fence is at 33, the woods thin out beyond)
@@ -437,7 +439,11 @@ async function pickups(tex) {
 
 /**
  * fx.glb, the Lens's light and air (the game draws these with fog, lamps and particles):
- *   mist-0..2   three wide sheets of drifting mist low over the board (the Lens turns them slowly)
+ *   mist-0..3   four wide sheets of drifting mist low over the board (the Lens turns them slowly), and
+ *               mist-mad-0..3, their red-violet twins for the Monster Madness
+ *   moon, moon-mad, moon-halo, stars   the sky (cards the Lens turns to the eyes; stars on a unit dome)
+ *   wisp, bat (wing-l / wing-r hinges)   will-o'-wisps and bats
+ *   storm-cloud, bolt-0..2, flash-pool   the candy storm's thundercloud and lightning
  *   halo-warm   a lamp's glow, a card the Lens turns to the eyes
  *   pool-*      a glow on the ground under each kind of candy, orb and gem
  *   beam-*      a gem's beam of light, seen from across the village
@@ -447,13 +453,74 @@ async function pickups(tex) {
 async function fx(tex) {
   const root = new Entity('fx');
   const add = (geo, m, name) => { const e = geo.build(device, m, name); root.addChild(e); return e; };
+  // Mist: four sheets, the densest on the ground (the game's height fog), and the Monster Madness's
+  // red-violet twins (the Lens shows one set or the other).
   const mist = mistTexture();
-  [[0.35, 0.32, 1 / 9], [0.9, 0.24, 1 / 13], [1.8, 0.16, 1 / 17]].forEach(([y, opacity, uv], i) => {
-    const e = add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.84, 0.82, 0.95], opacity, mist), `mist-${i}`);
-    e.setLocalPosition(0, y, 0);
+  [[0.12, 0.34, 1 / 7], [0.35, 0.3, 1 / 9], [0.9, 0.22, 1 / 13], [1.8, 0.15, 1 / 17]].forEach(([y, opacity, uv], i) => {
+    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.84, 0.82, 0.95], opacity, mist), `mist-${i}`).setLocalPosition(0, y, 0);
+    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [1, 0.62, 0.72], opacity * 1.15, mist), `mist-mad-${i}`).setLocalPosition(0, y, 0);
   });
   const card = { p: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], n: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 1, 2, 0, 2, 3] };
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.7, 0.38], 0.85), 'halo-warm');
+  // The sky, as the game's: a big pale moon with a halo (a sickly red one in the madness), and stars on a
+  // dome of radius 1 (the Lens sizes it), each a little card turned inwards, brighter overhead.
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.98, 0.92], 1, tex.moon), 'moon');
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.55, 0.48], 1, tex.moon), 'moon-mad');
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.5, 0.56, 0.85], 0.55), 'moon-halo');
+  {
+    const R = rng(7), g = new Geo();
+    for (let k = 0; k < 260; k++) {
+      const a = R() * Math.PI * 2, e = Math.asin(0.15 + R() * 0.85), sz = 0.008 + R() * R() * 0.02;
+      const p = [Math.cos(a) * Math.cos(e), Math.sin(e), Math.sin(a) * Math.cos(e)];
+      const yaw = Math.atan2(-p[0], -p[2]) * 57.2958, pitch = Math.asin(-p[1]) * 57.2958;
+      const b = (0.45 + R() * 0.55) * (0.5 + 0.5 * Math.sin(e));
+      g.add(card, trs(p[0], p[1], p[2]).mul(trs(0, 0, 0, 0, yaw, 0)).mul(trs(0, 0, 0, -pitch, 0, 0)).mul(trs(0, 0, 0, 0, 0, 0, sz)), [b, b, b * (0.9 + R() * 0.2)]);
+    }
+    add(g, glowMat(tex, [1, 1, 1], 1), 'stars');
+  }
+  // Will-o'-wisps: pale green lights drifting over the graves and streets.
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.62, 1, 0.82], 0.85), 'wisp');
+  // Bats: a body, two wings on hinges at its sides (the Lens flaps them), red eyes.
+  {
+    const bat = new Entity('bat');
+    const batMat = new StandardMaterial();
+    // (dusky violet, not black: on the glasses' see-through display black is clear)
+    batMat.diffuse = new Color(0.3, 0.22, 0.38); batMat.emissive = new Color(0.13, 0.08, 0.18); batMat.gloss = 0.2; batMat.cull = CULLFACE_NONE; batMat.update();
+    const eyeMat = new StandardMaterial(); eyeMat.useLighting = false; eyeMat.diffuse = new Color(0, 0, 0); eyeMat.emissive = new Color(1, 0.15, 0.1); eyeMat.update();
+    const body = new Geo();
+    body.add(blob(0.11, 8, { squashY: 1.25 }), null, [1, 1, 1]);
+    body.add(blob(0.075, 8), trs(0, 0.1, 0.09), [1, 1, 1]);
+    for (const sd of [-1, 1]) body.add(blob(0.03, 5, { squashY: 2.2 }), trs(sd * 0.04, 0.19, 0.08, 0, 0, -sd * 20), [1, 1, 1]); // ears
+    bat.addChild(body.build(device, batMat, 'bat-body'));
+    const eyes = new Geo();
+    for (const sd of [-1, 1]) eyes.add(blob(0.016, 5), trs(sd * 0.028, 0.115, 0.155), [1, 1, 1]);
+    bat.addChild(eyes.build(device, eyeMat, 'bat-eyes'));
+    // a membrane: a fan from the shoulder to three finger tips, scalloped between them
+    const outline = [[0, 0], [0.2, 0.16], [0.46, 0.2], [0.62, 0.06], [0.5, 0.0], [0.42, -0.06], [0.3, -0.02], [0.2, -0.1], [0.08, -0.06]];
+    for (const sd of [-1, 1]) {
+      const hinge = new Entity(sd < 0 ? 'wing-l' : 'wing-r');
+      hinge.setLocalPosition(sd * 0.07, 0.03, 0);
+      const m = { p: [], n: [], uv: [], i: [] };
+      for (const [x, z] of outline) { m.p.push(sd * x, 0, z); m.n.push(0, 1, 0); m.uv.push(0.5, 0.5); }
+      for (let k = 1; k < outline.length - 1; k++) m.i.push(0, k, k + 1);
+      hinge.addChild(new Geo().add(m, null, [1, 1, 1]).build(device, batMat, `${sd < 0 ? 'wing-l' : 'wing-r'}-mesh`));
+      bat.addChild(hinge);
+    }
+    root.addChild(bat);
+  }
+  // The candy storm: the game's thundercloud and three lightning strikes (crossed ribbons, to read from
+  // any side) from it to the ground, with a cold flash of light on the ground where one lands.
+  {
+    const cloudMat = new StandardMaterial();
+    cloudMat.diffuse = new Color(1, 1, 1); cloudMat.diffuseVertexColor = true; cloudMat.emissive = new Color(0.1, 0.08, 0.17); cloudMat.gloss = 0.05; cloudMat.update();
+    add(stormCloudGeo(), cloudMat, 'storm-cloud');
+    for (let v = 0; v < 3; v++) {
+      const R = rng(97 + v * 13), paths = lightningPaths(R, 0, 5.8, 0, (R() - 0.5) * 5, (R() - 0.5) * 5);
+      const g = new Geo().add(ribbons(paths, { x: 100, y: 3, z: 0 }, 0.75), null, [1, 1, 1]).add(ribbons(paths, { x: 0, y: 3, z: 100 }, 0.75), null, [1, 1, 1]);
+      add(g, glowMat(tex, [0.85, 0.9, 1], 1, tex.bolt), `bolt-${v}`);
+    }
+    add(new Geo().add(disc(4), null, [1, 1, 1]), glowMat(tex, [0.78, 0.84, 1], 0.8), 'flash-pool');
+  }
   const pools = { ...Object.fromEntries(Object.entries(CANDY_GLOW).map(([k, c]) => [`candy-${k}`, c])), ...Object.fromEntries(Object.entries(ORB_COLOR).map(([k, c]) => [`orb-${k}`, c])), ...Object.fromEntries(Object.entries(GEM_COLOR).map(([k, c]) => [`gem-${k}`, c])) };
   for (const [k, c] of Object.entries(pools)) add(new Geo().add(disc(1), null, [1, 1, 1]), glowMat(tex, c, 0.75), `pool-${k}`);
   // Gem beams: as candy.js draws them, fading out going up.
@@ -551,6 +618,22 @@ async function sounds() {
     const n = Math.round(phrase * RATE), d = buf.getChannelData(0), loop = new AudioBuffer({ length: n, sampleRate: RATE, numberOfChannels: 1 }), o = loop.getChannelData(0);
     for (let k = 0; k < d.length; k++) o[k % n] += d[k];
     files[`Audio/${mad ? 'music-madness' : 'music'}.wav`] = b64(wav(loop));
+  }
+  // Wind: filtered noise rising and falling, every swell a whole number of times in 12 s, so it loops.
+  {
+    const secs = 12, octx = new OfflineAudioContext(1, RATE * secs, RATE);
+    const buf = octx.createBuffer(1, RATE * secs, RATE), d = buf.getChannelData(0);
+    for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+    const src = octx.createBufferSource(), bp = octx.createBiquadFilter(), g = octx.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 1.4;
+    for (let t = 0; t <= secs; t += 0.25) {
+      const u = (t / secs) * Math.PI * 2;
+      bp.frequency.linearRampToValueAtTime(320 + 200 * Math.sin(u * 2) + 90 * Math.sin(u * 5 + 1), t);
+      g.gain.linearRampToValueAtTime(0.3 + 0.2 * Math.sin(u * 3 + 0.5) + 0.08 * Math.sin(u * 7), t);
+    }
+    src.connect(bp).connect(g).connect(octx.destination);
+    src.start();
+    files['Audio/wind.wav'] = b64(wav(await octx.startRendering()));
   }
   report.sounds = Object.keys(files).filter((f) => f.startsWith('Audio/')).length;
 }

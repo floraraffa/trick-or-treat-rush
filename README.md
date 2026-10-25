@@ -221,9 +221,12 @@ no cambia.
 
 Además de la versión web, el juego tiene un **proyecto de Lens Studio 5.15 para Spectacles (2024)**, en su propio
 repositorio (`trick-or-treat-rush-spectacles`): la maqueta del pueblo sobre la mesa, tu Bitmoji (componente
-oficial Bitmoji 3D; si no carga, el Bitmoji por defecto) animado con los clips del juego, con niebla, faroles y
-gemas con su rayo de luz, y se juega mirando y pellizcando (un lugar: camina hasta ahí; una casa: va y golpea;
-tu Bitmoji: usa el poder). Las reglas no se reescriben: se exportan de este repositorio.
+oficial Bitmoji 3D; si no carga, el Bitmoji por defecto) animado con los clips del juego, con la noche del juego
+(niebla en capas, luna, estrellas, fuegos fatuos, murciélagos, viento, la tormenta con rayos y truenos, todo rojo
+en la Monster Madness), faroles y gemas con su rayo de luz, y se juega mirando y pellizcando (un lugar: camina
+hasta ahí; una casa: va y golpea; tu Bitmoji: usa el poder). También en **primera persona**: el pueblo a tamaño
+real alrededor, desde los ojos del Bitmoji, caminando de verdad. Las reglas no se reescriben: se exportan de este
+repositorio.
 
 ```bash
 pip install fonttools brotli                         # para convertir las fuentes a TTF
@@ -236,7 +239,9 @@ con el exportador glTF de PlayCanvas el pueblo (recortado a un tablero redondo, 
 las agujas del reloj como nodos), el fantasma, las cinco criaturas (cada parte en su pivote), dulces, orbes y
 gemas; graba los clips del Bitmoji como rotaciones de cada articulación (30 por segundo, sobre el Bitmoji por
 defecto; el esqueleto de Snap gira los nodos `…_JNT_SSC`), el Bitmoji por defecto con su esqueleto, los efectos
-(`fx.glb`: niebla, brillos de faroles, dulces y gemas, rayos de las gemas, anillos) y los sonidos a WAV. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
+(`fx.glb`: niebla y su versión de la Madness, luna, estrellas, fuego fatuo, murciélago, nube y rayos de la
+tormenta, brillos de faroles, dulces y gemas, rayos de las gemas, anillos) y los sonidos a WAV (con el viento).
+`--only=fx,sounds` exporta sólo esos pasos. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
 textos de esa versión están en `lens.*` de `src/ui/i18n.js`.
 
 ## Estado y pendientes
