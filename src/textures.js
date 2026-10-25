@@ -23,11 +23,14 @@ function toTexture(device, src, { repeat = true, linear = false } = {}) {
 }
 
 /** Swaps the photo in once it has loaded; until then the texture shows the stand-in colour. */
-function loadInto(tex, url, pending) {
+function loadInto(tex, url, pending, fallback = null) {
   pending.push(new Promise((resolve) => {
     const img = new Image();
     img.onload = () => { tex.resize(img.width, img.height); tex.setSource(img); resolve(true); };
-    img.onerror = () => { console.warn('[tex] missing', url); resolve(false); };
+    img.onerror = () => {
+      if (fallback) { img.src = fallback; fallback = null; return; }
+      console.warn('[tex] missing', url); resolve(false);
+    };
     img.src = url;
   }));
 }
@@ -125,8 +128,11 @@ const PHOTOS = ['grass', 'dirt', 'rock', 'bark', 'siding', 'slates', 'cobbles', 
 const CLAMPED = new Set(['glow', 'window', 'clock', 'moon', 'bolt']);
 const AVERAGE = { grass: '#968359', dirt: '#4b3c2c', rock: '#8c775f', bark: '#665240', siding: '#a59388', slates: '#a7a6a0', cobbles: '#897d60', flags: '#8d8d88', masonry: '#887e6f', velvet: '#aaaaaa' };
 
-/** { plain, glow, window, ..., grass, siding, slates, ... } and `normals.<photo>`; `ready` resolves when the photos are in. */
-export function createTextures(device, { base = './assets/' } = {}) {
+/**
+ * { plain, glow, window, ..., grass, siding, slates, ... } and `normals.<photo>`; `ready` resolves when the photos are in.
+ * `photos`: another folder to take the photos from first (the Spectacles export's larger set), else `base`.
+ */
+export function createTextures(device, { base = './assets/', photos = null } = {}) {
   const pending = [];
   const out = { normals: {} };
   for (const [name, paint] of Object.entries(PAINTERS)) out[name] = toTexture(device, paint(), { repeat: !CLAMPED.has(name) });
@@ -135,12 +141,13 @@ export function createTextures(device, { base = './assets/' } = {}) {
     g.fillStyle = AVERAGE[name];
     g.fillRect(0, 0, 4, 4);
     out[name] = toTexture(device, c);
-    loadInto(out[name], `${base}tex/${name}.webp`, pending);
+    const from = (file) => (photos ? [`${photos}tex/${file}`, `${base}tex/${file}`] : [`${base}tex/${file}`, null]);
+    loadInto(out[name], from(`${name}.webp`)[0], pending, from(`${name}.webp`)[1]);
     const [cn, gn] = canvas(4, 4);
     gn.fillStyle = 'rgb(128,128,255)';
     gn.fillRect(0, 0, 4, 4);
     out.normals[name] = toTexture(device, cn, { linear: true });
-    loadInto(out.normals[name], `${base}tex/${name}_n.webp`, pending);
+    loadInto(out.normals[name], from(`${name}_n.webp`)[0], pending, from(`${name}_n.webp`)[1]);
   }
   out.ready = Promise.all(pending);
   return out;

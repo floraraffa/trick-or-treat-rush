@@ -104,6 +104,15 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   village life-size, the eyes at the Bitmoji's (body hidden), real steps move it by the player's pace rules,
   look at your feet + pinch = power-up; back to the table for the results. `--only=fx,sounds` re-exports just
   those steps; `--rules` only the scripts and fonts.
+  Round 4: the Lens's panels are the web menu's: `src/dev/lens-ui.js` lays them out (cm; also exported as
+  `Generated/lensUi.ts`), `dev/lens-ui.html` draws every plate look (off / on / hover) with index.html's own CSS,
+  export.mjs photographs them (Playwright, transparent) into `ui.glb` (a quad per plate, glTF UVs top-left).
+  Realism: `tools/fetch-textures.mjs --lens` → `tools/lens-studio/tex/` (2048 px ground and streets, 1024 the rest,
+  normal maps; never in public/: the phone Lens's 8 MB), the export keeps normal maps and export.mjs squeezes
+  every GLB's images in Node (mozjpeg for opaque, palette PNG for see-through) to fit Spectacles' 25 MB.
+  Hands: the Lens project carries SIK 0.17.2 (its scene objects cut from Snap's Essentials sample, hands as
+  occluders) and points with SIK's hand rays; pieces ×2.2. Copies from fx.glb go into the board's frame
+  (`this.world`), never under a node inside another model (a model's root is ×100 in Lens Studio).
 
 ## Commands
 

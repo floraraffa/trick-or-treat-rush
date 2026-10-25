@@ -21,10 +21,12 @@ import { renderOffline, sfx, musicPhrase, MUSIC_STEP, MUSIC_STEPS } from '../aud
 import { Geo, blob, trs } from '../geo.js';
 import { lightningPaths, ribbons, stormCloudGeo } from '../actors/effects.js';
 import { rng } from '../rng.js';
+import { UI, UI_PAD, plateKey, plateLooks, plateNode } from './lens-ui.js';
 
 const BASE = '../assets/';
+const PHOTOS = '../tools/lens-studio/'; // the Lens's larger photos and normal maps (tex/), else the game's
 export const BOARD_R = 39; // metres: the round board (the fence is at 33, the woods thin out beyond)
-const SIMPLIFY = +(new URLSearchParams(location.search).get('cell') ?? 0.1); // metres: props and trees
+const SIMPLIFY = +(new URLSearchParams(location.search).get('cell') ?? 0.05); // metres: props and trees
 const canvas = document.getElementById('app');
 const app = new Application(canvas, {});
 const device = app.graphicsDevice;
@@ -209,9 +211,9 @@ function tidyGlb(buf) {
   return out.buffer;
 }
 
-async function glb(name, root, maxTextureSize = 512) {
-  // No normal maps: at table-top scale their detail is below a pixel, and they would double the textures.
-  for (const r of root.findComponents('render')) for (const mi of r.meshInstances) if (mi.material.normalMap) { mi.material.normalMap = null; mi.material.update(); }
+async function glb(name, root, maxTextureSize = 1024) {
+  // Normal maps kept (the Lens has a 25 MB budget: the photos' relief reads up close, in first person above
+  // all); export.mjs then re-encodes the images (mozjpeg, palette PNG) to fit.
   const buf = tidyGlb(await new GltfExporter().build(root, { maxTextureSize, stripUnusedAttributes: false })); // (keeps the vertex colours)
   files[`Models/${name}.glb`] = b64(buf);
   report[name] = { ...count(root), kb: Math.round(buf.byteLength / 1024) };
@@ -246,7 +248,7 @@ function withAlpha(geom, colour = [1, 1, 1]) {
   return g;
 }
 /** An unlit, see-through glow: `colour` × the texture (the game's soft glow by default), `opacity` at most. */
-function glowMat(tex, colour, opacity = 1, map = null) {
+function glowMat(tex, colour, opacity = 1, map = null) { // (tex: the game's textures, for the default glow)
   const m = new StandardMaterial();
   m.useLighting = false; m.useSkybox = false; m.useFog = false;
   m.diffuse = new Color(0, 0, 0); m.emissive = new Color(...colour); m.emissiveMap = map ?? tex.glow;
@@ -291,6 +293,47 @@ function mistTexture() {
   return t;
 }
 
+// --- the panels: the web game's menu, plate by plate -----------------------------------------------
+
+/**
+ * ui.glb: every panel of the Lens (lens-ui.js) as a node holding its plates, each a quad at its place in
+ * the panel (metres) with its look drawn by dev/lens-ui.html in the web game's styles: `images` maps each
+ * plate's key to a PNG data URL. Plates sharing a look share its texture. Back to front: the panel, then
+ * the title and name ribbon, then the buttons (a millimetre apart).
+ */
+async function ui(images) {
+  const root = new Entity('ui');
+  const mats = new Map();
+  const matOf = async (key) => {
+    if (mats.has(key)) return mats.get(key);
+    const url = images[key];
+    if (!url) throw new Error(`no image for plate ${key}`);
+    const bmp = await createImageBitmap(await (await fetch(url)).blob());
+    const t = new Texture(device, { width: bmp.width, height: bmp.height, format: PIXELFORMAT_SRGBA8, mipmaps: true });
+    t.setSource(bmp);
+    const m = glowMat(null, [1, 1, 1], 1, t);
+    m.name = `ui-${key}`;
+    mats.set(key, m);
+    return m;
+  };
+  const depth = { tome: 0, title: 0.001, plate: 0.001, chip: 0 };
+  for (const [panel, spec] of Object.entries(UI)) {
+    const pe = new Entity(panel);
+    root.addChild(pe);
+    for (const it of spec.items) for (const look of plateLooks(it)) {
+      const w = (it.w + UI_PAD * 2) / 100, h = (it.h + UI_PAD * 2) / 100;
+      // (glTF's UVs start at the image's top left)
+      const quad = { p: [-w / 2, -h / 2, 0, w / 2, -h / 2, 0, w / 2, h / 2, 0, -w / 2, h / 2, 0], n: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], uv: [0, 1, 1, 1, 1, 0, 0, 0], i: [0, 1, 2, 0, 2, 3] };
+      const e = new Geo().add(quad, null, [1, 1, 1]).build(device, await matOf(plateKey(it, look)), plateNode(panel, it.id, look));
+      e.setLocalPosition(it.x / 100, it.y / 100, depth[it.kind] ?? 0.002);
+      pe.addChild(e);
+    }
+  }
+  root.addChild(unitMarker());
+  await glb('ui', root, 2048);
+  report.uiPlates = mats.size;
+}
+
 // --- the village --------------------------------------------------------------------------------
 
 async function village(tex) {
@@ -317,7 +360,7 @@ async function village(tex) {
     if (key === 'silhouette') { e.destroy(); continue; }
     cut += cutToBoard(e, key);
     if (['plain', 'bark', 'emit', 'glossy', 'woods', 'rock'].includes(key)) simplify(e, SIMPLIFY);
-    else if (key === 'wood') simplify(e, 0.06);
+    else if (key === 'wood') simplify(e, 0.03);
   }
   // Clock hands: named so the Lens can turn them (minute and hour on each of the four faces).
   v.clock.hands.forEach((h, f) => { h.minute.name = `clock-${f}-minute`; h.hour.name = `clock-${f}-hour`; });
@@ -350,7 +393,7 @@ async function village(tex) {
   root.addChild(unitMarker());
   bakeTiling(root.find((n) => !!n.render));
   report.villageCutTris = cut;
-  await glb('village', root, 512);
+  await glb('village', root, 2048);
   return v;
 }
 
@@ -539,6 +582,18 @@ async function fx(tex) {
   add(new Geo().add(ring(0.75, 0.08), null, [1, 1, 1]), glowMat(tex, [1, 0.85, 0.4], 0.95, tex.plain), 'target');
   add(new Geo().add(disc(0.9), null, [1, 1, 1]), glowMat(tex, [1, 0.9, 0.6], 0.8), 'target-glow');
   add(new Geo().add(ring(0.35, 0.05), null, [1, 1, 1]), glowMat(tex, [0.9, 0.95, 1], 0.8, tex.plain), 'cursor');
+  // The hand's pointer: a thin beam one metre along +Z, fading out towards its end (the Lens stretches it from
+  // the hand to what it points at), and a glowing dot where it lands.
+  {
+    const m = { p: [], n: [], uv: [], i: [], a: [] }, R = 0.0022, S = 8;
+    for (const [z, a] of [[0, 0.15], [0.06, 0.85], [1, 0.4]]) for (let k = 0; k <= S; k++) {
+      const t = (k / S) * Math.PI * 2;
+      m.p.push(Math.cos(t) * R, Math.sin(t) * R, z); m.n.push(Math.cos(t), Math.sin(t), 0); m.uv.push(0.5, 0.5); m.a.push(a);
+    }
+    for (let r = 0; r < 2; r++) for (let k = 0; k < S; k++) { const a = r * (S + 1) + k, b = a + S + 1; m.i.push(a, b, a + 1, a + 1, b, b + 1); }
+    add(withAlpha(m, [1, 0.88, 0.6]), glowMat(tex, [1, 1, 1], 1, tex.plain), 'ray');
+    add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.85, 0.45], 1), 'ray-dot');
+  }
   root.addChild(unitMarker());
   await glb('fx', root, 256);
 }
@@ -638,10 +693,10 @@ async function sounds() {
   report.sounds = Object.keys(files).filter((f) => f.startsWith('Audio/')).length;
 }
 
-window.__export = async (only = null) => {
-  const tex = createTextures(device, { base: BASE });
+window.__export = async (only = null, { uiImages = null } = {}) => {
+  const tex = createTextures(device, { base: BASE, photos: PHOTOS });
   await tex.ready;
-  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), clips, sounds };
+  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), clips, sounds };
   const errors = [];
   for (const [name, step] of Object.entries(steps)) {
     if (only && !only.includes(name)) continue;

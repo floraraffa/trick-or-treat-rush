@@ -1,6 +1,8 @@
 // Downloads the CC0 photo textures from Poly Haven (polyhaven.com, public domain) and writes small
 // WebP files the game loads: public/assets/tex/<name>.webp (colour) and <name>_n.webp (normal map).
 //   NODE_USE_ENV_PROXY=1 node tools/fetch-textures.mjs [name ...]   (no names: all of them)
+//   ... --lens   the larger set for the Spectacles Lens (25 MB budget), in tools/lens-studio/tex: the photos at
+//                up to 2048 px and every normal map at 1024 (the Lens export reads them from there)
 // The village tints every surface by vertex colour, so each photo is partly desaturated and brought to
 // the brightness its stand-in had; the hue comes from the palette, the relief from the photo and its normals.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -28,10 +30,18 @@ const mean = async (img) => (await img.clone().stats()).channels.slice(0, 3).map
 const AO_K = 0.8; // how much of the AO map goes into the colour
 const NQ = 60; // normal map quality: a little noise in a normal map is invisible, and it keeps the zip small
 
-const only = process.argv.slice(2);
-mkdirSync('public/assets/tex', { recursive: true });
-for (const [name, [id, size, nsize, q = 80, sat = 1, grey = 0]] of Object.entries(TEXTURES)) {
+// The Lens's sizes: the ground and the streets (seen up close in first person) at 2048, the rest at 1024.
+const LENS = { grass: [2048, 1024], cobbles: [2048, 1024], dirt: [1024, 1024], rock: [1024, 1024], bark: [1024, 1024], siding: [1024, 1024], slates: [1024, 1024], flags: [1024, 1024], masonry: [1024, 1024] };
+
+const lens = process.argv.includes('--lens');
+const only = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const out = lens ? 'tools/lens-studio/tex' : 'public/assets/tex';
+mkdirSync(out, { recursive: true });
+for (const [name, conf] of Object.entries(TEXTURES)) {
   if (only.length && !only.includes(name)) continue;
+  if (lens && !LENS[name]) continue;
+  const [id, size0, nsize0, q0 = 80, sat = 1, grey = 0] = conf;
+  const [size, nsize, q] = lens ? [...LENS[name], 88] : [size0, nsize0, q0];
   const files = await api(id);
   const res = files.Diffuse['2k'] && size > 1024 ? '2k' : '1k';
   const diff = await get(files.Diffuse[res].jpg.url);
@@ -52,8 +62,8 @@ for (const [name, [id, size, nsize, q = 80, sat = 1, grey = 0]] of Object.entrie
   }
   const avg = (await mean(img)).map((v) => Math.round(Math.min(255, v)).toString(16).padStart(2, '0')).join('');
   const a = await img.webp({ quality: q }).toBuffer();
-  const b = await sharp(nrm).resize(nsize, nsize).webp({ quality: NQ }).toBuffer();
-  writeFileSync(`public/assets/tex/${name}.webp`, a);
-  writeFileSync(`public/assets/tex/${name}_n.webp`, b);
+  const b = await sharp(nrm).resize(nsize, nsize).webp({ quality: lens ? 85 : NQ }).toBuffer();
+  writeFileSync(`${out}/${name}.webp`, a);
+  writeFileSync(`${out}/${name}_n.webp`, b);
   console.log(`${name.padEnd(9)} ${id.padEnd(24)} ${(a.length / 1024).toFixed(0).padStart(4)} KB + ${(b.length / 1024).toFixed(0).padStart(4)} KB  average #${avg}`);
 }

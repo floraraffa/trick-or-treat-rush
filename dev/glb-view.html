@@ -8,6 +8,7 @@ import * as pc from 'playcanvas';
 const q = new URLSearchParams(location.search);
 const app = new pc.Application(document.getElementById('c'), {});
 app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+app.setCanvasResolution(pc.RESOLUTION_AUTO);
 app.scene.ambientLight = new pc.Color(0.45, 0.42, 0.5);
 const cam = new pc.Entity(); cam.addComponent('camera', { clearColor: new pc.Color(0.1, 0.08, 0.15), fov: 45, nearClip: 0.05, farClip: 500 });
 const v = (q.get('view') ?? '0,30,60,0,0,0').split(',').map(Number);

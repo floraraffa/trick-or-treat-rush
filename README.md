@@ -224,9 +224,12 @@ repositorio (`trick-or-treat-rush-spectacles`): la maqueta del pueblo sobre la m
 oficial Bitmoji 3D; si no carga, el Bitmoji por defecto) animado con los clips del juego, con la noche del juego
 (niebla en capas, luna, estrellas, fuegos fatuos, murciélagos, viento, la tormenta con rayos y truenos, todo rojo
 en la Monster Madness), faroles y gemas con su rayo de luz, y se juega mirando y pellizcando (un lugar: camina
-hasta ahí; una casa: va y golpea; tu Bitmoji: usa el poder). También en **primera persona**: el pueblo a tamaño
-real alrededor, desde los ojos del Bitmoji, caminando de verdad. Las reglas no se reescriben: se exportan de este
-repositorio.
+hasta ahí; una casa: va y golpea; tu Bitmoji: usa el poder), apuntando con la mano (el Spectacles Interaction
+Kit de Snap, con las manos como oclusor). También en **primera persona**: el pueblo a tamaño real alrededor,
+desde los ojos del Bitmoji, caminando de verdad. El menú es el de este juego (`ui.glb`: cada botón dibujado con
+los estilos de `index.html` por `dev/lens-ui.html`) y el pueblo lleva las fotos en alta y sus normal maps
+(`node tools/fetch-textures.mjs --lens` → `tools/lens-studio/tex/`, fuera de `public/` para no pesar en la Lens
+del teléfono). Las reglas no se reescriben: se exportan de este repositorio.
 
 ```bash
 pip install fonttools brotli                         # para convertir las fuentes a TTF
