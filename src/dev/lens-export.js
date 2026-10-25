@@ -8,21 +8,21 @@
 //   Clips: the default Bitmoji playing each clip through bitmoji-anim.js, every joint's local rotation
 //   recorded 30 times a second, so the Lens can pose any Bitmoji (same rig) without retargeting.
 //   Sounds: the synthesised effects and the music box, rendered offline to WAV.
-import { BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mesh, MeshInstance, StandardMaterial, Vec2, Application } from 'playcanvas';
+import { ADDRESS_REPEAT, BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mesh, MeshInstance, PIXELFORMAT_SRGBA8, StandardMaterial, Texture, Vec2, Application } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
 import { HOUSES } from '../world/layout.js';
-import { GEM_COLOR, ORB_COLOR, createCandy } from '../actors/candy.js';
+import { CANDY_GLOW, GEM_COLOR, ORB_COLOR, createCandy } from '../actors/candy.js';
 import { CREATURES, createCreature } from '../actors/creatures.js';
 import { ghostParts } from '../actors/monsters.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { unpackGlb } from '../lib/meshopt-glb.js';
 import { renderOffline, sfx, musicPhrase, MUSIC_STEP, MUSIC_STEPS } from '../audio.js';
-import { Geo, blob } from '../geo.js';
+import { Geo, blob, trs } from '../geo.js';
 
 const BASE = '../assets/';
-export const BOARD_R = 39;
-const SIMPLIFY = +(new URLSearchParams(location.search).get('cell') ?? 0.1); // metres: props and trees // metres: the round board (the fence is at 33, the woods thin out beyond)
+export const BOARD_R = 39; // metres: the round board (the fence is at 33, the woods thin out beyond)
+const SIMPLIFY = +(new URLSearchParams(location.search).get('cell') ?? 0.1); // metres: props and trees
 const canvas = document.getElementById('app');
 const app = new Application(canvas, {});
 const device = app.graphicsDevice;
@@ -218,15 +218,96 @@ async function glb(name, root, maxTextureSize = 512) {
 /** A node at (0, 1, 0) metres: the Lens reads it back to learn the import's unit (1, or 100 in centimetres). */
 const unitMarker = () => { const e = new Entity('unit-marker'); e.setLocalPosition(0, 1, 0); return e; };
 
+/** A flat disc of radius r facing up, its UVs spanning the glow texture. `rings` > 1: vertex alpha fading to its rim. */
+function disc(r, segs = 24, rings = 1, uvScale = 0) {
+  const m = { p: [0, 0, 0], n: [0, 1, 0], uv: [uvScale ? 0 : 0.5, uvScale ? 0 : 0.5], i: [], a: [1] };
+  for (let k = 1; k <= rings; k++) {
+    const rr = (k / rings) * r;
+    for (let s = 0; s <= segs; s++) {
+      const a = (s / segs) * Math.PI * 2, x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+      m.p.push(x, 0, z); m.n.push(0, 1, 0);
+      m.uv.push(uvScale ? x * uvScale : 0.5 + (x / r) * 0.5, uvScale ? z * uvScale : 0.5 + (z / r) * 0.5);
+      m.a.push(rings > 1 ? Math.max(0, 1 - Math.pow(k / rings, 3)) : 1);
+    }
+  }
+  for (let s = 0; s < segs; s++) m.i.push(0, s + 2, s + 1);
+  for (let k = 1; k < rings; k++) {
+    const a0 = 1 + (k - 1) * (segs + 1), a1 = a0 + segs + 1;
+    for (let s = 0; s < segs; s++) m.i.push(a0 + s, a0 + s + 1, a1 + s, a0 + s + 1, a1 + s + 1, a1 + s);
+  }
+  return m;
+}
+/** Builds `geo` with its vertex alpha (a disc's fade) applied. */
+function withAlpha(geom, colour = [1, 1, 1]) {
+  const g = new Geo().add(geom, null, colour);
+  for (let v = 0; v < geom.a.length; v++) g.c[v * 4 + 3] = geom.a[v] * 255;
+  return g;
+}
+/** An unlit, see-through glow: `colour` × the texture (the game's soft glow by default), `opacity` at most. */
+function glowMat(tex, colour, opacity = 1, map = null) {
+  const m = new StandardMaterial();
+  m.useLighting = false; m.useSkybox = false; m.useFog = false;
+  m.diffuse = new Color(0, 0, 0); m.emissive = new Color(...colour); m.emissiveMap = map ?? tex.glow;
+  m.opacity = opacity; m.blendType = BLEND_NORMAL; m.depthWrite = false; m.cull = CULLFACE_NONE;
+  m.update();
+  return m;
+}
+/** A ring (torus) of radius r lying flat. */
+function ring(r, tube = 0.05, segs = 40) {
+  const m = { p: [], n: [], uv: [], i: [] };
+  for (let k = 0; k <= segs; k++) {
+    const a = (k / segs) * Math.PI * 2;
+    for (let s = 0; s <= 6; s++) {
+      const b = (s / 6) * Math.PI * 2, rr = r + Math.cos(b) * tube;
+      m.p.push(Math.cos(a) * rr, Math.sin(b) * tube, Math.sin(a) * rr); m.n.push(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)); m.uv.push(0.5, 0.5);
+    }
+  }
+  for (let k = 0; k < segs; k++) for (let s = 0; s < 6; s++) { const a = k * 7 + s, b = a + 7; m.i.push(a, b, a + 1, a + 1, b, b + 1); }
+  return m;
+}
+/** A soft, tileable cloud texture for the mist (white, its alpha the cloud). */
+function mistTexture() {
+  const N = 256, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N);
+  const hash = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+  const noise = (x, y, p) => { // value noise wrapping every p cells
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const at = (i, j) => hash(((i % p) + p) % p, ((j % p) + p) % p);
+    return (at(xi, yi) * (1 - sx) + at(xi + 1, yi) * sx) * (1 - sy) + (at(xi, yi + 1) * (1 - sx) + at(xi + 1, yi + 1) * sx) * sy;
+  };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let v = 0, amp = 0.55, f = 4;
+    for (let o = 0; o < 4; o++) { v += noise((x / N) * f, (y / N) * f, f) * amp; amp *= 0.5; f *= 2; }
+    const a = Math.max(0, Math.min(1, (v - 0.3) / 0.45));
+    const i = (y * N + x) * 4;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(a * a * (3 - 2 * a) * 255);
+  }
+  g.putImageData(img, 0, 0);
+  const t = new Texture(device, { width: N, height: N, format: PIXELFORMAT_SRGBA8, mipmaps: true, addressU: ADDRESS_REPEAT, addressV: ADDRESS_REPEAT });
+  t.setSource(c);
+  return t;
+}
+
 // --- the village --------------------------------------------------------------------------------
 
 async function village(tex) {
   const v = createVillage(app, tex, { lowFx: true });
   const root = v.root;
-  // Not on a table: the sky, the lights (the Lens lights the board itself) and the camera-facing lamp halos.
+  // Not on a table: the sky and the lights (the Lens lights the board itself).
   v.sky.root.destroy();
   for (const e of root.find((n) => n.light)) e.destroy();
-  for (const e of root.find((n) => n.name === 'lamp-halo')) e.destroy();
+  // The lamps: an empty node where each one glows (the Lens turns a glow to the eyes there, as the game's
+  // halos do) and a pool of warm light on the ground round its foot (the game's lamp lights and mist).
+  const pools = new Geo();
+  root.find((n) => n.name === 'lamp-halo').forEach((h, i) => {
+    const p = h.getLocalPosition(), spot = new Entity(`halo-${i}`);
+    spot.setLocalPosition(p.x, p.y, p.z);
+    root.addChild(spot);
+    pools.add(disc(3.6), trs(p.x, 0.08, p.z), [1, 1, 1]);
+    h.destroy();
+  });
+  root.addChild(pools.build(device, glowMat(tex, [1, 0.62, 0.3], 0.5), 'lamp-pools'));
   const statics = root.findByName('village-static');
   let cut = 0;
   for (const e of [...statics.children]) {
@@ -352,6 +433,49 @@ async function pickups(tex) {
   await glb('pickups', root);
 }
 
+// --- effects: mist, glows, beams, auras, markers ------------------------------------------------
+
+/**
+ * fx.glb, the Lens's light and air (the game draws these with fog, lamps and particles):
+ *   mist-0..2   three wide sheets of drifting mist low over the board (the Lens turns them slowly)
+ *   halo-warm   a lamp's glow, a card the Lens turns to the eyes
+ *   pool-*      a glow on the ground under each kind of candy, orb and gem
+ *   beam-*      a gem's beam of light, seen from across the village
+ *   aura-*      a ring round the player while a gem or power-up is on
+ *   target, cursor   where the player is going, and where they look
+ */
+async function fx(tex) {
+  const root = new Entity('fx');
+  const add = (geo, m, name) => { const e = geo.build(device, m, name); root.addChild(e); return e; };
+  const mist = mistTexture();
+  [[0.35, 0.32, 1 / 9], [0.9, 0.24, 1 / 13], [1.8, 0.16, 1 / 17]].forEach(([y, opacity, uv], i) => {
+    const e = add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.84, 0.82, 0.95], opacity, mist), `mist-${i}`);
+    e.setLocalPosition(0, y, 0);
+  });
+  const card = { p: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], n: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 1, 2, 0, 2, 3] };
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.7, 0.38], 0.85), 'halo-warm');
+  const pools = { ...Object.fromEntries(Object.entries(CANDY_GLOW).map(([k, c]) => [`candy-${k}`, c])), ...Object.fromEntries(Object.entries(ORB_COLOR).map(([k, c]) => [`orb-${k}`, c])), ...Object.fromEntries(Object.entries(GEM_COLOR).map(([k, c]) => [`gem-${k}`, c])) };
+  for (const [k, c] of Object.entries(pools)) add(new Geo().add(disc(1), null, [1, 1, 1]), glowMat(tex, c, 0.75), `pool-${k}`);
+  // Gem beams: as candy.js draws them, fading out going up.
+  for (const [kind, c] of Object.entries(GEM_COLOR)) {
+    const m = { p: [], n: [], uv: [], i: [], a: [] };
+    for (let k = 0; k <= 12; k++) {
+      const a = (k / 12) * Math.PI * 2;
+      for (const y of [0, 9]) { m.p.push(Math.cos(a) * 0.35, y, Math.sin(a) * 0.35); m.n.push(Math.cos(a), 0, Math.sin(a)); m.uv.push(0.5, 0.5); m.a.push(y > 1 ? 0 : 0.7); }
+    }
+    for (let k = 0; k < 12; k++) { const a = k * 2; m.i.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    const plain = glowMat(tex, c, 1, tex.plain);
+    add(withAlpha(m), plain, `beam-${kind}`);
+  }
+  const AURA = { ...GEM_COLOR, ...ORB_COLOR, slow: [0.55, 0.55, 0.7] };
+  for (const [kind, c] of Object.entries(AURA)) add(new Geo().add(ring(0.95, 0.07), null, [1, 1, 1]), glowMat(tex, c, 0.95, tex.plain), `aura-${kind}`);
+  add(new Geo().add(ring(0.75, 0.08), null, [1, 1, 1]), glowMat(tex, [1, 0.85, 0.4], 0.95, tex.plain), 'target');
+  add(new Geo().add(disc(0.9), null, [1, 1, 1]), glowMat(tex, [1, 0.9, 0.6], 0.8), 'target-glow');
+  add(new Geo().add(ring(0.35, 0.05), null, [1, 1, 1]), glowMat(tex, [0.9, 0.95, 1], 0.8, tex.plain), 'cursor');
+  root.addChild(unitMarker());
+  await glb('fx', root, 256);
+}
+
 // --- Bitmoji clips ------------------------------------------------------------------------------
 
 async function clips() {
@@ -359,7 +483,15 @@ async function clips() {
   const [lib, avatar] = await Promise.all([get(`${BASE}clips.glb`), get(`${BASE}avatar_default.glb`)]);
   const b = await loadBitmoji(app, { clips: lib, fallback: avatar, url: null, autoUpdate: false });
   app.root.addChild(b.entity);
-  const nodes = b.entity.find(() => true).filter((n) => /_JNT$|^ROOT$/i.test(n.name));
+  // Snap's default Bitmoji, rigged, for when the player's own can't load (as the game does): exported
+  // before any clip plays, so its rest pose is the GLB's own.
+  const marker = unitMarker();
+  b.entity.addChild(marker);
+  await glb('bitmoji-default', b.entity, 512);
+  marker.destroy();
+  // Every joint, and the scale-compensation node Snap's rig puts on each (`…_JNT_SSC`): those are what the
+  // clips turn. Nodes a clip leaves alone are dropped below.
+  const nodes = b.entity.find(() => true).filter((n) => /_JNT(_SSC)?$|^ROOT$/i.test(n.name));
   const hips = b.joint('Hips');
   const FPS = 30, out = { fps: FPS, hips: hips?.name ?? null, hipsRest: hips ? [...hips.getLocalPosition().toArray()] : null, clips: {} };
   for (const name of b.clips) {
@@ -426,7 +558,7 @@ async function sounds() {
 window.__export = async (only = null) => {
   const tex = createTextures(device, { base: BASE });
   await tex.ready;
-  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), clips, sounds };
+  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), clips, sounds };
   const errors = [];
   for (const [name, step] of Object.entries(steps)) {
     if (only && !only.includes(name)) continue;

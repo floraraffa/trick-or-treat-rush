@@ -90,9 +90,14 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   TypeScript (`Scripts/Generated`, `// @ts-nocheck`, `performance.now` → `getTime`), and via `dev/lens-export.html`
   (`src/dev/lens-export.js`, headless Chromium) GLBs made with PlayCanvas's GltfExporter (village cut to a 39 m board,
   vertex-clustering decimation, tiling baked into UVs, no normal maps, COLOR_0 marked normalized, a `unit-marker` node
-  at 1 m to read the import's unit), Bitmoji clips as per-joint local rotations recorded on the default Bitmoji
-  (`clips.ts`), sounds rendered offline to WAV (`renderOffline`, `musicPhrase` in audio.js), fonts → TTF (fontTools).
-  Lens texts: `lens.*` in i18n. Small hooks for it: `createCandy().models`, `ghostParts()` in monsters.js.
+  at 1 m to read the import's unit; lamp `halo-<i>` spots and warm ground pools), `fx.glb` (mist sheets with a tiled
+  noise texture, lamp glow card, glow pools per candy/orb/gem, gem beams, aura rings, target/cursor), the default
+  Bitmoji rigged (`bitmoji-default.glb`, the Lens's fallback), Bitmoji clips as per-joint local rotations recorded on
+  the default Bitmoji (`clips.ts`; Snap's rig: the clips turn the `…_JNT_SSC` scale-compensation nodes, so those
+  must be recorded), sounds rendered offline to WAV (`renderOffline`, `musicPhrase` in audio.js), fonts → TTF
+  (fontTools). Lens texts: `lens.*` in i18n. Small hooks for it: `createCandy().models`, `ghostParts()` in monsters.js.
+  The Lens itself: gaze + pinch (pinch a spot = walk there, a house = go and knock, yourself = power-up, hold =
+  steer), pieces ×1.7 and candy ×1.5 on the table; checked by `tools/check` there (tsc + a Node simulation).
 
 ## Commands
 

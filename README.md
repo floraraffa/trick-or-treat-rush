@@ -221,8 +221,9 @@ no cambia.
 
 Además de la versión web, el juego tiene un **proyecto de Lens Studio 5.15 para Spectacles (2024)**, en su propio
 repositorio (`trick-or-treat-rush-spectacles`): la maqueta del pueblo sobre la mesa, tu Bitmoji (componente
-oficial Bitmoji 3D) animado con los clips del juego, y se juega mirando adonde ir y pellizcando. Las reglas no
-se reescriben: se exportan de este repositorio.
+oficial Bitmoji 3D; si no carga, el Bitmoji por defecto) animado con los clips del juego, con niebla, faroles y
+gemas con su rayo de luz, y se juega mirando y pellizcando (un lugar: camina hasta ahí; una casa: va y golpea;
+tu Bitmoji: usa el poder). Las reglas no se reescriben: se exportan de este repositorio.
 
 ```bash
 pip install fonttools brotli                         # para convertir las fuentes a TTF
@@ -234,7 +235,8 @@ movimiento, textos, animación de las criaturas) y abre `dev/lens-export.html` e
 con el exportador glTF de PlayCanvas el pueblo (recortado a un tablero redondo, con las puertas, los faroles y
 las agujas del reloj como nodos), el fantasma, las cinco criaturas (cada parte en su pivote), dulces, orbes y
 gemas; graba los clips del Bitmoji como rotaciones de cada articulación (30 por segundo, sobre el Bitmoji por
-defecto) y los sonidos a WAV. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
+defecto; el esqueleto de Snap gira los nodos `…_JNT_SSC`), el Bitmoji por defecto con su esqueleto, los efectos
+(`fx.glb`: niebla, brillos de faroles, dulces y gemas, rayos de las gemas, anillos) y los sonidos a WAV. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
 textos de esa versión están en `lens.*` de `src/ui/i18n.js`.
 
 ## Estado y pendientes
