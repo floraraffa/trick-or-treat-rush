@@ -3,7 +3,8 @@
 // its texts on them and picks its buttons by these boxes. Centimetres in the panel's plane, y up, centred.
 //   kind: tome (a panel), title (the logo), plate (a panel's name ribbon), pill (a level / view / size button),
 //   lang (a language button with its flag), go (the orange button), btn (the violet one), chip (the HUD bar),
-//   round (the HUD's menu button), grip (the bar under a panel that moves it). Buttons come in three looks:
+//   round (the HUD's menu button), grip (the bar under a panel that moves it), costume (a round button with the
+//   costume's icon, as the web menu's). Buttons come in three looks:
 //   off, on (chosen) and hover (pointed at). The wrist panel rides on the player's wrist (palm turned to them).
 //   text: the label's font (title: Griffy, ui: Mystery Quest), size and colour (the web game's).
 
@@ -18,28 +19,33 @@ const GO = (w, h = 4.8, size = 60) => ({ kind: 'go', w, h, text: { font: 'title'
 const BTN = (w, h = 4.8, size = 40) => ({ kind: 'btn', w, h, text: { font: 'ui', size, color: 'cream' } });
 const GRIP = (y) => ({ id: 'grip', kind: 'grip', x: 0, y, w: 12, h: 1.6 });
 const WRIST = { kind: 'pill', w: 11.6, h: 2.5, text: { font: 'ui', size: 28, color: 'lav', on: 'ink' } };
+const COSTUME = { kind: 'costume', w: 4.8, h: 4.8 };
+export const COSTUME_IDS = ['witch', 'pumpkin', 'horns', 'cape', 'none']; // (the game's COSTUMES, in its order)
 
 export const UI = {
   menu: {
     items: [
-      { id: 'tome', kind: 'tome', x: 0, y: -1.6, w: 47, h: 37 },
-      { id: 'title', kind: 'title', x: 0, y: 12.2, w: 25, h: 8.6 },
-      ...['easy', 'medium', 'hard'].map((id, i) => ({ id: `level:${id}`, x: -11 + i * 11, y: 3.4, ...LEVEL })),
-      ...['en', 'es', 'fr', 'de'].map((id, i) => ({ id: `lang:${id}`, x: -15.3 + i * 10.2, y: -1.6, ...LANG })),
-      { id: 'view:table', x: -8.3, y: -6.6, ...VIEW },
-      { id: 'view:first', x: 8.3, y: -6.6, ...VIEW },
-      ...['s', 'm', 'l'].map((id, i) => ({ id: `size:${id}`, x: -6.6 + i * 5, y: -10.6, ...SIZE })),
-      { id: 'move', x: 12.6, y: -10.6, ...BTN(13, 3.4, 30) },
-      { id: 'play', x: -4.6, y: -15.2, ...GO(25) },
-      { id: 'how', x: 14.4, y: -15.2, ...BTN(12, 4.8, 34) },
-      GRIP(-21.6),
+      { id: 'tome', kind: 'tome', x: 0, y: -1.4, w: 47, h: 43.4 },
+      { id: 'title', kind: 'title', x: 0, y: 15.6, w: 25, h: 8.6 },
+      ...['easy', 'medium', 'hard'].map((id, i) => ({ id: `level:${id}`, x: -11 + i * 11, y: 6.8, ...LEVEL })),
+      ...['en', 'es', 'fr', 'de'].map((id, i) => ({ id: `lang:${id}`, x: -15.3 + i * 10.2, y: 1.8, ...LANG })),
+      ...COSTUME_IDS.map((id, i) => ({ id: `costume:${id}`, x: -11.2 + i * 5.6, y: -4, ...COSTUME })),
+      { id: 'view:table', x: -8.3, y: -9.6, ...VIEW },
+      { id: 'view:first', x: 8.3, y: -9.6, ...VIEW },
+      ...['s', 'm', 'l'].map((id, i) => ({ id: `size:${id}`, x: -6.6 + i * 5, y: -13.6, ...SIZE })),
+      { id: 'move', x: 12.6, y: -13.6, ...BTN(13, 3.4, 30) },
+      { id: 'play', x: -4.6, y: -18.2, ...GO(25) },
+      { id: 'how', x: 14.4, y: -18.2, ...BTN(12, 4.8, 34) },
+      GRIP(-24.6),
     ],
     texts: [
-      { id: 'sub', x: 0, y: 7.2, w: 40, h: 1.8, font: 'ui', size: 34, color: 'lav' },
-      { id: 'size', x: -15.4, y: -10.6, w: 8, h: 2.2, font: 'ui', size: 32, color: 'lav' },
-      { id: 'best', x: -11.5, y: -19.1, w: 20, h: 1.8, font: 'ui', size: 30, color: 'gold' },
-      { id: 'bitmoji', x: 9.5, y: -19.1, w: 24, h: 1.8, font: 'ui', size: 26, color: 'lav' },
-      { id: 'tip', x: 0, y: -23.6, w: 46, h: 1.6, font: 'ui', size: 24, color: 'lav' },
+      { id: 'sub', x: 0, y: 10.6, w: 40, h: 1.8, font: 'ui', size: 34, color: 'lav' },
+      { id: 'costume', x: -18.7, y: -4, w: 8.4, h: 2.2, font: 'ui', size: 30, color: 'lav' },
+      { id: 'costumeName', x: 18.6, y: -4, w: 9.2, h: 3.6, font: 'ui', size: 26, color: 'gold', wrap: true },
+      { id: 'size', x: -15.4, y: -13.6, w: 8, h: 2.2, font: 'ui', size: 32, color: 'lav' },
+      { id: 'best', x: -11.5, y: -22.1, w: 20, h: 1.8, font: 'ui', size: 30, color: 'gold' },
+      { id: 'bitmoji', x: 9.5, y: -22.1, w: 24, h: 1.8, font: 'ui', size: 26, color: 'lav' },
+      { id: 'tip', x: 0, y: -27.3, w: 46, h: 3.2, font: 'ui', size: 24, color: 'lav', wrap: true },
     ],
   },
   how: {
@@ -115,9 +121,9 @@ export function uiPlates() {
   const out = new Map();
   for (const panel of Object.values(UI)) for (const it of panel.items) {
     for (const look of plateLooks(it)) {
-      const lang = it.kind === 'lang' ? it.id.split(':')[1] : '';
+      const lang = it.kind === 'lang' ? it.id.split(':')[1] : '', costume = it.kind === 'costume' ? it.id.split(':')[1] : '';
       const key = plateKey(it, look);
-      if (!out.has(key)) out.set(key, { key, kind: it.kind, w: it.w, h: it.h, look, lang });
+      if (!out.has(key)) out.set(key, { key, kind: it.kind, w: it.w, h: it.h, look, lang, costume });
     }
   }
   return [...out.values()];
@@ -125,7 +131,7 @@ export function uiPlates() {
 
 /** The image a plate look is drawn into (shared by plates of the same kind and size). */
 export function plateKey(it, look) {
-  return `${it.kind}${it.kind === 'lang' ? `-${it.id.split(':')[1]}` : ''}-${it.w}x${it.h}-${look}`;
+  return `${it.kind}${it.kind === 'lang' || it.kind === 'costume' ? `-${it.id.split(':')[1]}` : ''}-${it.w}x${it.h}-${look}`;
 }
 
 /** The node a plate look is in ui.glb (a panel's node holds them all): "menu-level-easy-on". */

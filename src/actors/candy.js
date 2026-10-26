@@ -1,7 +1,7 @@
 // CandyManager (the drawing side): the candy, power-up orbs and gems the authority has put on the
 // streets, exaggerated and glowing, bobbing and turning above a pool of their own light (gems also
-// send a beam up into the fog, so they can be spotted from across the village). Candy rain falls
-// from the sky with a sparkling trail and lands where the authority put it. A candy the local player
+// send a beam up into the fog, so they can be spotted from across the village). Candy rain drops
+// out of the thundercloud's belly with a sparkling trail and lands where the authority put it. A candy the local player
 // reaches is asked for once (the authority says who gets it); with the magnet it drifts towards its
 // player first. Nothing is removed until the authority says so.
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
@@ -13,7 +13,7 @@ const HUES = [[1, 0.3, 0.35], [1, 0.62, 0.15], [1, 0.95, 0.3], [0.35, 0.95, 0.5]
 export const CANDY_GLOW = { caramel: [1, 0.6, 0.2], lollipop: [1, 0.4, 0.7], chocolate: [0.75, 0.45, 1], pumpkin: [1, 0.8, 0.25], rainbow: [0.6, 0.9, 1] };
 export const ORB_COLOR = { rain: [1, 0.5, 0.85], shield: [0.35, 0.85, 1], magnet: [1, 0.3, 0.3], double: [0.8, 0.4, 1] };
 export const GEM_COLOR = { giant: [1, 0.3, 0.22], thief: [0.35, 1, 0.85], ghost: [0.88, 0.86, 1] };
-const FALL_FROM = 14; // candy rain starts this high
+const FALL_FROM = 14; // candy rain starts this high (with no thundercloud near: another player's storm far off)
 
 /** A spiral swirl coloured by angle and radius (lollipops), in the disc's local XY plane. */
 const swirl = (cols, turns = 3) => (x, y) => {
@@ -71,8 +71,11 @@ function orbGeo(kind) {
   return inner;
 }
 
-/** `onLand(x, z)`: a piece of a candy storm just hit the ground. */
-export function createCandy(app, tex, fx, { onLand = null } = {}) {
+/**
+ * `onLand(x, z)`: a piece of a candy storm just hit the ground. `cloudOver(x, z)`: the thundercloud over there
+ * ({ x, y, z, r }: its underside's middle, how far its belly reaches), where the storm's pieces drop from.
+ */
+export function createCandy(app, tex, fx, { onLand = null, cloudOver = null } = {}) {
   const root = new Entity('candy');
   const candyMat = texturedMaterial(tex.plain, { gloss: 0.85, emissive: new Color(0.45, 0.45, 0.45) });
   const goldMat = texturedMaterial(tex.plain, { gloss: 0.9, metal: 0.8, emissive: new Color(0.5, 0.4, 0.15) });
@@ -171,7 +174,15 @@ export function createCandy(app, tex, fx, { onLand = null } = {}) {
           const big = c.type === 'rainbow' ? 1.25 : c.type === 'pumpkin' ? 1.15 : 1;
           const s = addEntity(protos[c.type], c.x, c.z, CANDY_GLOW[c.type], c.fall ? 0 : 0.9 * big, `candy-${id}`);
           s.spin.setLocalScale(big, big, big);
-          if (c.fall) { s.born = 1; s.fall = c.fall; }
+          if (c.fall) {
+            s.born = 1; s.fall = c.fall;
+            // out of the cloud's belly, on the side it lands (it is thrown a little outwards as it drops)
+            const cl = cloudOver?.(c.x, c.z);
+            if (cl) {
+              const dx = c.x - cl.x, dz = c.z - cl.z, d = Math.hypot(dx, dz), r = Math.min(d * 0.45, cl.r);
+              s.from = { x: cl.x + (d > 1e-3 ? (dx / d) * r : 0), y: cl.y, z: cl.z + (d > 1e-3 ? (dz / d) * r : 0) };
+            }
+          }
           shown.set(id, s);
         }
       }
@@ -192,14 +203,17 @@ export function createCandy(app, tex, fx, { onLand = null } = {}) {
           if (d > 0.2) { const k = Math.min(1, dt * (2 + 8 / d)); s.x += dx * k * 0.5; s.z += dz * k * 0.5; }
         } else if (s.x !== c.x || s.z !== c.z) { const k = Math.min(1, dt * 4); s.x += (c.x - s.x) * k; s.z += (c.z - s.z) * k; }
         let bob = 0.95 + Math.sin(s.t * 2.4) * 0.13;
-        // Candy rain: falls (accelerating), lands with a hop and a puff of sparkles.
+        // Candy rain: falls (accelerating) from the cloud, lands with a hop and a puff of sparkles.
         const k = s.fall ? Math.min(1, (now - c.born) / s.fall) : 1;
+        let ox = 0, oz = 0;
         if (s.fall) {
-          bob += (1 - k * k) * FALL_FROM;
-          if (k < 1 && Math.random() < dt * 12) fx?.emit({ x: s.x, y: bob + 0.3, z: s.z }, { x: 0, y: 2, z: 0 }, { n: 1, spread: 0.2, size: 0.16, grow: 0.2, life: 0.5, color: CANDY_GLOW[c.type], gravity: 0, alpha: 0.9, twinkle: true });
+          const fall = 1 - k * k, F = s.from;
+          bob += fall * (F ? F.y - bob : FALL_FROM);
+          if (F && k < 1) { ox = (F.x - s.x) * (1 - k); oz = (F.z - s.z) * (1 - k); }
+          if (k < 1 && Math.random() < dt * 12) fx?.emit({ x: s.x + ox, y: bob + 0.3, z: s.z + oz }, { x: 0, y: 2, z: 0 }, { n: 1, spread: 0.2, size: 0.16, grow: 0.2, life: 0.5, color: CANDY_GLOW[c.type], gravity: 0, alpha: 0.9, twinkle: true });
           if (k >= 1 && !s.landed) { s.landed = true; fx?.emit({ x: s.x, y: 0.4, z: s.z }, { x: 0, y: 1.2, z: 0 }, { n: 6, spread: 2.5, size: 0.2, grow: 0.4, life: 0.5, color: CANDY_GLOW[c.type], gravity: -3, alpha: 0.9 }); onLand?.(s.x, s.z); }
         }
-        s.e.setPosition(s.x, 0, s.z);
+        s.e.setPosition(s.x + ox, 0, s.z + oz);
         s.spin.setLocalPosition(0, bob, 0);
         s.spin.setLocalEulerAngles(0, s.t * 90, Math.sin(s.t * 1.3) * 10);
         const sc = s.born * (c.type === 'rainbow' ? 1.25 : c.type === 'pumpkin' ? 1.15 : 1);

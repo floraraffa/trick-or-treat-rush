@@ -8,12 +8,14 @@
 //   Clips: the default Bitmoji playing each clip through bitmoji-anim.js, every joint's local rotation
 //   recorded 30 times a second, so the Lens can pose any Bitmoji (same rig) without retargeting.
 //   Sounds: the synthesised effects and the music box, rendered offline to WAV.
-import { ADDRESS_REPEAT, BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mesh, MeshInstance, PIXELFORMAT_SRGBA8, StandardMaterial, Texture, Vec2, Application } from 'playcanvas';
+import { ADDRESS_CLAMP_TO_EDGE, ADDRESS_REPEAT, BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mat4, Mesh, MeshInstance, PIXELFORMAT_SRGBA8, Quat, StandardMaterial, Texture, Vec2, Vec3, Application } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
 import { HOUSES } from '../world/layout.js';
 import { CANDY_GLOW, GEM_COLOR, ORB_COLOR, createCandy } from '../actors/candy.js';
 import { CREATURES, createCreature } from '../actors/creatures.js';
+import { createAvatar, setAssetBase } from '../actors/avatar.js';
+import { COSTUMES } from '../actors/costumes.js';
 import { ghostParts } from '../actors/monsters.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { unpackGlb } from '../lib/meshopt-glb.js';
@@ -185,7 +187,7 @@ const count = (root) => {
  * Tidies the exporter's GLB: byte colours marked `normalized` (glTF requires it; without it they read as
  * white), and meshes and materials named after their nodes (Lens Studio names its imported assets so).
  */
-function tidyGlb(buf) {
+function tidyGlb(buf, { rough = null, normalScale = 0 } = {}) {
   const dv = new DataView(buf), jsonLen = dv.getUint32(12, true);
   const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jsonLen)));
   const bin = new Uint8Array(buf, 20 + jsonLen + 8, dv.getUint32(20 + jsonLen, true));
@@ -201,6 +203,12 @@ function tidyGlb(buf) {
     mesh.name ??= n.name;
     for (const p of mesh.primitives) { const mat = json.materials?.[p.material]; if (mat && (!mat.name || mat.name === 'Untitled')) mat.name = n.name; }
   }
+  // (the Lens's own finish: wet, glossier stone and roofs that catch the night's reflections; deeper relief)
+  for (const mat of json.materials ?? []) {
+    const r = rough && Object.entries(rough).find(([k]) => mat.name?.endsWith(`-${k}`));
+    if (r && mat.pbrMetallicRoughness) mat.pbrMetallicRoughness.roughnessFactor = r[1];
+    if (normalScale && mat.normalTexture) mat.normalTexture.scale = normalScale;
+  }
   let text = JSON.stringify(json);
   while (text.length % 4) text += ' ';
   const jsonBytes = new TextEncoder().encode(text), total = 12 + 8 + jsonBytes.length + 8 + bin.length;
@@ -211,10 +219,10 @@ function tidyGlb(buf) {
   return out.buffer;
 }
 
-async function glb(name, root, maxTextureSize = 1024) {
+async function glb(name, root, maxTextureSize = 1024, finish = {}) {
   // Normal maps kept (the Lens has a 25 MB budget: the photos' relief reads up close, in first person above
   // all); export.mjs then re-encodes the images (mozjpeg, palette PNG) to fit.
-  const buf = tidyGlb(await new GltfExporter().build(root, { maxTextureSize, stripUnusedAttributes: false })); // (keeps the vertex colours)
+  const buf = tidyGlb(await new GltfExporter().build(root, { maxTextureSize, stripUnusedAttributes: false }), finish); // (keeps the vertex colours)
   files[`Models/${name}.glb`] = b64(buf);
   report[name] = { ...count(root), kb: Math.round(buf.byteLength / 1024) };
 }
@@ -293,6 +301,35 @@ function mistTexture() {
   return t;
 }
 
+/**
+ * A puff of smoky mist (white, its alpha the puff): billows of noise in a soft round edge, wisps trailing
+ * off it. Several turns of it drift over the village on the table, in place of the sheets on the ground.
+ */
+function puffTexture(seed = 3) {
+  const N = 256, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N);
+  const hash = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7 + seed * 17.3) * 43758.5453; return h - Math.floor(h); };
+  const noise = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    return (hash(xi, yi) * (1 - sx) + hash(xi + 1, yi) * sx) * (1 - sy) + (hash(xi, yi + 1) * (1 - sx) + hash(xi + 1, yi + 1) * sx) * sy;
+  };
+  const fbm = (x, y) => { let v = 0, amp = 0.55, f = 1; for (let o = 0; o < 5; o++) { v += noise(x * f, y * f) * amp; amp *= 0.5; f *= 2.03; } return v; };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = (x / N) * 2 - 1, v = (y / N) * 2 - 1;
+    // the edge wanders with the noise, so the puff isn't a disc
+    const w = fbm(u * 2.2 + 7, v * 2.2 + 3), r = Math.hypot(u, v) * (0.82 + 0.45 * (w - 0.5));
+    const edge = Math.max(0, Math.min(1, (1 - r) / 0.55)), body = fbm(u * 3.1 + w * 1.5, v * 3.1 - w * 1.5);
+    const a = Math.max(0, Math.min(1, edge * edge * (0.25 + 1.1 * body) - 0.12));
+    const i = (y * N + x) * 4;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(a * 255);
+  }
+  g.putImageData(img, 0, 0);
+  const t = new Texture(device, { width: N, height: N, format: PIXELFORMAT_SRGBA8, mipmaps: true, addressU: ADDRESS_CLAMP_TO_EDGE, addressV: ADDRESS_CLAMP_TO_EDGE });
+  t.setSource(c);
+  return t;
+}
+
 // --- the panels: the web game's menu, plate by plate -----------------------------------------------
 
 /**
@@ -335,6 +372,13 @@ async function ui(images) {
 }
 
 // --- the village --------------------------------------------------------------------------------
+
+/**
+ * The village's surfaces after rain, for the glasses (roughness by material): the cobbles and flagstones wet
+ * and glossy, the roofs slick, the earth damp, so they catch the night's reflections (the moon, the lamps:
+ * the Lens's night environment map).
+ */
+const WET = { cobble: 0.24, stone: 0.36, shingle: 0.38, masonry: 0.58, ground: 0.7, dirt: 0.6, wood: 0.6, rock: 0.5, bark: 0.78 };
 
 async function village(tex) {
   const v = createVillage(app, tex, { lowFx: true });
@@ -393,7 +437,7 @@ async function village(tex) {
   root.addChild(unitMarker());
   bakeTiling(root.find((n) => !!n.render));
   report.villageCutTris = cut;
-  await glb('village', root, 2048);
+  await glb('village', root, 2048, { rough: WET, normalScale: 1.4 });
   return v;
 }
 
@@ -507,6 +551,12 @@ async function fx(tex) {
     add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.62, 0.3, 0.42], opacity * 1.15, mist), `mist-mad-${i}`).setLocalPosition(0, y, 0);
   });
   const card = { p: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], n: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 1, 2, 0, 2, 3] };
+  // Smoky mist for the table: puffs (a card of 1 m the Lens turns to the eyes, sizes and drifts), two shapes,
+  // night violet-grey (red-violet in the madness). Same colour, so they blend alike in any order.
+  [puffTexture(3), puffTexture(11)].forEach((t, i) => {
+    add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.4, 0.38, 0.56], 0.5, t), `fog-puff-${i}`);
+    add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.6, 0.28, 0.4], 0.54, t), `fog-mad-${i}`);
+  });
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.7, 0.38], 0.85), 'halo-warm');
   // The sky, as the game's: a big pale moon with a halo (a sickly red one in the madness), and stars on a
   // dome of radius 1 (the Lens sizes it), each a little card turned inwards, brighter overhead.
@@ -599,6 +649,51 @@ async function fx(tex) {
   }
   root.addChild(unitMarker());
   await glb('fx', root, 256);
+}
+
+// --- costumes -----------------------------------------------------------------------------------
+
+/**
+ * costumes.glb: the game's costumes (witch hat, pumpkin, horns, vampire cape) as the game puts them on Snap's
+ * default Bitmoji (its own measurements: the hats on the head, the cape fitted to the back). Each `costume-<id>`
+ * is the joint's frame (no scale, Bitmoji metres) holding the costume where it sits from that joint; the Lens
+ * hangs it on the same joint of whichever Bitmoji is on the board (every Bitmoji shares the rig).
+ * Generated/costumes.ts says which joint, and which node of the cape swings.
+ */
+async function costumes(tex) {
+  setAssetBase(BASE);
+  const av = createAvatar(app, tex, { own: false, costume: 'none' });
+  app.root.addChild(av.root);
+  const st = await av.ready;
+  if (st.state !== 'default') throw new Error(`costumes need the default Bitmoji (got ${st.state})`);
+  const figure = av.root.findByName('figure'), root = new Entity('costumes'), fit = {};
+  for (const id of COSTUMES.filter((c) => c !== 'none')) {
+    av.setCostume(id);
+    const worn = figure.findByName(id === 'cape' ? 'cape' : `costume-${id}`), joint = worn?.parent;
+    if (!joint) throw new Error(`costume ${id}: not worn`);
+    // its place from the joint, in the figure's metres: the joint's scale in the figure, then the costume's own
+    const inFig = new Mat4().mul2(figure.getWorldTransform().clone().invert(), joint.getWorldTransform());
+    const k = inFig.getScale(new Vec3()).x;
+    const anchor = new Entity(`costume-${id}`), copy = worn.clone();
+    copy.name = `${id}-fit`;
+    const p = worn.getLocalPosition();
+    copy.setLocalPosition(p.x * k, p.y * k, p.z * k);
+    copy.setLocalRotation(worn.getLocalRotation());
+    const sc = worn.getLocalScale();
+    copy.setLocalScale(sc.x * k, sc.y * k, sc.z * k);
+    anchor.addChild(copy);
+    root.addChild(anchor);
+    fit[id] = { joint: joint.name, ...(id === 'cape' ? { sway: 'cape-sheet' } : {}) };
+  }
+  av.setCostume('none');
+  root.addChild(unitMarker());
+  await glb('costumes', root, 512);
+  report.costumes = fit;
+  files['Scripts/Generated/costumes.ts'] = btoa(unescape(encodeURIComponent(
+    `// Generated by tools/lens-studio/export.mjs (trick-or-treat-rush): the costumes in costumes.glb and the joint of\n` +
+    `// Snap's Bitmoji rig each one rides on (as the game wears them). Do not edit.\n` +
+    `// @ts-nocheck\nexport const COSTUMES = ${JSON.stringify(COSTUMES)};\nexport const COSTUME_FIT = ${JSON.stringify(fit)};\n`)));
+  av.destroy();
 }
 
 // --- Bitmoji clips ------------------------------------------------------------------------------
@@ -699,7 +794,7 @@ async function sounds() {
 window.__export = async (only = null, { uiImages = null } = {}) => {
   const tex = createTextures(device, { base: BASE, photos: PHOTOS });
   await tex.ready;
-  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), clips, sounds };
+  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), costumes: () => costumes(tex), clips, sounds };
   const errors = [];
   for (const [name, step] of Object.entries(steps)) {
     if (only && !only.includes(name)) continue;

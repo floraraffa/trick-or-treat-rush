@@ -23,7 +23,13 @@ function glowMat(color, opacity) {
   return m;
 }
 
-const CLOUD_Y = 5.8, CLOUD_AHEAD = 3; // the thundercloud hangs low, a little ahead of its player: where the third-person camera looks
+// The thundercloud hangs over its player's head, reaching ahead (where a third-person camera looks: its belly
+// shows at the top of the view, under the HUD), and grows and rises with a giant. Metres: the head's height, the
+// cloud's size (×1: 14 m across), its middle over the head and its underside under its middle (both ×size), how
+// far ahead its middle is (×the player's size), how far its belly reaches from its middle (×size).
+export const CLOUD = { head: 1.65, size: 1.15, lift: 3, under: 1.6, ahead: 3.5, grow: 0.7, reach: 7 };
+/** The cloud's size over a player `k` times as tall (a giant's grows, less than the giant). */
+export const cloudSize = (k = 1) => CLOUD.size * (1 + (k - 1) * CLOUD.grow);
 
 /** How bright a lightning strike is `t` seconds in: a blinding return stroke, a few re-strokes, then gone. */
 export const flashAt = (t) => (t < 0.05 ? 1 : t < 0.08 ? 0.1 : t < 0.12 ? 0.85 : t < 0.16 ? 0.15 : t < 0.22 ? 0.6 : Math.max(0, 0.6 - (t - 0.22) * 3.5));
@@ -130,8 +136,9 @@ export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
   const cloudGeo = stormCloudGeo();
   const cloudMat = new StandardMaterial();
   cloudMat.diffuse = new Color(1, 1, 1); cloudMat.diffuseVertexColor = true;
-  const CLOUD_GLOW = [0.08, 0.06, 0.14];
+  const CLOUD_GLOW = [0.17, 0.12, 0.27]; // (dusky violet: a black cloud would vanish into the night sky)
   cloudMat.emissive = new Color(...CLOUD_GLOW); cloudMat.gloss = 0.05; cloudMat.useMetalness = true;
+  cloudMat.useFog = false; // (near overhead: the fog would melt it into the night sky)
   cloudMat.update();
   // Lightning: a fresh channel every strike, white-hot core in a blue-white glow (tex.bolt across each
   // ribbon), with a light that floods the ground round it for the length of the flash.
@@ -204,21 +211,29 @@ export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
       a.storm += ((rain ? 1 : 0) - a.storm) * Math.min(1, dt * 3);
       a.cloud.enabled = a.storm > 0.02;
       if (a.cloud.enabled) {
-        const k = parent.getLocalScale().x || 1; // stays the same size over a giant
-        const s = a.storm / k;
-        a.cloud.setLocalScale(s, s, s);
-        a.cloud.setLocalPosition(0, CLOUD_Y / k, CLOUD_AHEAD / k);
+        // Over the head (a giant's too), and never down round the camera: over it, it rises clear of it.
+        const k = parent.getLocalScale().x || 1, g = cloudSize(k), s = a.storm * g;
+        let y = CLOUD.head * k + CLOUD.lift * g;
+        const p = parent.getPosition(), f = parent.forward, mx = p.x - f.x * CLOUD.ahead * k, mz = p.z - f.z * CLOUD.ahead * k; // (its middle: +Z ahead)
+        const ey = eye.y - p.y; // (a camera high over it, as over a table, leaves it be)
+        if (ey < y + 2 * g && Math.hypot(eye.x - mx, eye.z - mz) < (CLOUD.reach + 1.5) * g) y = Math.max(y, ey + CLOUD.under * g + 0.4);
+        a.cloud.setLocalScale(s / k, s / k, s / k);
+        a.cloud.setLocalPosition(0, y / k, CLOUD.ahead);
         a.cloud.setEulerAngles(0, a.t * 12, 0);
+        a.size = g;
       }
       if (rain && (a.strikeIn -= dt) <= 0) {
         a.strikeIn = 0.6 + Math.random() * 1.4;
         // mostly in front of its player (where a third-person camera is looking), now and then anywhere
         const f = parent.forward, ahead = Math.atan2(-f.z, -f.x);
         const ang = Math.random() < 0.7 ? ahead + (Math.random() - 0.5) * 2.4 : Math.random() * Math.PI * 2, r = 2.5 + Math.random() * 6;
-        const c = a.cloud.getPosition();
-        strike(x + Math.cos(ang) * r, z + Math.sin(ang) * r, { x: c.x + (Math.random() - 0.5) * 3, y: c.y - 0.8, z: c.z + (Math.random() - 0.5) * 3 }, id);
+        const c = a.cloud.getPosition(), g = a.size ?? 1;
+        strike(x + Math.cos(ang) * r, z + Math.sin(ang) * r, { x: c.x + (Math.random() - 0.5) * 3 * g, y: c.y - CLOUD.under * g * 0.6, z: c.z + (Math.random() - 0.5) * 3 * g }, id);
       }
-      if (rain && fx && Math.random() < dt * 20) fx.emit({ x: x + (Math.random() - 0.5) * 7, y: CLOUD_Y - 0.6, z: z + (Math.random() - 0.5) * 7 }, { x: 0, y: -0.2, z: 0 }, { n: 1, spread: 0.3, size: 1.1, grow: 0.5, life: 1.2, color: [1, 0.5, 0.85], gravity: 0, alpha: 0.25 }); // candy-pink glow under the cloud
+      if (rain && fx && a.cloud.enabled && Math.random() < dt * 20) { // candy-pink glow under the cloud
+        const c = a.cloud.getPosition(), g = a.size ?? 1;
+        fx.emit({ x: c.x + (Math.random() - 0.5) * 5 * g, y: c.y - CLOUD.under * g, z: c.z + (Math.random() - 0.5) * 5 * g }, { x: 0, y: -0.2, z: 0 }, { n: 1, spread: 0.3, size: 1.1 * g, grow: 0.5, life: 1.2, color: [1, 0.5, 0.85], gravity: 0, alpha: 0.25 });
+      }
       if (!fx) return;
       if (magnet && Math.random() < dt * 40) { const ang = Math.random() * Math.PI * 2, R = POWERUPS.magnet.radius; fx.emit({ x: x + Math.cos(ang) * R, y: 0.25, z: z + Math.sin(ang) * R }, { x: -Math.cos(ang) * 1.5, y: 0.4, z: -Math.sin(ang) * 1.5 }, { n: 1, spread: 0.2, size: 0.22, grow: 0.3, life: 0.9, color: [1, 0.4, 0.35], gravity: 0, alpha: 0.9, twinkle: true }); }
       if (fxLeft('ghost') > 0 && Math.random() < dt * 18) fx.emit({ x: x + (Math.random() - 0.5) * 0.5, y: 0.3 + Math.random() * 1.2, z: z + (Math.random() - 0.5) * 0.5 }, { x: 0, y: 0.35, z: 0 }, { n: 1, spread: 0.2, size: 0.3, grow: 1.2, life: 1.1, color: [0.85, 0.85, 1], gravity: 0, alpha: 0.5 });
@@ -250,6 +265,16 @@ export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
       let k = 0;
       for (const b of live) k = Math.max(k, flashAt(b.t) * Math.max(0, 1 - Math.hypot(b.x - x, b.z - z) / 45));
       return k;
+    },
+    /** The thundercloud nearest (x, z), if one is out: its underside's middle and how far its belly reaches (m). */
+    cloudOver(x, z) {
+      let best = null, bd = Infinity;
+      for (const a of per.values()) {
+        if (!a.cloud.enabled || a.storm < 0.3) continue;
+        const c = a.cloud.getPosition(), g = a.size ?? 1, d = Math.hypot(c.x - x, c.z - z);
+        if (d < 16 * g && d < bd) { bd = d; best = { x: c.x, y: c.y - CLOUD.under * g * 0.7, z: c.z, r: 4 * g }; }
+      }
+      return best;
     },
     /** How strong the storm is at (x, z): 1 under a cloud, fading out 20 m away. */
     stormAt(x, z, where) {

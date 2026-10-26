@@ -102,7 +102,7 @@ const sparks = createFx(app, tex.glow, { max: 320, additive: true });
 for (const f of [fx, sparks]) app.root.addChild(f.entity);
 const monsters = createMonsters(app, sparks);
 app.root.addChild(monsters.root);
-const candy = createCandy(app, tex, sparks, { onLand: (x, z) => { if (screen === 'game' && Math.hypot(player.state.x - x, player.state.z - z) < 10) sfx.patter(); } });
+const candy = createCandy(app, tex, sparks, { onLand: (x, z) => { if (screen === 'game' && Math.hypot(player.state.x - x, player.state.z - z) < 10) sfx.patter(); }, cloudOver: (x, z) => auras.cloudOver(x, z) });
 app.root.addChild(candy.root);
 // Candy storms throw lightning: a flash and thunder by how near it struck (a strike right overhead shakes the camera).
 const auras = createAuras(app, sparks, {

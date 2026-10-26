@@ -75,7 +75,7 @@ const sparks = createFx(app, tex.glow, { max: 260, additive: true });
 for (const f of [fx, sparks]) app.root.addChild(f.entity);
 const monsters = createMonsters(app, sparks);
 app.root.addChild(monsters.root);
-const candy = createCandy(app, tex, sparks);
+const candy = createCandy(app, tex, sparks, { cloudOver: (x, z) => auras.cloudOver(x, z) });
 app.root.addChild(candy.root);
 const auras = createAuras(app, sparks, {
   tex,

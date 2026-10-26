@@ -10,8 +10,9 @@ zombie route); levels differ in speed, keenness, how long a grab slows you (3/4/
 Most candy wins. A trick at a door lets a swarm out of the house (6/7/8 ghosts and creatures by level, `swarm` in
 DIFFICULTY: they fan out of the door, then chase the knocker for `trickLife` s) and one time in five also steals all
 your candy (`TRICK_ROB`); there is no web trick any more; the giant gem makes you ×5 (it only bumps into walls and towers). There is no giant ghost (removed) and no sprint button (replaced by AUTORUN). Every gem and power-up
-lasts 20 s: gems giant / thief / ghost, power-ups candy storm (`rain`: a thundercloud with lightning, thunder and rain
-that pours candy, 7–12 a second by level) / shield / magnet (16 m) / double. How much help a night hands out (street
+lasts 20 s: gems giant / thief / ghost, power-ups candy storm (`rain`: a thundercloud over its player's head, rising
+and growing with a giant, with lightning, thunder and rain; the candy, 7–12 a second by level, drops out of its belly)
+/ shield / magnet (16 m) / double. How much help a night hands out (street
 candy, orbs, gems, scare loot, storm rate) is per level in `DIFFICULTY[level].help`.
 The team talks in Spanish (and French); code, comments and commits are in English.
 
@@ -56,7 +57,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   gold, horn, rind, glow). `src/ui/vampire.js` the vampire face drawn for the costume picker.
 - `src/actors/` avatar (own Bitmoji via API, default Bitmoji for others, stand-in, costumes on joints; `setGhost`
   swaps in see-through copies of its own materials), player controller (auto-run, ghosts skip colliders), monsters,
-  candy/orbs/gems (storm candy falls in), power-up auras (`effects.js`: also the storm's cloud and lightning, a fresh
+  candy/orbs/gems (storm candy drops from the cloud's belly: `cloudOver`), power-up auras (`effects.js`: also the
+  storm's cloud (`CLOUD`: over the head, reaching ahead so its belly shows under the HUD, ×`cloudSize(k)` over a giant,
+  lifted clear of a camera under it, unfogged) and lightning, a fresh
   fractal channel per strike as camera-facing ribbons with `flashAt(t)` flickers and a ground light; strikes call back
   main.js for the screen flash and thunder, and main feeds `auras.flashAt` to `village.setLightning` every frame; plus
   the rain streaks round the camera).
@@ -124,7 +127,20 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   it goes, a pinch (any length) goes there and the destination follows the hand while held; first person = pinches
   with alternate hands are steps, arm swings walk (wrists against each other), hold + point; both = the phone's
   screen as a joystick (SIK's mobile controller sends touches as the Lens's Touch events; a mouse drag in the
-  Preview). TAP 0.5 s. The menu opens 14 cm over the eyes at 100 cm, ×0.85.
+  Preview). TAP 0.5 s.
+  Round 7: monsters on the table a little taller than the Bitmoji (ghost ×2.2 = PIECE, creatures ×1.87; measured
+  model heights in TrickOrTreat.ts); the storm cloud over the Bitmoji's head (table: ×1.5, standing back from the
+  eyes just enough to leave the head in sight; first person: ahead, its belly 1 m over the eyes), the storm's candy
+  from its belly, bolts stretched to it; costumes in the menu (`costume` plates drawn with the web's round buttons;
+  export step `costumes`: costumes.glb, each `costume-<id>` = its joint's frame without scale holding the costume as
+  the web fits it on the default Bitmoji, + `Generated/costumes.ts` COSTUME_FIT joint names; Avatar.wear hangs it on
+  that joint at the Bitmoji's size); panels open at PANEL_AT (menu 110 cm ahead, 24 cm over the eyes, ×0.8) tipped
+  to face the eyes (`faceEyes`); the board starts at 1:80 (sizes S/M/L = 100/80/60, `save.scale` free); both hands
+  pinching hold the board (move, turn, part/close = bigger/smaller, round their middle; pinch point = thumb/index
+  midpoint); on the table no mist sheets (`fog-puff-*`/`fog-mad-*` cards drifting, turned to the eyes) and the stars
+  round the room (`ROOM_SKY` 4.2 m on the eyes; the board's own in first person); the village glb gets `WET`
+  roughness and normal scale 1.4 (`tidyGlb` finish) and the scene's env map is the Lens repo's NightSky.hdr
+  (`tools/make-night-sky.py`, half the template's daytime light, blue).
 
 ## Commands
 
