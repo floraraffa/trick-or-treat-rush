@@ -415,8 +415,10 @@ async function ghost() {
   const root = new Entity('ghost'), inner = new Entity('inner');
   root.addChild(inner);
   const add = (geo, m, name, on = true) => { const e = geo.build(device, m, name); e.enabled = on; inner.addChild(e); };
-  add(body, mat({ color: [0.95, 0.94, 1], emissive: [0.32, 0.3, 0.45], opacity: 0.86, gloss: 0.6, twoSided: true }), 'body');
-  add(body, mat({ color: [0.45, 0.6, 1], emissive: [0.15, 0.3, 0.75], opacity: 0.8, gloss: 0.6, twoSided: true }), 'body-scared');
+  // Solid on the glasses (the game's sheet is a little see-through: in Lens Studio a see-through, two-sided sheet
+  // sorts against the mist differently from frame to frame and flickers; the see-through display makes it airy anyway).
+  add(body, mat({ color: [0.95, 0.94, 1], emissive: [0.32, 0.3, 0.45], gloss: 0.6, twoSided: true }), 'body');
+  add(body, mat({ color: [0.45, 0.6, 1], emissive: [0.15, 0.3, 0.75], gloss: 0.6, twoSided: true }), 'body-scared');
   add(face, mat({ color: [0.02, 0.02, 0.04] }), 'face-idle');
   add(face, mat({ color: [0.2, 0, 0], emissive: [1, 0.12, 0.08] }), 'face-chase');
   add(face, mat({ color: [0.9, 0.95, 1], emissive: [0.8, 0.9, 1] }), 'face-scared');

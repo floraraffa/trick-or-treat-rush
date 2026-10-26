@@ -118,6 +118,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   isFacingCamera, palm, index tip; touched by the other hand's fingertip or pointed at); first person walks while a
   pinch is held, the way the hand points (walk pace, auto-run gathers); night light as the web game's (moon 1.2,
   env map exposure 0.5, MOONLIGHT = MOON_CALM) and the mist a dark violet-grey (it is unlit).
+  Round 6: see-through fx never write depth and draw in a fixed order (`glowOrder`: ground glows 10, mist 11–14,
+  rings 15, cards 16, beams 17, bolts 18, pointer 90: a depth-writing glow card cut square holes in the mist); the
+  ghost is solid in the Lens; monsters ×3.5 on the table. Walking: table = point (no pinch, after 0.3 s still) and
+  it goes, a pinch (any length) goes there and the destination follows the hand while held; first person = pinches
+  with alternate hands are steps, arm swings walk (wrists against each other), hold + point; both = the phone's
+  screen as a joystick (SIK's mobile controller sends touches as the Lens's Touch events; a mouse drag in the
+  Preview). TAP 0.5 s. The menu opens 14 cm over the eyes at 100 cm, ×0.85.
 
 ## Commands
 
