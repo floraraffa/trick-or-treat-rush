@@ -3,7 +3,8 @@
 // its texts on them and picks its buttons by these boxes. Centimetres in the panel's plane, y up, centred.
 //   kind: tome (a panel), title (the logo), plate (a panel's name ribbon), pill (a level / view / size button),
 //   lang (a language button with its flag), go (the orange button), btn (the violet one), chip (the HUD bar),
-//   round (the HUD's menu button). Buttons come in three looks: off, on (chosen) and hover (pointed at).
+//   round (the HUD's menu button), grip (the bar under a panel that moves it). Buttons come in three looks:
+//   off, on (chosen) and hover (pointed at). The wrist panel rides on the player's wrist (palm turned to them).
 //   text: the label's font (title: Griffy, ui: Mystery Quest), size and colour (the web game's).
 
 export const UI_PX = 10; // CSS pixels a centimetre when the plates are drawn (at 4× for the texture)
@@ -15,6 +16,8 @@ const SIZE = { kind: 'pill', w: 4.4, h: 3.4, text: { font: 'ui', size: 40, color
 const LANG = { kind: 'lang', w: 9.4, h: 4.8, text: { font: 'ui', size: 30, color: 'lav', on: 'ink', dy: -1.1 } };
 const GO = (w, h = 4.8, size = 60) => ({ kind: 'go', w, h, text: { font: 'title', size, color: 'ink' } });
 const BTN = (w, h = 4.8, size = 40) => ({ kind: 'btn', w, h, text: { font: 'ui', size, color: 'cream' } });
+const GRIP = (y) => ({ id: 'grip', kind: 'grip', x: 0, y, w: 12, h: 1.6 });
+const WRIST = { kind: 'pill', w: 11.6, h: 2.5, text: { font: 'ui', size: 28, color: 'lav', on: 'ink' } };
 
 export const UI = {
   menu: {
@@ -29,12 +32,14 @@ export const UI = {
       { id: 'move', x: 12.6, y: -10.6, ...BTN(13, 3.4, 30) },
       { id: 'play', x: -4.6, y: -15.2, ...GO(25) },
       { id: 'how', x: 14.4, y: -15.2, ...BTN(12, 4.8, 34) },
+      GRIP(-21.6),
     ],
     texts: [
       { id: 'sub', x: 0, y: 7.2, w: 40, h: 1.8, font: 'ui', size: 34, color: 'lav' },
       { id: 'size', x: -15.4, y: -10.6, w: 8, h: 2.2, font: 'ui', size: 32, color: 'lav' },
       { id: 'best', x: -11.5, y: -19.1, w: 20, h: 1.8, font: 'ui', size: 30, color: 'gold' },
       { id: 'bitmoji', x: 9.5, y: -19.1, w: 24, h: 1.8, font: 'ui', size: 26, color: 'lav' },
+      { id: 'tip', x: 0, y: -23.6, w: 46, h: 1.6, font: 'ui', size: 24, color: 'lav' },
     ],
   },
   how: {
@@ -42,6 +47,7 @@ export const UI = {
       { id: 'tome', kind: 'tome', x: 0, y: 0, w: 44, h: 28 },
       { id: 'plate', kind: 'plate', x: 0, y: 13.6, w: 18, h: 4 },
       { id: 'back', x: 0, y: -11, ...GO(18, 4.6, 52) },
+      GRIP(-15.4),
     ],
     texts: [
       { id: 'title', x: 0, y: 13.6, w: 16, h: 2.6, font: 'title', size: 56, color: 'gold' },
@@ -54,6 +60,7 @@ export const UI = {
       { id: 'plate', kind: 'plate', x: 0, y: 11.6, w: 14, h: 4 },
       { id: 'again', x: -6, y: -7.4, ...GO(19, 4.8, 50) },
       { id: 'menu', x: 10.6, y: -7.4, ...BTN(10, 4.8, 38) },
+      GRIP(-13.4),
     ],
     texts: [
       { id: 'plate', x: 0, y: 11.6, w: 12, h: 2.6, font: 'title', size: 52, color: 'gold' },
@@ -70,11 +77,22 @@ export const UI = {
       { id: 'view:first', x: 8.3, y: 3.2, ...VIEW },
       { id: 'resume', x: -5, y: -4.6, ...GO(20, 4.8, 50) },
       { id: 'menu', x: 11, y: -4.6, ...BTN(10, 4.8, 38) },
+      GRIP(-12.4),
     ],
     texts: [
       { id: 'title', x: 0, y: 10.6, w: 14, h: 2.6, font: 'title', size: 56, color: 'gold' },
       { id: 'view', x: 0, y: 6.6, w: 30, h: 1.8, font: 'ui', size: 30, color: 'lav' },
     ],
+  },
+  wrist: {
+    items: [
+      { id: 'tome', kind: 'tome', x: 0, y: 0, w: 14, h: 14.4 },
+      { id: 'view:table', x: 0, y: 4.6, ...WRIST },
+      { id: 'view:first', x: 0, y: 1.6, ...WRIST },
+      { id: 'pause', x: 0, y: -1.6, ...GO(11.6, 2.7, 32) },
+      { id: 'menu', x: 0, y: -4.7, ...BTN(11.6, 2.5, 26) },
+    ],
+    texts: [],
   },
   hud: {
     items: [
@@ -117,5 +135,5 @@ export function plateNode(panel, id, look) {
 
 /** The looks an item has. */
 export function plateLooks(it) {
-  return ['tome', 'title', 'plate', 'chip'].includes(it.kind) ? ['off'] : ['off', 'on', 'hover'];
+  return ['tome', 'title', 'plate', 'chip'].includes(it.kind) ? ['off'] : it.kind === 'grip' ? ['off', 'hover'] : ['off', 'on', 'hover'];
 }

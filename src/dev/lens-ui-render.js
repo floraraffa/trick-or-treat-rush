@@ -27,6 +27,9 @@ style.textContent = `${page.match(/<style>([\s\S]*?)<\/style>/)[1]}
   .uiplate .round .bars { display: flex; gap: 5px; }
   .uiplate .round .bars i { display: block; width: 6px; height: 17px; border-radius: 2px; background: #f3e9d8; }
   .uiplate .title { white-space: nowrap; }
+  .uiplate .grip { border-radius: 999px; background: linear-gradient(180deg, rgba(195,184,220,.6), rgba(110,90,150,.5)); border: 2px solid #9a86b8;
+    box-shadow: 0 0 10px rgba(150,110,210,.4); display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .uiplate .grip i { display: block; width: 5px; height: 5px; border-radius: 50%; background: #2b1838; opacity: .8; }
   .uiplate .tome { padding: 0; max-width: none; }
 `;
 document.head.appendChild(style);
@@ -45,12 +48,13 @@ for (const p of uiPlates()) {
     el.className = 'title';
     el.innerHTML = '<span class="w">TRICK</span> <span class="w">OR</span> <span class="w">TREAT</span><span class="rush">RUSH</span>';
   } else {
-    el = document.createElement(p.kind === 'tome' || p.kind === 'plate' || p.kind === 'chip' ? 'div' : 'button');
-    el.className = { tome: 'tome', plate: 'plate', chip: 'chip', pill: 'lvl', lang: 'lvl lang', go: 'btn go', btn: 'btn', round: 'round' }[p.kind];
+    el = document.createElement(p.kind === 'tome' || p.kind === 'plate' || p.kind === 'chip' || p.kind === 'grip' ? 'div' : 'button');
+    el.className = { tome: 'tome', plate: 'plate', chip: 'chip', pill: 'lvl', lang: 'lvl lang', go: 'btn go', btn: 'btn', round: 'round', grip: 'grip' }[p.kind];
     el.style.width = px(p.w);
     el.style.height = px(p.h);
     if (p.kind === 'lang') el.innerHTML = FLAGS[p.lang];
     if (p.kind === 'round') el.innerHTML = '<span class="bars"><i></i><i></i></span>';
+    if (p.kind === 'grip') el.innerHTML = '<i></i><i></i><i></i>';
     if (p.look === 'on') el.classList.add('on');
     if (p.look === 'hover') el.classList.add('hover');
   }

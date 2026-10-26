@@ -113,6 +113,11 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   Hands: the Lens project carries SIK 0.17.2 (its scene objects cut from Snap's Essentials sample, hands as
   occluders) and points with SIK's hand rays; pieces ×2.2. Copies from fx.glb go into the board's frame
   (`this.world`), never under a node inside another model (a model's root is ×100 in Lens Studio).
+  Round 5: panels move by their `grip` bar (pinch it and the panel hangs on the ray; panels then open at that
+  `dock`), open a little over the eyes; a `wrist` panel rides beside a palm turned to the eyes (SIK HandInputData:
+  isFacingCamera, palm, index tip; touched by the other hand's fingertip or pointed at); first person walks while a
+  pinch is held, the way the hand points (walk pace, auto-run gathers); night light as the web game's (moon 1.2,
+  env map exposure 0.5, MOONLIGHT = MOON_CALM) and the mist a dark violet-grey (it is unlit).
 
 ## Commands
 

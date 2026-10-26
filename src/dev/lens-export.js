@@ -500,8 +500,9 @@ async function fx(tex) {
   // red-violet twins (the Lens shows one set or the other).
   const mist = mistTexture();
   [[0.12, 0.34, 1 / 7], [0.35, 0.3, 1 / 9], [0.9, 0.22, 1 / 13], [1.8, 0.15, 1 / 17]].forEach(([y, opacity, uv], i) => {
-    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.84, 0.82, 0.95], opacity, mist), `mist-${i}`).setLocalPosition(0, y, 0);
-    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [1, 0.62, 0.72], opacity * 1.15, mist), `mist-mad-${i}`).setLocalPosition(0, y, 0);
+    // (unlit, so the night's lights don't darken it: night violet-grey, as the web game's fog, not white)
+    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.42, 0.4, 0.6], opacity, mist), `mist-${i}`).setLocalPosition(0, y, 0);
+    add(withAlpha(disc(BOARD_R - 1, 48, 6, uv)), glowMat(tex, [0.62, 0.3, 0.42], opacity * 1.15, mist), `mist-mad-${i}`).setLocalPosition(0, y, 0);
   });
   const card = { p: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], n: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 1, 2, 0, 2, 3] };
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.7, 0.38], 0.85), 'halo-warm');
