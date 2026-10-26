@@ -3,3 +3,6 @@ dist/
 submission/
 tests/out/
 dist-specs/
+
+# Screenshots the browser tests leave where they are run from
+/p[0-9]*.png
