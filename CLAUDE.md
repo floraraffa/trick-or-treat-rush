@@ -158,6 +158,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   `ray-dot` light ahead towards the best candy; results light up to 3 `bigstar` plates one by one, then NEXT
   NIGHT / AGAIN / MENU; `save.nights[n] = { best, stars }`, `save.night`. Panel plates that aren't buttons but
   have looks (`star`, `bigstar`) are `Panel.plates` + `setLook`. Timers set by a timer now survive (`later`).
+  Then the monsters on the table went to about 1.5× the Bitmoji (ghost ×2.7, creatures ×2.5): ×3.5 was too big,
+  the round 7 sizes (×2.2 / ×1.87) too small.
 
 ## Commands
 
