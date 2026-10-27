@@ -4,14 +4,15 @@
 //   kind: tome (a panel), title (the logo), plate (a panel's name ribbon), pill (a level / view / size button),
 //   lang (a language button with its flag), go (the orange button), btn (the violet one), chip (the HUD bar),
 //   round (the HUD's menu button), grip (the bar under a panel that moves it), costume (a round button with the
-//   costume's icon, as the web menu's). Buttons come in three looks:
-//   off, on (chosen) and hover (pointed at). The wrist panel rides on the player's wrist (palm turned to them).
+//   costume's icon, as the web menu's), night (a night of the campaign: its number is written over it; locked, a
+//   padlock), star and bigstar (a star won or not: plates, not buttons). Buttons come in three looks: off, on
+//   (chosen) and hover (pointed at), a night also `lock`. The wrist panel rides on the player's wrist (palm
+//   turned to them).
 //   text: the label's font (title: Griffy, ui: Mystery Quest), size and colour (the web game's).
 
 export const UI_PX = 10; // CSS pixels a centimetre when the plates are drawn (at 4× for the texture)
 export const UI_PAD = 1.2; // cm of room round each plate for its glow and shadow (the quads are that much larger)
 
-const LEVEL = { kind: 'pill', w: 10, h: 3.4, text: { font: 'ui', size: 40, color: 'lav', on: 'ink' } };
 const VIEW = { kind: 'pill', w: 15, h: 3.4, text: { font: 'ui', size: 38, color: 'lav', on: 'ink' } };
 const SIZE = { kind: 'pill', w: 4.4, h: 3.4, text: { font: 'ui', size: 40, color: 'lav', on: 'ink' } };
 const LANG = { kind: 'lang', w: 9.4, h: 4.8, text: { font: 'ui', size: 30, color: 'lav', on: 'ink', dy: -1.1 } };
@@ -20,6 +21,10 @@ const BTN = (w, h = 4.8, size = 40) => ({ kind: 'btn', w, h, text: { font: 'ui',
 const GRIP = (y) => ({ id: 'grip', kind: 'grip', x: 0, y, w: 12, h: 1.6 });
 const WRIST = { kind: 'pill', w: 11.6, h: 2.5, text: { font: 'ui', size: 28, color: 'lav', on: 'ink' } };
 const COSTUME = { kind: 'costume', w: 4.8, h: 4.8 };
+const NIGHT = { kind: 'night', w: 9.6, h: 6.6, text: { font: 'title', size: 80, color: 'lav', on: 'ink' } };
+const STAR = { kind: 'star', w: 2.3, h: 2.3 };
+export const NIGHT_COUNT = 8; // (the game's NIGHTS)
+const nightX = (i) => -16.5 + (i % 4) * 11, nightY = (i) => (i < 4 ? 11.4 : 0.4);
 export const COSTUME_IDS = ['witch', 'pumpkin', 'horns', 'cape', 'none']; // (the game's COSTUMES, in its order)
 
 export const UI = {
@@ -27,7 +32,7 @@ export const UI = {
     items: [
       { id: 'tome', kind: 'tome', x: 0, y: -1.4, w: 47, h: 43.4 },
       { id: 'title', kind: 'title', x: 0, y: 15.6, w: 25, h: 8.6 },
-      ...['easy', 'medium', 'hard'].map((id, i) => ({ id: `level:${id}`, x: -11 + i * 11, y: 6.8, ...LEVEL })),
+      { id: 'star', x: -4.2, y: 6.8, ...STAR, w: 3.2, h: 3.2 }, // (the stars won so far, written beside it)
       ...['en', 'es', 'fr', 'de'].map((id, i) => ({ id: `lang:${id}`, x: -15.3 + i * 10.2, y: 1.8, ...LANG })),
       ...COSTUME_IDS.map((id, i) => ({ id: `costume:${id}`, x: -11.2 + i * 5.6, y: -4, ...COSTUME })),
       { id: 'view:table', x: -8.3, y: -9.6, ...VIEW },
@@ -40,12 +45,34 @@ export const UI = {
     ],
     texts: [
       { id: 'sub', x: 0, y: 10.6, w: 40, h: 1.8, font: 'ui', size: 34, color: 'lav' },
+      { id: 'stars', x: 2.6, y: 6.8, w: 10, h: 2.6, font: 'title', size: 52, color: 'gold' },
       { id: 'costume', x: -18.7, y: -4, w: 8.4, h: 2.2, font: 'ui', size: 30, color: 'lav' },
       { id: 'costumeName', x: 18.6, y: -4, w: 9.2, h: 3.6, font: 'ui', size: 26, color: 'gold', wrap: true },
       { id: 'size', x: -15.4, y: -13.6, w: 8, h: 2.2, font: 'ui', size: 32, color: 'lav' },
       { id: 'best', x: -11.5, y: -22.1, w: 20, h: 1.8, font: 'ui', size: 30, color: 'gold' },
       { id: 'bitmoji', x: 9.5, y: -22.1, w: 24, h: 1.8, font: 'ui', size: 26, color: 'lav' },
       { id: 'tip', x: 0, y: -27.3, w: 46, h: 3.2, font: 'ui', size: 24, color: 'lav', wrap: true },
+    ],
+  },
+  // The campaign: eight nights, each with the stars won (a padlock until the night before has a star), and the
+  // night picked: its skill, the candy for each star, the best so far.
+  nights: {
+    items: [
+      { id: 'tome', kind: 'tome', x: 0, y: -1, w: 50, h: 46 },
+      { id: 'plate', kind: 'plate', x: 0, y: 19.6, w: 18, h: 4 },
+      ...Array.from({ length: NIGHT_COUNT }, (_, i) => ({ id: `night:${i}`, x: nightX(i), y: nightY(i), ...NIGHT })),
+      ...Array.from({ length: NIGHT_COUNT }, (_, i) => [0, 1, 2].map((k) => ({ id: `star:${i}:${k}`, x: nightX(i) + (k - 1) * 2.6, y: nightY(i) - 4.9, ...STAR }))).flat(),
+      ...[0, 1, 2].map((k) => [0, 1, 2].slice(0, k + 1).map((j) => ({ id: `goal:${k}:${j}`, x: -19 + k * 13.6 + j * 2.2, y: -14.6, ...STAR, w: 2, h: 2 }))).flat(),
+      { id: 'play', x: -5.5, y: -20.6, ...GO(22) },
+      { id: 'back', x: 12.5, y: -20.6, ...BTN(11, 4.8, 34) },
+      GRIP(-26),
+    ],
+    texts: [
+      { id: 'title', x: 0, y: 19.6, w: 16, h: 2.6, font: 'title', size: 56, color: 'gold' },
+      { id: 'name', x: 0, y: -7.6, w: 44, h: 2.8, font: 'title', size: 60, color: 'gold' },
+      { id: 'how', x: 0, y: -10.9, w: 44, h: 3.4, font: 'ui', size: 30, color: 'cream', wrap: true },
+      ...[0, 1, 2].map((k) => ({ id: `goal${k}`, x: -19 + k * 13.6 + (k + 1) * 2.2 + 2.6, y: -14.6, w: 7, h: 2.2, font: 'title', size: 44, color: 'cream' })),
+      { id: 'best', x: 0, y: -17.3, w: 30, h: 1.8, font: 'ui', size: 30, color: 'gold' },
     ],
   },
   how: {
@@ -60,19 +87,23 @@ export const UI = {
       ...[0, 1, 2, 3].map((i) => ({ id: `line${i}`, x: 0, y: 8.2 - i * 4.4, w: 38, h: 3.6, font: 'ui', size: 34, color: 'cream', wrap: true })),
     ],
   },
+  // The night's end: up to three big stars (the middle one higher, as in Angry Birds), the candy, the record or
+  // the night it opened; on to the next night, the same again, or the menu.
   results: {
     items: [
-      { id: 'tome', kind: 'tome', x: 0, y: 0, w: 36, h: 24 },
-      { id: 'plate', kind: 'plate', x: 0, y: 11.6, w: 14, h: 4 },
-      { id: 'again', x: -6, y: -7.4, ...GO(19, 4.8, 50) },
-      { id: 'menu', x: 10.6, y: -7.4, ...BTN(10, 4.8, 38) },
-      GRIP(-13.4),
+      { id: 'tome', kind: 'tome', x: 0, y: -1.2, w: 40, h: 32.4 },
+      { id: 'plate', kind: 'plate', x: 0, y: 14.4, w: 16, h: 4 },
+      ...[0, 1, 2].map((k) => ({ id: `bigstar:${k}`, kind: 'bigstar', x: (k - 1) * 8.6, y: k === 1 ? 8.4 : 7.2, w: 7, h: 7 })),
+      { id: 'next', x: -9.3, y: -11.2, ...GO(17.4, 4.8, 44) },
+      { id: 'again', x: 4.8, y: -11.2, ...BTN(9.4, 4.8, 32) },
+      { id: 'menu', x: 13.7, y: -11.2, ...BTN(7.4, 4.8, 30) },
+      GRIP(-18.2),
     ],
     texts: [
-      { id: 'plate', x: 0, y: 11.6, w: 12, h: 2.6, font: 'title', size: 52, color: 'gold' },
-      { id: 'title', x: 0, y: 6.6, w: 32, h: 4.2, font: 'title', size: 100, color: 'gold' },
-      { id: 'score', x: 0, y: 1.6, w: 30, h: 3.8, font: 'title', size: 90, color: 'cream' },
-      { id: 'best', x: 0, y: -2.4, w: 30, h: 2.2, font: 'ui', size: 40, color: 'gold' },
+      { id: 'plate', x: 0, y: 14.4, w: 14, h: 2.6, font: 'title', size: 52, color: 'gold' },
+      { id: 'title', x: 0, y: 2.4, w: 34, h: 2.6, font: 'title', size: 60, color: 'gold' },
+      { id: 'score', x: 0, y: -1.6, w: 30, h: 3.6, font: 'title', size: 90, color: 'cream' },
+      { id: 'best', x: 0, y: -5.6, w: 34, h: 2.2, font: 'ui', size: 38, color: 'gold' },
     ],
   },
   pause: {
@@ -141,5 +172,9 @@ export function plateNode(panel, id, look) {
 
 /** The looks an item has. */
 export function plateLooks(it) {
-  return ['tome', 'title', 'plate', 'chip'].includes(it.kind) ? ['off'] : it.kind === 'grip' ? ['off', 'hover'] : ['off', 'on', 'hover'];
+  if (['tome', 'title', 'plate', 'chip'].includes(it.kind)) return ['off'];
+  if (it.kind === 'grip') return ['off', 'hover'];
+  if (it.kind === 'star' || it.kind === 'bigstar') return ['off', 'on'];
+  if (it.kind === 'night') return ['off', 'on', 'hover', 'lock'];
+  return ['off', 'on', 'hover'];
 }

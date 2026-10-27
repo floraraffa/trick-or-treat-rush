@@ -6,7 +6,8 @@
 // Houses (trick or treat, 15 s cooldown; a trick lets a swarm of monsters out), candy (one id, one
 // owner; a candy rain drops more round its player), monsters (patrol → chase → attack → recover →
 // return, or flee and get scared off, blind to anyone turned ghost), power-ups, gems, the level and
-// Monster Madness all live here.
+// Monster Madness all live here. A round is a level (the phone game's three, 180 s) or a night of the
+// Lens's campaign (300 s, its own rules and the Bitmoji's skills by then: boo, sneak, smell...).
 import { rng } from '../rng.js';
 import * as C from './config.js';
 import { CANDY_SPOTS, DOOR_RANGE, HOUSES, MAP_R, ORB_SPOTS, PATROLS, SPAWNS } from '../world/layout.js';
@@ -34,12 +35,30 @@ export class Authority {
 
   // --- round lifecycle ---------------------------------------------------------------------
 
-  /** Starts a round for these players ({ id, name, costume }, at most four) at a level (easy, medium, hard). */
-  start(roster, level = C.DEFAULT_LEVEL) {
+  /**
+   * Starts a round for these players ({ id, name, costume }, at most four) at a level (easy, medium, hard), or,
+   * with `night` (0-based), a night of the campaign (its rules, its length, its skills). `candyMul`: more candy
+   * on the streets (the Lens's table).
+   */
+  start(roster, level = C.DEFAULT_LEVEL, { night = null, candyMul = 1 } = {}) {
     this.round++;
-    this.level = C.LEVELS.includes(level) ? level : C.DEFAULT_LEVEL;
-    this.D = C.DIFFICULTY[this.level];
-    this.help = this.D.help;
+    this.night = Number.isInteger(night) && C.NIGHTS[night] ? night : null;
+    if (this.night !== null) {
+      this.level = C.NIGHTS[this.night].base;
+      this.D = C.nightRules(this.night);
+      this.skills = new Set(C.skillsOf(this.night));
+      this.seconds = C.NIGHT_SECONDS;
+    } else {
+      this.level = C.LEVELS.includes(level) ? level : C.DEFAULT_LEVEL;
+      this.D = C.DIFFICULTY[this.level];
+      this.skills = new Set(C.LEVEL_SKILLS);
+      this.seconds = C.ROUND_SECONDS;
+    }
+    const help = { ...this.D.help };
+    help.candy = Math.round(help.candy * candyMul); help.candyMadness = Math.round(help.candyMadness * candyMul);
+    if (!this.skills.has('powers')) help.orbs = 0;
+    if (!this.skills.has('gems')) help.gems = 0;
+    this.help = help;
     this.cfg = { ghost: { ...C.MONSTERS.ghost, ...this.D.ghost }, zombie: { ...C.MONSTERS.zombie, ...this.D.zombie } };
     this.phase = 'countdown';
     this.clock = 0; // seconds since start; round time rt = clock - COUNTDOWN
@@ -50,7 +69,7 @@ export class Authority {
     this.players = new Map();
     roster.slice(0, C.MAX_PLAYERS).forEach((p, i) => {
       const s = SPAWNS[i];
-      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, rain: 0, x: s.x, z: s.z, vx: 0, vz: 0, poseAt: null });
+      this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, score: 0, held: null, fx: {}, inv: 0, rain: 0, booAt: -Infinity, x: s.x, z: s.z, vx: 0, vz: 0, poseAt: null });
     });
     this.houses = HOUSES.map(() => ({ until: -Infinity }));
     this.candies = new Map();
@@ -65,7 +84,7 @@ export class Authority {
     this.gemSeq = 0;
     this.nextGem = this.help.gemFirst;
     this.emit({
-      e: 'start', round: this.round, level: this.level,
+      e: 'start', round: this.round, level: this.level, night: this.night, seconds: this.seconds, skills: [...this.skills],
       players: [...this.players.values()].map((p, i) => ({ id: p.id, name: p.name, costume: p.costume, spawn: SPAWNS[i] })),
     });
     for (let k = 0; k < this.help.candy; k++) this.spawnCandy();
@@ -123,8 +142,8 @@ export class Authority {
       if (rt >= 0) { this.phase = 'playing'; this.emit({ e: 'go' }); }
       return;
     }
-    if (rt >= C.ROUND_SECONDS) { this.end(); return; }
-    if (!this.madness && rt >= C.ROUND_SECONDS - C.MADNESS_AT) this.startMadness();
+    if (rt >= this.seconds) { this.end(); return; }
+    if (!this.madness && rt >= this.seconds - C.MADNESS_AT) this.startMadness();
 
     // Timed state: effects expire, candy and orbs come back.
     for (const p of this.players.values()) {
@@ -146,7 +165,7 @@ export class Authority {
       p.rain += h * this.help.rain;
       while (p.rain >= 1) { p.rain -= 1; this.rainCandy(p); }
     }
-    if (this.gems.size < this.help.gems && rt >= this.nextGem && rt < C.ROUND_SECONDS - 8) this.spawnGem();
+    if (this.gems.size < this.help.gems && rt >= this.nextGem && rt < this.seconds - 8) this.spawnGem();
 
     for (const m of [...this.monsters]) this.stepMonster(m, h);
     this.separate();
@@ -179,12 +198,12 @@ export class Authority {
       .map((p) => ({ id: p.id, name: p.name, costume: p.costume, score: p.score }));
     const top = ranking.length ? ranking[0].score : 0;
     this.sendSnapshot();
-    this.emit({ e: 'over', ranking, winners: ranking.filter((r) => r.score === top).map((r) => r.id) });
+    this.emit({ e: 'over', ranking, winners: ranking.filter((r) => r.score === top).map((r) => r.id), night: this.night });
   }
 
   // --- requests from players -------------------------------------------------------------
 
-  /** A player's request: { kind: 'knock' | 'pickup' | 'orb' | 'gem' | 'use', ... }. Invalid ones are ignored. */
+  /** A player's request: { kind: 'knock' | 'pickup' | 'orb' | 'gem' | 'use' | 'boo', ... }. Invalid ones are ignored. */
   intent(from, msg) {
     const p = this.players.get(from);
     if (!p || p.gone || this.phase !== 'playing') return; // nothing scores before GO or after time's up
@@ -193,7 +212,8 @@ export class Authority {
       const c = this.candies.get(msg.id);
       if (!c) return; // already someone else's: a candy can't be taken twice
       if (c.land > rt + 0.15) return; // still falling from the sky
-      const reach = (p.fx.magnet > rt ? C.POWERUPS.magnet.radius : C.PICKUP_R) * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK;
+      const smell = this.skills.has('smell') ? C.SKILL.smell.reach : 1;
+      const reach = (p.fx.magnet > rt ? C.POWERUPS.magnet.radius : C.PICKUP_R * smell) * (p.fx.giant > rt ? C.GEMS.giant.reach : 1) + C.PICKUP_SLACK;
       if (dist(p.x, p.z, c.x, c.z) > reach) return;
       this.candies.delete(c.id);
       const pts = C.CANDY[c.type].points * (p.fx.double > rt ? 2 : 1);
@@ -224,6 +244,19 @@ export class Authority {
       p.fx[kind] = rt + C.POWERUPS[kind].dur;
       if (kind === 'rain') p.rain = 1; // the first piece falls at once
       this.emit({ e: 'power', id: p.id, kind, until: p.fx[kind] });
+    } else if (msg.kind === 'boo') {
+      // Boo! Every monster round the player (a trick's swarm too) runs off for a moment; then it has to wait.
+      if (!this.skills.has('boo') || p.booAt > rt) return;
+      const S = C.SKILL.boo;
+      p.booAt = rt + S.cooldown;
+      const mons = [];
+      for (const m of this.monsters) {
+        if (m.state === 'banished' || dist(m.x, m.z, p.x, p.z) > S.radius) continue;
+        Object.assign(m, { fright: rt + S.fright, frightFrom: { x: p.x, z: p.z }, state: 'flee', t: 0, target: null });
+        delete m.burst;
+        mons.push(m.id);
+      }
+      this.emit({ e: 'boo', id: p.id, mons, until: p.booAt, x: +p.x.toFixed(2), z: +p.z.toFixed(2) });
     } else if (msg.kind === 'knock') {
       const i = msg.house | 0, h = HOUSES[i], st = this.houses?.[i];
       if (!h || !st || st.until > rt) return; // cooling down: nobody can use it
@@ -246,7 +279,7 @@ export class Authority {
     } else if (r < C.HOUSE_ODDS.treat + C.HOUSE_ODDS.trick) {
       // A swarm of monsters pours out of the door after you; one time in five the house also keeps every
       // piece of candy you carry, unless a shield stops it.
-      const rob = this.R() < C.TRICK_ROB, shielded = rob && p.fx.shield > rt, lost = rob && !shielded ? p.score : 0;
+      const rob = this.R() < (this.D.rob ?? C.TRICK_ROB), shielded = rob && p.fx.shield > rt, lost = rob && !shielded ? p.score : 0;
       p.score -= lost;
       const n = this.D.swarm.count;
       this.emit({ e: 'house', house, by: p.id, kind: 'trick', trick: rob ? 'rob' : 'swarm', n, lost, score: p.score, until });
@@ -254,7 +287,7 @@ export class Authority {
       this.swarm(p, HOUSES[house]);
     } else {
       let pts = C.CANDY[C.JACKPOT.candy].points * dbl, power = null;
-      if (!p.held) { power = C.POWERUP_KINDS[Math.floor(this.R() * C.POWERUP_KINDS.length)]; p.held = power; } else pts += C.JACKPOT.fullSlotBonus * dbl;
+      if (!p.held && this.skills.has('powers')) { power = C.POWERUP_KINDS[Math.floor(this.R() * C.POWERUP_KINDS.length)]; p.held = power; } else pts += C.JACKPOT.fullSlotBonus * dbl; // (no powers yet: candy instead)
       p.score += pts;
       this.emit({ e: 'house', house, by: p.id, kind: 'jackpot', candy: C.JACKPOT.candy, power, pts, score: p.score, until });
     }
@@ -401,13 +434,16 @@ export class Authority {
   /** A player turned ghost: monsters can't see them or touch them. */
   hidden(p) { return p.fx.ghost > this.rt; }
 
-  /** The nearest player in range that isn't protected, hidden, or frightening to it. */
+  /** A player with the sneak skill going at a walk: monsters only spot them close up. */
+  sneaking(p) { return this.skills.has('sneak') && Math.hypot(p.vx, p.vz) < C.SKILL.sneak.pace; }
+
+  /** The nearest player in range (less for one sneaking) that isn't protected, hidden, or frightening to it. */
   nearestPlayer(m, range) {
-    let best = null, bd = range;
+    let best = null, bd = Infinity;
     for (const p of this.players.values()) {
       if (p.gone || p.inv > this.rt || this.hidden(p) || this.frightens(p, m)) continue;
       const d = dist(m.x, m.z, p.x, p.z);
-      if (d < bd) { bd = d; best = p; }
+      if (d < (this.sneaking(p) ? range * C.SKILL.sneak.detect : range) && d < bd) { bd = d; best = p; }
     }
     return best;
   }
@@ -447,6 +483,16 @@ export class Authority {
     if (m.trick) {
       m.life -= h;
       if (m.life <= 0) { this.removeMonster(m); return; }
+    }
+    if (m.fright !== undefined) { // a player's boo: it runs off, away from where they shouted, then gives up the chase
+      if (m.fright > this.rt) {
+        const F = m.frightFrom, ax = m.x - F.x, az = m.z - F.z, al = Math.hypot(ax, az) || 1;
+        this.moveToward(m, m.x + (ax / al) * 4, m.z + (az / al) * 4, (m.kind === 'ghost' ? 3.0 : 1.5) * Math.max(1, this.D.flee) * mad, h);
+        return;
+      }
+      delete m.fright; delete m.frightFrom;
+      this.giveUp(m);
+      return;
     }
     if (m.burst) { // out of the door first, fanning out, then after its victim
       if (this.moveToward(m, m.burst.x, m.burst.z, C.SWARM.burst, h) < 0.3 || m.t > 1.2) delete m.burst; // (blocked: on with the chase)
@@ -550,7 +596,7 @@ export class Authority {
     this.snapshot({
       round: this.round, phase: this.phase, rt, madness: this.madness,
       players: [...this.players.values()].map((p) => ({
-        id: p.id, score: p.score, held: p.held, inv: p.inv > rt ? +(p.inv - rt).toFixed(2) : 0,
+        id: p.id, score: p.score, held: p.held, inv: p.inv > rt ? +(p.inv - rt).toFixed(2) : 0, boo: p.booAt > rt ? +(p.booAt - rt).toFixed(2) : 0,
         fx: Object.fromEntries(Object.entries(p.fx).map(([k, u]) => [k, +(u - rt).toFixed(2)])),
       })),
       houses: this.houses.map((s) => Math.max(0, +(s.until - rt).toFixed(2))),

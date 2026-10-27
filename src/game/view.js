@@ -49,6 +49,9 @@ export class View {
     this.gems = new Map();
     this.monsters = new Map();
     this.level = null;
+    this.night = null; // (a night of the Lens's campaign, or null: a level)
+    this.seconds = ROUND_SECONDS;
+    this.skills = new Set();
     this.ranking = null;
     this.winners = [];
     this.rtBase = -3;
@@ -60,11 +63,17 @@ export class View {
   /** Round time as the authority counts it (negative during the countdown). */
   rt() {
     if (this.phase === 'lobby') return -3;
-    if (this.phase === 'over') return ROUND_SECONDS;
-    return Math.min(ROUND_SECONDS, this.rtBase + (this.now() - this.rtAt));
+    if (this.phase === 'over') return this.seconds;
+    return Math.min(this.seconds, this.rtBase + (this.now() - this.rtAt));
   }
 
-  remaining() { return Math.max(0, ROUND_SECONDS - Math.max(0, this.rt())); }
+  remaining() { return Math.max(0, this.seconds - Math.max(0, this.rt())); }
+
+  /** Seconds until a player can boo again (0: ready). */
+  boo(id) {
+    const p = this.players.get(id);
+    return p?.boo ? Math.max(0, p.boo - this.now()) : 0;
+  }
 
   inRound(id) { return this.players.has(id); }
 
@@ -87,10 +96,13 @@ export class View {
       this.reset();
       this.round = ev.round;
       this.level = ev.level;
+      this.night = ev.night ?? null;
+      this.seconds = ev.seconds ?? ROUND_SECONDS;
+      this.skills = new Set(ev.skills ?? []);
       this.phase = 'countdown';
       this.rtBase = -3; this.rtAt = now;
       this.houses = [0, 0, 0, 0, 0, 0, 0, 0];
-      ev.players.forEach((p, i) => this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, spawn: p.spawn, score: 0, held: null, fx: {}, inv: 0, track: new Track() }));
+      ev.players.forEach((p, i) => this.players.set(p.id, { id: p.id, name: p.name, costume: p.costume, order: i, spawn: p.spawn, score: 0, held: null, fx: {}, inv: 0, boo: 0, track: new Track() }));
       return;
     }
     if (ev.round !== this.round) return;
@@ -108,6 +120,10 @@ export class View {
       case 'gem-': this.gems.delete(ev.id); if (p) p.fx[ev.kind] = now + (ev.until - this.rt()); break;
       case 'scare': { if (p) p.score = ev.score; const m = this.monsters.get(ev.mon); if (m) { m.state = 'banished'; m.loot = 0; } break; }
       case 'fx-end': if (p) delete p.fx[ev.kind]; break;
+      case 'boo':
+        if (p) p.boo = now + (ev.until - this.rt());
+        for (const id of ev.mons) { const m = this.monsters.get(id); if (m) m.state = 'flee'; }
+        break;
       case 'house':
         this.houses[ev.house] = now + (ev.until - this.rt());
         if (p) { p.score = ev.score; if (ev.power) p.held = ev.power; }
@@ -139,6 +155,7 @@ export class View {
       p.score = sp.score;
       p.held = sp.held;
       p.inv = sp.inv ? now + sp.inv : 0;
+      p.boo = sp.boo ? now + sp.boo : 0;
       p.fx = Object.fromEntries(Object.entries(sp.fx).map(([k, r]) => [k, now + r]));
     }
     this.houses = s.houses.map((r) => (r > 0 ? now + r : 0));

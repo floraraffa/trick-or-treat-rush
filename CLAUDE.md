@@ -33,7 +33,16 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
 - `src/game/authority.js` the only place that decides shared state (clock, RNG, level, houses 70/20/10 + 15 s cooldown,
   candy, scores, power-ups, gems, monster AI incl. flee/scare/loot, madness, ranking); emits numbered events + 10 Hz snapshots.
   `src/game/view.js` each device's mirror (`playerOf(ev)`: `by` for house/candy/orb events, `id` otherwise).
-  `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, POWERUPS, AUTORUN). Candy rain pieces are candy with
+  `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, POWERUPS, AUTORUN; and the Spectacles Lens's
+  campaign: NIGHTS (8 nights of NIGHT_SECONDS = 300 s, each a `base` level + changes, `rob`, `stars` thresholds),
+  SKILLS (one learnt per night, kept: knock, autorun, powers, boo, gems, dodge, smell, sneak; `skillsOf(n)`,
+  SKILL numbers), `nightRules(n)`, `starsFor(n, score)`). `authority.start(roster, level, { night, candyMul })`:
+  with a night its rules, length and skills (no orbs before `powers`, a jackpot pays candy then; no gems before
+  `gems`; intent `boo` frightens monsters within 7 m (`m.fright`); `sneaking()` halves detection at a walk; smell
+  ×2 candy reach); without, the phone's levels exactly as before (180 s, LEVEL_SKILLS). The view carries
+  `seconds`, `night`, `skills`, `boo(id)`; the player controller `mods.autorun === false` and `dodge(dx, dz)`.
+  Stars come from `tools/calibrate-nights.mjs` (a capable and a casual simulated player; to be retuned after
+  playtests). Candy rain pieces are candy with
   `spot: -1`, a `land` time and a `gone` time; they don't count towards the street candy. `src/net/session.js` room, host election, routing; `transport.js`.
 - Fog: `src/world/heightfog.js` replaces PlayCanvas's `fogPS` chunk globally (height + drifting-noise density, paler
   mist colour low down; tf_* uniforms set each frame by `village.update`), plus lamp halos. No mist sheets or sprites.
@@ -141,6 +150,14 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   round the room (`ROOM_SKY` 4.2 m on the eyes; the board's own in first person); the village glb gets `WET`
   roughness and normal scale 1.4 (`tidyGlb` finish) and the scene's env map is the Lens repo's NightSky.hdr
   (`tools/make-night-sky.py`, half the template's daytime light, blue).
+  Round 8: the campaign. PLAY opens the `nights` panel (8 `night` tiles: number written over, `lock` look and
+  padlock until the night before has a star, 3 `star` plates each; the picked night's skill, `goal` stars and
+  best); the HUD clock counts 5:00; the night's skill is announced after GO and its line is the first hint; boo =
+  point at yourself and pinch with no power-up held (HUD says ready / countdown; a gold ring rushes out); dodge
+  (reflexes) leaps clear of a chaser within 2.3 m by the authority's latest positions; smell shows a golden
+  `ray-dot` light ahead towards the best candy; results light up to 3 `bigstar` plates one by one, then NEXT
+  NIGHT / AGAIN / MENU; `save.nights[n] = { best, stars }`, `save.night`. Panel plates that aren't buttons but
+  have looks (`star`, `bigstar`) are `Panel.plates` + `setLook`. Timers set by a timer now survive (`later`).
 
 ## Commands
 
