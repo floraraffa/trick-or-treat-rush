@@ -42,8 +42,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   `gems`; intent `boo` frightens monsters within 7 m (`m.fright`); `sneaking()` halves detection at a walk; smell
   ×2 candy reach); without, the phone's levels exactly as before (180 s, LEVEL_SKILLS). The view carries
   `seconds`, `night`, `skills`, `boo(id)`; the player controller `mods.autorun === false` and `dodge(dx, dz)`.
-  Stars come from `tools/calibrate-nights.mjs` (a capable and a casual simulated player; to be retuned after
-  playtests). Candy rain pieces are candy with
+  Stars are easy on purpose since the first playtest on the glasses: one for any candy, two and three rising
+  gently (70 / 150 on the first night); `tools/calibrate-nights.mjs` (a capable and a casual simulated player)
+  asked far too much. Candy rain pieces are candy with
   `spot: -1`, a `land` time and a `gone` time; they don't count towards the street candy. `src/net/session.js` room, host election, routing; `transport.js`.
 - Fog: `src/world/heightfog.js` replaces PlayCanvas's `fogPS` chunk globally (height + drifting-noise density, paler
   mist colour low down; tf_* uniforms set each frame by `village.update`), plus lamp halos. No mist sheets or sprites.
@@ -152,7 +153,7 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   roughness and normal scale 1.4 (`tidyGlb` finish) and the scene's env map is the Lens repo's NightSky.hdr
   (`tools/make-night-sky.py`, half the template's daytime light, blue).
   Round 8: the campaign. PLAY opens the `nights` panel (8 `night` tiles: number written over, `lock` look and
-  padlock until the night before has a star, 3 `star` plates each; the picked night's skill, `goal` stars and
+  padlock until the night before has been played (however it went), 3 `star` plates each; the picked night's skill, `goal` stars and
   best); the HUD clock counts 1:30 (first 5:00, then shortened); the night's skill is announced after GO and its line is the first hint; boo =
   point at yourself and pinch with no power-up held (HUD says ready / countdown; a gold ring rushes out); dodge
   (reflexes) leaps clear of a chaser within 2.3 m by the authority's latest positions; smell shows a golden
@@ -161,6 +162,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   have looks (`star`, `bigstar`) are `Panel.plates` + `setLook`. Timers set by a timer now survive (`later`).
   Then the monsters on the table went to about 1.5× the Bitmoji (ghost ×2.7, creatures ×2.5): ×3.5 was too big,
   the round 7 sizes (×2.2 / ×1.87) too small.
+  After the first playtest: the board moves only in MOVE THE TABLE (`startTwo` only in state `place`: both hands
+  pinching shrank it mid-night); NEXT NIGHT shows whenever there is a next one, with or without stars.
 
 ## Commands
 
