@@ -164,6 +164,10 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   the round 7 sizes (×2.2 / ×1.87) too small.
   After the first playtest: the board moves only in MOVE THE TABLE (`startTwo` only in state `place`: both hands
   pinching shrank it mid-night); NEXT NIGHT shows whenever there is a next one, with or without stars.
+  Doors that didn't open: at a ready door a pinch knocks first (on the door, the house or the Bitmoji on its step:
+  the power-up and the boo no longer take it), and the pointer finds houses by the ray (`houseRay`: a cylinder per
+  house up to halfway up its roof, `aimHouse`), not only where it meets the ground (behind a tall house, or far
+  past a door straight ahead in first person).
 
 ## Commands
 
