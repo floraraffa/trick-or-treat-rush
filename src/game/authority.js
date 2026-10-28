@@ -7,7 +7,7 @@
 // owner; a candy rain drops more round its player), monsters (patrol → chase → attack → recover →
 // return, or flee and get scared off, blind to anyone turned ghost), power-ups, gems, the level and
 // Monster Madness all live here. A round is a level (the phone game's three, 180 s) or a night of the
-// Lens's campaign (300 s, its own rules and the Bitmoji's skills by then: boo, sneak, smell...).
+// Lens's campaign (90 s, its own rules and the Bitmoji's skills by then: boo, sneak, smell...).
 import { rng } from '../rng.js';
 import * as C from './config.js';
 import { CANDY_SPOTS, DOOR_RANGE, HOUSES, MAP_R, ORB_SPOTS, PATROLS, SPAWNS } from '../world/layout.js';
@@ -48,11 +48,13 @@ export class Authority {
       this.D = C.nightRules(this.night);
       this.skills = new Set(C.skillsOf(this.night));
       this.seconds = C.NIGHT_SECONDS;
+      this.madnessAt = C.NIGHT_MADNESS;
     } else {
       this.level = C.LEVELS.includes(level) ? level : C.DEFAULT_LEVEL;
       this.D = C.DIFFICULTY[this.level];
       this.skills = new Set(C.LEVEL_SKILLS);
       this.seconds = C.ROUND_SECONDS;
+      this.madnessAt = C.MADNESS_AT;
     }
     const help = { ...this.D.help };
     help.candy = Math.round(help.candy * candyMul); help.candyMadness = Math.round(help.candyMadness * candyMul);
@@ -143,7 +145,7 @@ export class Authority {
       return;
     }
     if (rt >= this.seconds) { this.end(); return; }
-    if (!this.madness && rt >= this.seconds - C.MADNESS_AT) this.startMadness();
+    if (!this.madness && rt >= this.seconds - this.madnessAt) this.startMadness();
 
     // Timed state: effects expire, candy and orbs come back.
     for (const p of this.players.values()) {

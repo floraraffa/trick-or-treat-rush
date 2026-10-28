@@ -43,7 +43,7 @@ export const STRINGS = {
       knockHint: 'PINCH: TRICK OR TREAT!', useHint: 'PINCH: {p}', again: 'Quick pinch: play again', exit: 'Hold a pinch still for 2 s: back to the menu', best: 'Best', place: 'Look at the village: it sits on your table',
     },
     lens: {
-      how: ['Point at a spot with your hand: your Bitmoji goes there. Pinch to send it (hold and move to guide it), or drag a finger on your phone (Spectacles app) like a joystick.', 'Point at a house and pinch: it goes and knocks. Trick or treat!', 'Point at your Bitmoji and pinch to use your power-up. Each night lasts 5 minutes: the candy you bring home earns up to 3 stars, and one star opens the next night, with a new skill.'],
+      how: ['Point at a spot with your hand: your Bitmoji goes there. Pinch to send it (hold and move to guide it), or drag a finger on your phone (Spectacles app) like a joystick.', 'Point at a house and pinch: it goes and knocks. Trick or treat!', 'Point at your Bitmoji and pinch to use your power-up. Each night lasts a minute and a half: the candy you bring home earns up to 3 stars, and one star opens the next night, with a new skill.'],
       size: 'SIZE', move: 'MOVE THE TABLE', place: 'Point at your table and pinch to put the village there', menu: 'MENU',
       walk: 'POINT AND IT GOES · PINCH A HOUSE TO KNOCK', knockHint: 'PINCH ON THE HOUSE: TRICK OR TREAT!', useHint: 'POINT AT YOURSELF AND PINCH: {p}',
       pause: 'PAUSED', resume: 'CARRY ON', hands: 'No hands in sight: look and pinch instead',
@@ -109,7 +109,7 @@ export const STRINGS = {
       knockHint: 'PELLIZCÁ: ¡DULCE O TRUCO!', useHint: 'PELLIZCÁ: {p}', again: 'Pellizco rápido: jugar de nuevo', exit: 'Mantené el pellizco quieto 2 s: volver al menú', best: 'Récord', place: 'Mirá el pueblo: está sobre tu mesa',
     },
     lens: {
-      how: ['Apuntá con la mano a un lugar: tu Bitmoji va hasta ahí. Pellizcá para mandarlo (y mové la mano sin soltar para guiarlo), o arrastrá el dedo en el celular (app de Spectacles) como un joystick.', 'Apuntá a una casa y pellizcá: va y golpea la puerta. ¡Dulce o truco!', 'Apuntá a tu Bitmoji y pellizcá para usar tu poder. Cada noche dura 5 minutos: los dulces que juntes valen hasta 3 estrellas, y con una estrella se abre la noche siguiente, con una destreza nueva.'],
+      how: ['Apuntá con la mano a un lugar: tu Bitmoji va hasta ahí. Pellizcá para mandarlo (y mové la mano sin soltar para guiarlo), o arrastrá el dedo en el celular (app de Spectacles) como un joystick.', 'Apuntá a una casa y pellizcá: va y golpea la puerta. ¡Dulce o truco!', 'Apuntá a tu Bitmoji y pellizcá para usar tu poder. Cada noche dura un minuto y medio: los dulces que juntes valen hasta 3 estrellas, y con una estrella se abre la noche siguiente, con una destreza nueva.'],
       size: 'TAMAÑO', move: 'MOVER LA MESA', place: 'Apuntá a tu mesa y pellizcá para poner el pueblo ahí', menu: 'MENÚ',
       walk: 'APUNTÁ Y VA · PELLIZCÁ UNA CASA PARA GOLPEAR', knockHint: 'PELLIZCÁ LA CASA: ¡DULCE O TRUCO!', useHint: 'APUNTATE Y PELLIZCÁ: {p}',
       pause: 'PAUSA', resume: 'SEGUIR', hands: 'No veo tus manos: mirá y pellizcá',
@@ -175,7 +175,7 @@ export const STRINGS = {
       knockHint: 'PINCE : UN BONBON OU UN SORT !', useHint: 'PINCE : {p}', again: 'Pincement rapide : rejouer', exit: 'Pince immobile 2 s : retour au menu', best: 'Record', place: 'Regarde le village : il est sur ta table',
     },
     lens: {
-      how: ['Montre un endroit de la main : ton Bitmoji y va. Pince pour l’envoyer (garde la pince et bouge la main pour le guider), ou glisse le doigt sur ton téléphone (app Spectacles) comme un joystick.', 'Montre une maison et pince : il va frapper. Un bonbon ou un sort !', 'Montre ton Bitmoji et pince pour utiliser ton pouvoir. Chaque nuit dure 5 minutes : tes bonbons valent jusqu’à 3 étoiles, et une étoile ouvre la nuit suivante, avec un nouveau talent.'],
+      how: ['Montre un endroit de la main : ton Bitmoji y va. Pince pour l’envoyer (garde la pince et bouge la main pour le guider), ou glisse le doigt sur ton téléphone (app Spectacles) comme un joystick.', 'Montre une maison et pince : il va frapper. Un bonbon ou un sort !', 'Montre ton Bitmoji et pince pour utiliser ton pouvoir. Chaque nuit dure une minute et demie : tes bonbons valent jusqu’à 3 étoiles, et une étoile ouvre la nuit suivante, avec un nouveau talent.'],
       size: 'TAILLE', move: 'DÉPLACER LA TABLE', place: 'Montre ta table et pince pour y poser le village', menu: 'MENU',
       walk: 'MONTRE ET IL Y VA · PINCE UNE MAISON POUR FRAPPER', knockHint: 'PINCE LA MAISON : UN BONBON OU UN SORT !', useHint: 'MONTRE-TOI ET PINCE : {p}',
       pause: 'PAUSE', resume: 'CONTINUER', hands: 'Je ne vois pas tes mains : regarde et pince',
@@ -241,7 +241,7 @@ export const STRINGS = {
       knockHint: 'KNEIFEN: SÜSSES ODER SAURES!', useHint: 'KNEIFEN: {p}', again: 'Kurz kneifen: noch mal', exit: '2 s still kneifen: zurück zum Menü', best: 'Rekord', place: 'Schau auf das Dorf: es steht auf deinem Tisch',
     },
     lens: {
-      how: ['Zeig mit der Hand auf eine Stelle: dein Bitmoji läuft hin. Kneif, um es zu schicken (halt den Kniff und beweg die Hand, um es zu lenken), oder wisch mit dem Finger über dein Handy (Spectacles-App) wie ein Joystick.', 'Zeig auf ein Haus und kneif: es geht hin und klopft. Süßes oder Saures!', 'Zeig auf dein Bitmoji und kneif, um deine Kraft zu nutzen. Jede Nacht dauert 5 Minuten: deine Süßigkeiten bringen bis zu 3 Sterne, und ein Stern öffnet die nächste Nacht, mit einer neuen Fähigkeit.'],
+      how: ['Zeig mit der Hand auf eine Stelle: dein Bitmoji läuft hin. Kneif, um es zu schicken (halt den Kniff und beweg die Hand, um es zu lenken), oder wisch mit dem Finger über dein Handy (Spectacles-App) wie ein Joystick.', 'Zeig auf ein Haus und kneif: es geht hin und klopft. Süßes oder Saures!', 'Zeig auf dein Bitmoji und kneif, um deine Kraft zu nutzen. Jede Nacht dauert anderthalb Minuten: deine Süßigkeiten bringen bis zu 3 Sterne, und ein Stern öffnet die nächste Nacht, mit einer neuen Fähigkeit.'],
       size: 'GRÖSSE', move: 'TISCH VERSCHIEBEN', place: 'Zeig auf deinen Tisch und kneif, um das Dorf hinzustellen', menu: 'MENÜ',
       walk: 'ZEIG HIN UND ES GEHT · KNEIF EIN HAUS ZUM KLOPFEN', knockHint: 'KNEIF AUFS HAUS: SÜSSES ODER SAURES!', useHint: 'ZEIG AUF DICH UND KNEIF: {p}',
       pause: 'PAUSE', resume: 'WEITER', hands: 'Keine Hände zu sehen: schau und kneif',

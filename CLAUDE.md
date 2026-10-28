@@ -34,7 +34,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   candy, scores, power-ups, gems, monster AI incl. flee/scare/loot, madness, ranking); emits numbered events + 10 Hz snapshots.
   `src/game/view.js` each device's mirror (`playerOf(ev)`: `by` for house/candy/orb events, `id` otherwise).
   `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, POWERUPS, AUTORUN; and the Spectacles Lens's
-  campaign: NIGHTS (8 nights of NIGHT_SECONDS = 300 s, each a `base` level + changes, `rob`, `stars` thresholds),
+  campaign: NIGHTS (8 nights of NIGHT_SECONDS = 90 s, the madness their last NIGHT_MADNESS = 30 s, each a `base`
+  level + changes, `rob`, `stars` thresholds),
   SKILLS (one learnt per night, kept: knock, autorun, powers, boo, gems, dodge, smell, sneak; `skillsOf(n)`,
   SKILL numbers), `nightRules(n)`, `starsFor(n, score)`). `authority.start(roster, level, { night, candyMul })`:
   with a night its rules, length and skills (no orbs before `powers`, a jackpot pays candy then; no gems before
@@ -152,7 +153,7 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   (`tools/make-night-sky.py`, half the template's daytime light, blue).
   Round 8: the campaign. PLAY opens the `nights` panel (8 `night` tiles: number written over, `lock` look and
   padlock until the night before has a star, 3 `star` plates each; the picked night's skill, `goal` stars and
-  best); the HUD clock counts 5:00; the night's skill is announced after GO and its line is the first hint; boo =
+  best); the HUD clock counts 1:30 (first 5:00, then shortened); the night's skill is announced after GO and its line is the first hint; boo =
   point at yourself and pinch with no power-up held (HUD says ready / countdown; a gold ring rushes out); dodge
   (reflexes) leaps clear of a chaser within 2.3 m by the authority's latest positions; smell shows a golden
   `ray-dot` light ahead towards the best candy; results light up to 3 `bigstar` plates one by one, then NEXT

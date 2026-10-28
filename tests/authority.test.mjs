@@ -437,16 +437,17 @@ const nightOf = (n, seed = 7) => {
   assert.ok(jackpot && !jackpot.power && !p.held, 'a jackpot before the powers night pays candy, not a power');
   assert.ok(!of('house').some((e) => e.trick === 'rob'), 'no robbing tricks on the first nights');
   p.inv = 1e9; // (nothing hits during the clock check)
-  for (let i = 0; i < 2380; i++) X.tick(0.1);
-  assert.ok(!X.madness, 'no madness before the last minute of five');
-  for (let i = 0; i < 20; i++) X.tick(0.1);
-  assert.ok(X.madness, 'the madness at 4:00');
-  for (let i = 0; i < 601; i++) X.tick(0.1);
+  const madAt = C.NIGHT_SECONDS - C.NIGHT_MADNESS;
+  while (X.rt < madAt - 0.3) X.tick(0.1);
+  assert.ok(!X.madness, `no madness before its last ${C.NIGHT_MADNESS} s`);
+  for (let i = 0; i < 5; i++) X.tick(0.1);
+  assert.ok(X.madness, `the madness at ${madAt} s`);
+  while (X.phase !== 'over' && X.rt < C.NIGHT_SECONDS + 5) X.tick(0.1);
   assert.equal(X.phase, 'over'); assert.equal(of('over')[0].night, 0);
   assert.ok(Math.abs(X.rt - C.NIGHT_SECONDS) < 0.15, `over at ${X.rt.toFixed(1)} s`);
   assert.equal(nightOf(4).X.help.gems, C.DIFFICULTY.medium.help.gems, 'gems from the gems night on');
   assert.equal(nightOf(3).X.help.gems, 0, 'none before it');
-  console.log(`✔ nights: ${C.NIGHT_SECONDS / 60} minutes, the madness in the last one, only the skills learnt (${C.NIGHTS.map((N) => N.skill).join(', ')})`);
+  console.log(`✔ nights: ${C.NIGHT_SECONDS} s, the madness in the last ${C.NIGHT_MADNESS} s, only the skills learnt (${C.NIGHTS.map((N) => N.skill).join(', ')})`);
 }
 { // boo: every monster round you runs off (a swarm too), then it waits
   const { X, of } = nightOf(3);

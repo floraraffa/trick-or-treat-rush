@@ -110,8 +110,8 @@ export const DIFFICULTY = {
 export const LEVELS = Object.keys(DIFFICULTY);
 export const DEFAULT_LEVEL = 'medium';
 
-// The nights (the Spectacles Lens's campaign; the phone game plays the three levels above): eight nights of
-// five minutes, one after the other, each worth up to three stars by the candy brought home, and each teaching
+// The nights (the Spectacles Lens's campaign; the phone game plays the three levels above): eight nights of a
+// minute and a half (the last 30 s the Monster Madness), one after the other, each worth up to three stars by the candy brought home, and each teaching
 // the Bitmoji a new skill it keeps from then on. A night opens once the one before has a star.
 //   base: the level it starts from; ghost / zombie / swarm / lead / help: what it changes of that level; rob: how
 //   often a trick steals all your candy (the first nights, never: a night isn't lost to bad luck while learning).
@@ -124,7 +124,8 @@ export const DEFAULT_LEVEL = 'medium';
 // the best of it), sneak (walking, not running, monsters hardly see you).
 // Before its night a skill isn't there: no orbs before `powers` (a jackpot pays candy instead), no gems
 // before `gems`, a steady pace before `autorun`.
-export const NIGHT_SECONDS = 300;
+export const NIGHT_SECONDS = 90;
+export const NIGHT_MADNESS = 30; // a night's Monster Madness: its last 30 s
 export const SKILLS = ['knock', 'autorun', 'powers', 'boo', 'gems', 'dodge', 'smell', 'sneak'];
 export const SKILL = {
   boo: { radius: 7, fright: 4, cooldown: 18 }, // m, s of running off, s before the next
@@ -137,14 +138,14 @@ export const skillsOf = (n) => SKILLS.slice(0, Math.max(0, Math.min(SKILLS.lengt
 /** The phone game's levels have the skills it always had. */
 export const LEVEL_SKILLS = ['knock', 'autorun', 'powers', 'gems'];
 export const NIGHTS = [
-  { base: 'easy', rob: 0, ghost: { count: 1, chase: 2.3 }, zombie: { count: 3, chase: 1.3 }, swarm: { count: 4, ghosts: 1 }, stars: [180, 425, 1200] },
-  { base: 'easy', rob: 0, ghost: { count: 1 }, zombie: { count: 4 }, swarm: { count: 5, ghosts: 1 }, stars: [675, 1250, 1550] },
-  { base: 'easy', rob: 0, stars: [900, 2800, 3625] },
-  { base: 'medium', rob: 0.1, ghost: { chase: 2.9 }, stars: [450, 1800, 2250] },
-  { base: 'medium', rob: 0.1, stars: [1725, 3450, 4500] },
-  { base: 'medium', rob: 0.1, ghost: { count: 3 }, lead: 0.5, swarm: { count: 8, ghosts: 3 }, stars: [1050, 3250, 4050] },
-  { base: 'hard', ghost: { count: 3, chase: 4.2 }, zombie: { chase: 2.4 }, stars: [275, 625, 1025] },
-  { base: 'hard', stars: [140, 475, 800] },
+  { base: 'easy', rob: 0, ghost: { count: 1, chase: 2.3 }, zombie: { count: 3, chase: 1.3 }, swarm: { count: 4, ghosts: 1 }, stars: [160, 350, 450] },
+  { base: 'easy', rob: 0, ghost: { count: 1 }, zombie: { count: 4 }, swarm: { count: 5, ghosts: 1 }, stars: [250, 500, 625] },
+  { base: 'easy', rob: 0, stars: [425, 1000, 1325] },
+  { base: 'medium', rob: 0.1, ghost: { chase: 2.9 }, stars: [250, 650, 825] },
+  { base: 'medium', rob: 0.1, stars: [550, 1100, 1375] },
+  { base: 'medium', rob: 0.1, ghost: { count: 3 }, lead: 0.5, swarm: { count: 8, ghosts: 3 }, stars: [475, 1025, 1425] },
+  { base: 'hard', ghost: { count: 3, chase: 4.2 }, zombie: { chase: 2.4 }, stars: [170, 450, 575] },
+  { base: 'hard', stars: [100, 275, 350] },
 ];
 NIGHTS.forEach((n, i) => { n.skill = SKILLS[i]; });
 /** Night `n`'s rules: its base level with its own changes (a fresh object). */
