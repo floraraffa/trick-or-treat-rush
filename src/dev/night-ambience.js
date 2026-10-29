@@ -2,8 +2,8 @@
 // always gives the same sound, in the browser or in Node. Everything is laid on a ring of the loop's length
 // (what runs past the end comes back in at the start, filters run round it twice), so it loops without a seam.
 // Quiet on purpose: the crickets are far off, well under the rest (a first version, crickets close by, was
-// too loud; the wind before it, a hiss; then even 'soft' was too much: 'hush').
-//   hush    barely there: a breath of air, two crickets far off, a couple of bats flitting past, a far owl (the default)
+// too loud; the wind before it, a hiss; then even 'soft' was too much: 'hush', and without the bats once tried in it).
+//   hush    barely there: the faintest breath of air, two crickets far off, now and then a far owl (the default)
 //   soft    a soft breath of air, crickets far off, now and then an owl
 //   far     hardly more than crickets far away, an owl farther still
 //   chimes  a breath of air, crickets far off, a few soft chimes on a porch
@@ -77,16 +77,6 @@ export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, see
       for (let i = 0; i < n; i++) add(buf, i0 + i, breath[(i0 + i) % N] * bk * g * 0.04 * env(i / rate));
     }
   };
-  /** A bat flitting past: its wings fluttering (soft, fast beats of air) and a few tiny squeaks sweeping down. */
-  const bat = (buf, t0, g) => {
-    const wings = filter(white(), 1800, 1.1, 'band'), wk = 1 / rms(wings), dur = 1.3, beat = 10 + R() * 3;
-    const i0 = Math.round(t0 * rate), n = Math.round(dur * rate), pass = ar(dur, 0.45, 0.6);
-    for (let i = 0; i < n; i++) { const u = i / rate; add(buf, i0 + i, wings[(i0 + i) % N] * wk * g * 0.5 * pass(u) * Math.abs(Math.sin(Math.PI * beat * u)) ** 4); }
-    for (let t = 0.25 + R() * 0.15; t < dur - 0.2; t += 0.17 + R() * 0.2) {
-      const d = 0.018 + R() * 0.014, f0 = 7800 + R() * 1200, f1 = 4600 + R() * 600;
-      tone(buf, t0 + t, d, (u) => f0 + (f1 - f0) * (u / d), (u) => g * pass(t + u) * Math.sin((Math.PI * u) / d) ** 2);
-    }
-  };
   /** A soft chime (glass more than bell). */
   const chime = (buf, t0, f, g) => tone(buf, t0, 4, () => f, (u) => g * Math.min(1, u / 0.012) * Math.exp(-u * 1.3), [[1, 1], [2, 0.1], [3, 0.03]]);
   /** A frog by the pond: a few low, buzzing croaks. */
@@ -100,8 +90,7 @@ export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, see
   const out = ring();
   const mix = (b) => { for (let i = 0; i < N; i++) out[i] += b[i]; };
   if (kind === 'hush') {
-    mix(breeze(0.005)); mix(crickets(0.0012, 2, 0.45));
-    bat(out, L * 0.2, 0.012); bat(out, L * 0.7, 0.009);
+    mix(breeze(0.0025)); mix(crickets(0.0012, 2, 0.45));
     owl(out, L * 0.42, 320, 0.018);
   } else if (kind === 'soft') {
     mix(breeze(0.016)); mix(crickets(0.0025));
