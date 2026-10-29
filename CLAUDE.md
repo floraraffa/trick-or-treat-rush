@@ -85,7 +85,8 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   (`saveData.tutorial`) and from HOW TO PLAY. Leaderboard: one Snapchat board per Lens; `submitScore` every night,
   `show()` (Snapchat's panel, friends with their Bitmojis) after each solo night and from the gold 🏆 buttons (menu,
   results); our own results show only the player's 2D Bitmoji and the `bestScore` Snapchat returns; the stub has no
-  panel, so the buttons hide on desktop (`?board` shows them). `src/audio.js` synthesised sound + music box.
+  panel, so the buttons hide on desktop (`?board` shows them). `src/audio.js` synthesised sound + music box (and the
+  Bitmoji's cries, the only audio files).
 - `src/poses.js` → `npm run clips` → `public/assets/clips.glb` (idle, walk, run, knock, hit, cheer, sad).
 - `src/lib/` snap wrapper, `bitmoji-anim.js` (MIT, vendored; added `setSpeed`), meshopt GLB unpacker.
 - Snap Specs version (WebXR, the glasses' browser; the Lens is untouched): `specs.html` + `src/specs/main.js`, same
@@ -172,10 +173,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   the power-up and the boo no longer take it), and the pointer finds houses by the ray (`houseRay`: a cylinder per
   house up to halfway up its roof, `aimHouse`), not only where it meets the ground (behind a tall house, or far
   past a door straight ahead in first person).
-  The Bitmoji's cries (Lens repo only: `Assets/Audio/voice-*.wav`, `tools/cut-voices.py`): cut from the voices of a
+  The Bitmoji's cries (Lens repo: `Assets/Audio/voice-*.wav`, `tools/cut-voices.py`): cut from the voices of a
   Lenslist video (Demucs parts them from the games' sounds); `Sound.cry` on its own channel, one at a time:
   spotted → "oh no" / "Nooo" (6 s apart), grabbed → "AAAH" / scream, a trick's swarm → scream, robbed → "Nooo",
-  boo → "Boo!". Not cleared: they ship only with Lenslist's permission, else the team records its own.
+  boo → "Boo!". The phone game has them too (no boo): `npm run voices` makes `public/assets/voice/*.mp3` (~30 KB)
+  from the Lens repo's WAVs; audio.js `loadVoices` / `cry(names, gap)` (decoded once the audio unlocks), the same
+  moments in main.js's onEvent; `tests/play.mjs` checks them. Not cleared: they ship only with Lenslist's
+  permission, else the team records its own.
 
 ## Commands
 

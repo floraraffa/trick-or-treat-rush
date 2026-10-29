@@ -116,6 +116,14 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/p3-power.png` });
 console.log(`✔ power-up ${orb.kind} picked and active`);
 
+// The Bitmoji cries out (the MP3 cries, decoded): a monster spots it ("oh no" / "Nooo"), then it is grabbed.
+await G(() => { const g = window.__game, A = g.session.authority, m = A.monsters[0]; A.emit({ e: 'spot', id: m.id, target: g.me.id }); });
+const spotted = await (await page.waitForFunction(() => /^(ohno|nooo)$/.test(window.__game.lastCry()) && window.__game.lastCry(), null, { timeout: 10000 })).jsonValue();
+await page.waitForTimeout(1800); // (one cry at a time: "oh no, oh no!" lasts 1.6 s)
+await G(() => { const g = window.__game, A = g.session.authority; A.emit({ e: 'hit', id: g.me.id, by: 'ghost', mon: A.monsters[0].id, delta: 0 }); });
+const grabbed = await (await page.waitForFunction(() => /^(aah-\d|scream)$/.test(window.__game.lastCry()) && window.__game.lastCry(), null, { timeout: 10000 })).jsonValue();
+console.log(`✔ the Bitmoji cries out: spotted "${spotted}", grabbed "${grabbed}"`);
+
 // Candy rain: candy falls from the sky round the player, and can be picked up once it has landed.
 await page.waitForFunction(() => !window.__game.view.players.get(window.__game.me.id).held, null, { timeout: 20000 });
 await G(() => { const g = window.__game; g.player.place(0, 9, 0); g.session.authority.players.get(g.me.id).held = 'rain'; });

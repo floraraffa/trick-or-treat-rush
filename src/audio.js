@@ -1,4 +1,5 @@
-// Tiny synthesised sounds and a music-box tune: no audio files to ship (Web Audio, from Cruise Rush).
+// Tiny synthesised sounds and a music-box tune (Web Audio, from Cruise Rush); the only audio files are the
+// Bitmoji's cries (public/assets/voice/*.mp3, about 30 KB: `npm run voices`).
 let ctx = null, master = null;
 
 export function unlockAudio() {
@@ -11,9 +12,49 @@ export function unlockAudio() {
     } catch {
       return;
     }
+    for (const n of Object.keys(voiceData)) decodeVoice(n);
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
+
+// The Bitmoji's cries: fetched at once, decoded once the audio is unlocked (it needs the context).
+const VOICES = ['scream', 'nooo', 'ohno', 'aah-1', 'aah-2', 'aah-3'];
+const voiceData = {}, voiceBuf = {};
+let cryEnd = 0, cryAt = -99, lastCry = '';
+export function loadVoices(base = './assets/voice/') {
+  for (const n of VOICES) {
+    fetch(`${base}${n}.mp3`).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { voiceData[n] = b; decodeVoice(n); } }).catch(() => {});
+  }
+}
+function decodeVoice(n) {
+  if (!ctx || !voiceData[n]) return;
+  const data = voiceData[n];
+  delete voiceData[n];
+  ctx.decodeAudioData(data, (b) => { voiceBuf[n] = b; }, () => {}); // (the callback form: older iOS has no promise)
+}
+/**
+ * The Bitmoji cries out: one of `names` (never the same twice running), unless a cry is still going or it cried
+ * less than `gap` s ago. False if it didn't.
+ */
+export function cry(names, gap = 0) {
+  if (!ctx || ctx.state !== 'running') return false;
+  const now = ctx.currentTime;
+  if (now < cryEnd || now - cryAt < gap) return false;
+  const ready = names.filter((n) => voiceBuf[n]), pick = ready.filter((n) => n !== lastCry);
+  const n = (pick.length ? pick : ready)[Math.floor(Math.random() * (pick.length || ready.length))];
+  if (!n) return false;
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = voiceBuf[n];
+  g.gain.value = 0.85;
+  src.connect(g).connect(master);
+  src.start();
+  cryEnd = now + src.buffer.duration;
+  cryAt = now;
+  lastCry = n;
+  return true;
+}
+/** The last cry (tests and diagnostics). */
+export const lastCryName = () => lastCry;
 
 /** Silences everything while Snapchat has the Lens in the background. */
 export function suspendAudio() {

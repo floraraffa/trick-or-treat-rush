@@ -9,6 +9,7 @@
     "preview": "vite preview --host",
     "pack": "npm run build && node tools/pack.mjs",
     "clips": "node tools/make-clips.mjs",
+    "voices": "node tools/voices.mjs",
     "test": "node tests/run.mjs",
     "test:e2e": "node tests/run.mjs --e2e",
     "viewer": "vite --open /dev/viewer.html",
