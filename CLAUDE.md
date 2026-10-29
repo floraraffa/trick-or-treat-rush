@@ -172,6 +172,10 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   the power-up and the boo no longer take it), and the pointer finds houses by the ray (`houseRay`: a cylinder per
   house up to halfway up its roof, `aimHouse`), not only where it meets the ground (behind a tall house, or far
   past a door straight ahead in first person).
+  The Bitmoji's cries (Lens repo only: `Assets/Audio/voice-*.wav`, `tools/cut-voices.py`): cut from the voices of a
+  Lenslist video (Demucs parts them from the games' sounds); `Sound.cry` on its own channel, one at a time:
+  spotted → "oh no" / "Nooo" (6 s apart), grabbed → "AAAH" / scream, a trick's swarm → scream, robbed → "Nooo",
+  boo → "Boo!". Not cleared: they ship only with Lenslist's permission, else the team records its own.
 
 ## Commands
 
