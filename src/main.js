@@ -324,7 +324,8 @@ function onEvent(ev) {
     case 'go': {
       ui.banner(t('go'), '', 900, 'big good'); sfx.go();
       const n = view.night; // a night: its skill, and how it's played
-      if (n != null) setTimeout(() => { if (screen === 'game' && view.round === ev.round) { ui.banner(t('lens.newSkill'), `${t(`lens.skills.${NIGHTS[n].skill}`)}: ${skillHow(NIGHTS[n].skill)}`, 3200, 'good'); sfx.power(); } }, 1100);
+      const sk = n != null ? NIGHTS[n].skill : null, last = sk === 'final'; // (the last night: every skill, no new one)
+      if (n != null) setTimeout(() => { if (screen === 'game' && view.round === ev.round) { ui.banner(last ? t('lens.skills.final') : t('lens.newSkill'), last ? skillHow(sk) : `${t(`lens.skills.${sk}`)}: ${skillHow(sk)}`, 3200, 'good'); sfx.power(); } }, 1100);
       break;
     }
     case 'boo': // a ring of light rushes out, and every monster near runs off
@@ -543,7 +544,7 @@ function playFrame(dt, now) {
       if (Math.hypot(m.x - ps.x, m.z - ps.z) < SKILL.dodge.range * (ps.scale || 1)) { player.dodge(ps.x - m.x, ps.z - m.z); dodgeAt = now; ui.popup(t('lens.dodged'), 'power'); sfx.power(); break; }
     }
   }
-  const mods = { slow: view.fx(me.id, 'slow') > 0, frozen: !playing, giant: view.fx(me.id, 'giant') > 0, ghost: view.fx(me.id, 'ghost') > 0, autorun: !view.skills || skills.has('autorun') };
+  const mods = { slow: view.fx(me.id, 'slow') > 0, frozen: !playing, giant: view.fx(me.id, 'giant') > 0, ghost: view.fx(me.id, 'ghost') > 0 };
   const pose = player.update(dt, move, camCtl, mods);
   session.authority?.setPose(me.id, ps.x, ps.z); // the host's own position, every frame
   if (ps.sprinting && ps.moving && Math.random() < dt * 25) fx.emit({ x: ps.x, y: 0.15, z: ps.z }, { x: -ps.vx * 0.15, y: 0.6, z: -ps.vz * 0.15 }, { n: 1, spread: 0.6, size: 0.35, grow: 1.6, life: 0.6, color: [0.62, 0.58, 0.7], gravity: 0, alpha: 0.45 });

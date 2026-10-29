@@ -119,15 +119,16 @@ export const DEFAULT_LEVEL = 'medium';
 //   stars: the candy for one, two and three stars, set after the first playtests on the glasses (people there
 //   bring home far less than tools/calibrate-nights.mjs's simulated players): one star for any candy, two and
 //   three gently rising from 70 / 150 on the first night.
-// Skills: knock (doors, candy: the first night), autorun (keep going one way and you run on your own),
-// powers (power-up orbs, and a jackpot's power), boo (scare the monsters round you off), gems, dodge (a
-// monster about to grab you: you jump clear on your own), smell (candy from twice as far, a light leading to
-// the best of it), sneak (walking, not running, monsters hardly see you).
+// Skills: knock (doors, candy: the first night), powers (power-up orbs, and a jackpot's power), boo (scare
+// the monsters round you off), gems, dodge (a monster about to grab you: you jump clear on your own), smell
+// (candy from twice as far, a light leading to the best of it), sneak (walking, not running, monsters hardly
+// see you); the eighth night is the last, with every skill and no new one ('final'). Running on its own isn't a
+// skill: it's the game's, from the first night (the team's call after a playtest).
 // Before its night a skill isn't there: no orbs before `powers` (a jackpot pays candy instead), no gems
-// before `gems`, a steady pace before `autorun`.
+// before `gems`.
 export const NIGHT_SECONDS = 90;
 export const NIGHT_MADNESS = 30; // a night's Monster Madness: its last 30 s
-export const SKILLS = ['knock', 'autorun', 'powers', 'boo', 'gems', 'dodge', 'smell', 'sneak'];
+export const SKILLS = ['knock', 'powers', 'boo', 'gems', 'dodge', 'smell', 'sneak'];
 export const SKILL = {
   boo: { radius: 7, fright: 4, cooldown: 18 }, // m, s of running off, s before the next
   dodge: { range: 2.3, dur: 0.55, speed: 1.9, cooldown: 5 }, // a chaser this close: away for this long, × the run speed
@@ -137,7 +138,7 @@ export const SKILL = {
 /** The skills the Bitmoji has on night `n` (0-based): its own and every one before. */
 export const skillsOf = (n) => SKILLS.slice(0, Math.max(0, Math.min(SKILLS.length, n + 1)));
 /** The phone game's levels have the skills it always had. */
-export const LEVEL_SKILLS = ['knock', 'autorun', 'powers', 'gems'];
+export const LEVEL_SKILLS = ['knock', 'powers', 'gems'];
 export const NIGHTS = [
   { base: 'easy', rob: 0, ghost: { count: 1, chase: 2.3 }, zombie: { count: 3, chase: 1.3 }, swarm: { count: 4, ghosts: 1 }, stars: [1, 70, 150] },
   { base: 'easy', rob: 0, ghost: { count: 1 }, zombie: { count: 4 }, swarm: { count: 5, ghosts: 1 }, stars: [1, 80, 170] },
@@ -148,7 +149,7 @@ export const NIGHTS = [
   { base: 'hard', ghost: { count: 3, chase: 4.2 }, zombie: { chase: 2.4 }, stars: [1, 120, 260] },
   { base: 'hard', stars: [1, 100, 220] },
 ];
-NIGHTS.forEach((n, i) => { n.skill = SKILLS[i]; });
+NIGHTS.forEach((n, i) => { n.skill = SKILLS[i] ?? 'final'; }); // (the last night: no new skill)
 /** Night `n`'s rules: its base level with its own changes (a fresh object). */
 export function nightRules(n) {
   const N = NIGHTS[n], B = DIFFICULTY[N.base];

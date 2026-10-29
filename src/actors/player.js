@@ -2,9 +2,8 @@
 // camera (third person: turns to face where it walks; first person: faces the view and strafes),
 // slides along walls, and picks the clip (idle / walk / run, knock at doors, a spook when hit).
 // Keep going the same way and it breaks into a full run on its own (faster than any monster); a
-// giant gem makes the Bitmoji huge for a while, a ghost gem lets it float through walls. In the Lens's
-// nights the run on its own is a skill learnt on the second night (`mods.autorun`), and the reflexes skill
-// makes it leap clear of a monster about to grab it (`dodge`).
+// giant gem makes the Bitmoji huge for a while, a ghost gem lets it float through walls. In the nights the
+// reflexes skill makes it leap clear of a monster about to grab it (`dodge`).
 // Movement is the device's own; only the resulting pose is shared, at 15 Hz.
 import { AUTORUN, GEMS, MOVE, SKILL, SLOW_MUL } from '../game/config.js';
 import { MAP_R, PLAYER_R } from '../world/layout.js';
@@ -43,7 +42,7 @@ export function createPlayer(avatar) {
      * @param {number} dt
      * @param {{ x, y, mag }} move joystick
      * @param {*} cam camera controller (directions, mode)
-     * @param {{ slow: boolean, frozen: boolean, giant: boolean, ghost: boolean, autorun?: boolean }} mods (autorun: false = not learnt yet)
+     * @param {{ slow: boolean, frozen: boolean, giant: boolean, ghost: boolean }} mods
      */
     update(dt, move, cam, mods) {
       const fp = cam.mode === 'first';
@@ -60,7 +59,7 @@ export function createPlayer(avatar) {
         p.run += dt;
         p.dir += ((((heading - p.dir) % 360) + 540) % 360 - 180) * Math.min(1, dt * 4); // the way you're going, smoothed
       } else p.run = 0;
-      const into = mods.autorun === false ? 0 : Math.min(1, Math.max(0, (p.run - AUTORUN.after) / AUTORUN.ramp));
+      const into = Math.min(1, Math.max(0, (p.run - AUTORUN.after) / AUTORUN.ramp));
       p.boost = into > p.boost ? into : Math.max(into, p.boost - dt * 4);
       p.sprinting = p.boost > 0.5;
       p.ghost = !!mods.ghost;

@@ -1,7 +1,7 @@
 // Plays every night of the Lens's campaign with a simulated player, on the real authority (no rendering), to
 // see how much candy a night yields: the stars in config.js NIGHTS are set from it.
 //   node tools/calibrate-nights.mjs [seeds = 16]
-// Two players. A capable one runs (on its own once it has the skill), goes for the best candy near it, knocks
+// Two players. A capable one runs (on its own, keeping one way), goes for the best candy near it, knocks
 // on ready doors on the way, picks up orbs and gems, uses its powers at once, boos and dodges what chases it,
 // and otherwise runs away from a monster closing in. A casual one goes at two thirds of that pace, makes up its
 // mind every few seconds, notices a monster late and boos late. Walls stop both as they stop the Bitmoji.
@@ -62,7 +62,7 @@ function playNight(n, seed, P) {
     if (dodge > 0) { dodge -= DT; [dx, dz] = dodgeDir; speed = C.MOVE.run * C.SKILL.dodge.speed; }
     else if (fleeT > 0) { fleeT -= DT; [dx, dz] = fleeDir; run = 0; }
     else if (goal) { const d = Math.hypot(goal.x - x, goal.z - z); if (d > 0.3) { dx = (goal.x - x) / d; dz = (goal.z - z) / d; } stuck = d < lastD - 0.05 ? 0 : stuck + DT; lastD = Math.min(lastD, d); }
-    if (skills.has('autorun') && dodge <= 0) { run += DT; speed *= 1 + (C.AUTORUN.mul - 1) * Math.min(1, Math.max(0, (run - C.AUTORUN.after) / C.AUTORUN.ramp)); }
+    if (dodge <= 0) { run += DT; speed *= 1 + (C.AUTORUN.mul - 1) * Math.min(1, Math.max(0, (run - C.AUTORUN.after) / C.AUTORUN.ramp)); }
     if (goal && Math.hypot(goal.x - x, goal.z - z) < 1) run = 0; // (it slows down to turn at the goal)
     if (dx || dz) {
       if (me.fx.ghost > rt) { x += dx * speed * DT; z += dz * speed * DT; const r = Math.hypot(x, z), lim = MAP_R - PLAYER_R; if (r > lim) { x *= lim / r; z *= lim / r; } }

@@ -41,12 +41,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   `src/game/config.js` every rule number (DIFFICULTY per level, GEMS, POWERUPS, AUTORUN; and the Spectacles Lens's
   campaign: NIGHTS (8 nights of NIGHT_SECONDS = 90 s, the madness their last NIGHT_MADNESS = 30 s, each a `base`
   level + changes, `rob`, `stars` thresholds),
-  SKILLS (one learnt per night, kept: knock, autorun, powers, boo, gems, dodge, smell, sneak; `skillsOf(n)`,
+  SKILLS (one learnt per night, kept: knock, powers, boo, gems, dodge, smell, sneak; the eighth night is `final`,
+  nothing new; running on its own is not a skill, it works from the first night: the team's call; `skillsOf(n)`,
   SKILL numbers), `nightRules(n)`, `starsFor(n, score)`). `authority.start(roster, level, { night, candyMul })`:
   with a night its rules, length and skills (no orbs before `powers`, a jackpot pays candy then; no gems before
   `gems`; intent `boo` frightens monsters within 7 m (`m.fright`); `sneaking()` halves detection at a walk; smell
   ×2 candy reach); without, the phone's levels exactly as before (180 s, LEVEL_SKILLS). The view carries
-  `seconds`, `night`, `skills`, `boo(id)`; the player controller `mods.autorun === false` and `dodge(dx, dz)`.
+  `seconds`, `night`, `skills`, `boo(id)`; the player controller `dodge(dx, dz)`.
   Stars are easy on purpose since the first playtest on the glasses: one for any candy, two and three rising
   gently (70 / 150 on the first night); `tools/calibrate-nights.mjs` (a capable and a casual simulated player)
   asked far too much. Candy rain pieces are candy with

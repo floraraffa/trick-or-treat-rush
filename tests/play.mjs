@@ -54,7 +54,13 @@ await page.waitForFunction(() => window.__game.view.phase === 'playing', null, {
 await page.waitForFunction(() => /!/.test(document.getElementById('banner').textContent) && document.getElementById('banner').classList.contains('show') && document.querySelector('#banner small')?.textContent.length > 20, null, { timeout: 10000 });
 assert.equal(await G(() => window.__game.view.orbs.size), 0, 'no power-up orbs on the first night');
 assert.ok(await G(() => document.getElementById('btnBoo').classList.contains('hidden')), 'no boo button yet');
-const two = await G(() => { const g = window.__game, A = g.session.authority, s = 85; A.players.get(g.me.id).score = s; g.skip(91); return s; });
+// Running on its own is the game's, from the first night: keep going one way and the Bitmoji breaks into a run.
+await G(() => { const g = window.__game, A = g.session.authority; g.player.place(0, 9, 0); g.camCtl.snapBehind(0); A.players.get(g.me.id).inv = A.rt + 60; });
+await page.keyboard.down('KeyW');
+const run1 = await (await page.waitForFunction(() => { const s = window.__game.player.state; return s.sprinting && s.speed > 6.5 ? s.speed : null; }, null, { timeout: 80000 })).jsonValue();
+await page.keyboard.up('KeyW');
+console.log(`✔ the first night: running on its own (${run1.toFixed(1)} m/s)`);
+const two = await G(() => { const g = window.__game, A = g.session.authority, s = 85, p = A.players.get(g.me.id); p.score = s; p.inv = 1e9; g.skip(91); return s; }); // (no monster takes any meanwhile)
 await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
 await page.waitForTimeout(2200);
 const r1 = await G(() => ({ stars: [...document.querySelectorAll('#resStars span')].map((s) => s.classList.contains('on')), king: document.getElementById('resKing').textContent, next: !document.getElementById('btnNext').classList.contains('hidden'), camp: JSON.parse(JSON.stringify(window.__game.camp)) }));
@@ -63,16 +69,16 @@ assert.ok(/2/.test(r1.king) && r1.next && r1.camp.nights[0].stars === 2, `night 
 await page.screenshot({ path: `${out}/p0-night-results.png` });
 await page.click('#btnNext');
 await page.waitForFunction(() => window.__game.screen === 'game' && window.__game.view.night === 1, null, { timeout: 30000 });
-assert.ok(await G(() => window.__game.view.skills.has('autorun')), 'the second night: running on its own');
+assert.ok(await G(() => window.__game.view.skills.has('powers')), 'the second night: the power-up orbs');
 console.log(`✔ nights: eight, the first open; 1:30 with its own skill; ${two} candy = 2 stars, night 2 opens; NEXT NIGHT`);
 
 // The boo night: its button, "Boo!", the monsters near run off; a giant says "Boo!" too.
-await G(() => { const c = window.__game.camp; for (const n of [1, 2]) c.nights[n] = { best: 0, stars: 0 }; window.__game.skip(91); });
+await G(() => window.__game.skip(91)); // (the second night played: the third, the boo night, opens)
 await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
 await page.click('#btnMenu'); await page.click('#btnPlay');
-await page.click('#nightGrid .nightTile[data-n="3"]');
+await page.click('#nightGrid .nightTile[data-n="2"]');
 await page.click('#btnNightPlay');
-await page.waitForFunction(() => window.__game.view.night === 3 && window.__game.view.phase === 'playing', null, { timeout: 60000 });
+await page.waitForFunction(() => window.__game.view.night === 2 && window.__game.view.phase === 'playing', null, { timeout: 60000 });
 await page.waitForFunction(() => !document.getElementById('btnBoo').classList.contains('hidden'), null, { timeout: 5000 });
 await page.waitForTimeout(1500);
 await page.click('#btnBoo');
@@ -175,6 +181,8 @@ await page.screenshot({ path: `${out}/p3-power.png` });
 console.log(`✔ power-up ${orb.kind} picked and active`);
 
 // The Bitmoji cries out (the MP3 cries, decoded): a monster spots it ("oh no" / "Nooo"), then it is grabbed.
+await G(() => { const g = window.__game, A = g.session.authority; A.players.get(g.me.id).inv = A.rt + 30; }); // (no real monster meanwhile)
+await page.waitForTimeout(6500); // (a spotted cry waits 6 s after the last: the nights' cries above)
 await G(() => { const g = window.__game, A = g.session.authority, m = A.monsters[0]; A.emit({ e: 'spot', id: m.id, target: g.me.id }); });
 const spotted = await (await page.waitForFunction(() => /^(ohno|nooo)$/.test(window.__game.lastCry()) && window.__game.lastCry(), null, { timeout: 10000 })).jsonValue();
 await page.waitForTimeout(1800); // (one cry at a time: "oh no, oh no!" lasts 1.6 s)

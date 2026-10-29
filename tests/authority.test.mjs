@@ -423,6 +423,8 @@ const nightOf = (n, seed = 7) => {
   for (let i = 0; i < 31; i++) X.tick(0.1);
   return { X, ev, of: (k) => ev.filter((e) => e.e === k) };
 };
+/** The night that teaches a skill (0-based). */
+const nightFor = (skill) => C.SKILLS.indexOf(skill);
 { // five minutes; the night's own rules; only the skills learnt by then (no orbs, no gems, a jackpot pays candy)
   const { X, ev, of } = nightOf(0);
   const st = ev.find((e) => e.e === 'start');
@@ -445,12 +447,13 @@ const nightOf = (n, seed = 7) => {
   while (X.phase !== 'over' && X.rt < C.NIGHT_SECONDS + 5) X.tick(0.1);
   assert.equal(X.phase, 'over'); assert.equal(of('over')[0].night, 0);
   assert.ok(Math.abs(X.rt - C.NIGHT_SECONDS) < 0.15, `over at ${X.rt.toFixed(1)} s`);
-  assert.equal(nightOf(4).X.help.gems, C.DIFFICULTY.medium.help.gems, 'gems from the gems night on');
-  assert.equal(nightOf(3).X.help.gems, 0, 'none before it');
+  assert.equal(nightOf(nightFor('gems')).X.help.gems, C.DIFFICULTY[C.NIGHTS[nightFor('gems')].base].help.gems, 'gems from the gems night on');
+  assert.equal(nightOf(nightFor('gems') - 1).X.help.gems, 0, 'none before it');
+  assert.equal(C.NIGHTS.at(-1).skill, 'final', 'the last night: every skill, no new one');
   console.log(`✔ nights: ${C.NIGHT_SECONDS} s, the madness in the last ${C.NIGHT_MADNESS} s, only the skills learnt (${C.NIGHTS.map((N) => N.skill).join(', ')})`);
 }
 { // boo: every monster round you runs off (a swarm too), then it waits
-  const { X, of } = nightOf(3);
+  const { X, of } = nightOf(nightFor('boo'));
   const p = X.players.get('n'), m = X.monsters[0];
   X.setPose('n', 0, 0);
   Object.assign(m, { x: 2, z: 0, state: 'chase', target: 'n', t: 0 });
@@ -464,14 +467,14 @@ const nightOf = (n, seed = 7) => {
   for (let i = 0; i < C.SKILL.boo.cooldown * 10 + 1; i++) X.tick(0.1);
   X.intent('n', { kind: 'boo' });
   assert.equal(of('boo').length, 2, `ready again after ${C.SKILL.boo.cooldown} s`);
-  const { X: Y, of: ofY } = nightOf(2);
+  const { X: Y, of: ofY } = nightOf(nightFor('boo') - 1);
   Y.intent('n', { kind: 'boo' });
   assert.equal(ofY('boo').length, 0, 'no boo before its night');
   console.log(`✔ boo: monsters within ${C.SKILL.boo.radius} m run off for ${C.SKILL.boo.fright} s; again after ${C.SKILL.boo.cooldown} s`);
 }
 { // sneak: going at a walk, a monster only spots you close up; running, as ever
   const spotted = (pace) => {
-    const { X, of } = nightOf(7);
+    const { X, of } = nightOf(nightFor('sneak'));
     const m = X.monsters.find((k) => k.kind === 'ghost');
     X.monsters = [m]; // (just this one)
     Object.assign(m, { x: 7, z: 0, state: 'patrol', cool: 0, path: [[7, 0], [7, 0.01]], wp: 0 });
@@ -491,8 +494,8 @@ const nightOf = (n, seed = 7) => {
     X.intent('n', { kind: 'pickup', id: c.id });
     return of('candy-').length;
   };
-  assert.equal(reachOn(5), 0, 'before the smell night: 3 m is too far');
-  assert.equal(reachOn(6), 1, 'with smell: taken from 3 m');
+  assert.equal(reachOn(nightFor('smell') - 1), 0, 'before the smell night: 3 m is too far');
+  assert.equal(reachOn(nightFor('smell')), 1, 'with smell: taken from 3 m');
   console.log('✔ smell: candy from twice as far');
 }
 { // stars
