@@ -8,8 +8,7 @@
 - **The Bitmoji's cries** (`public/assets/voice/*.mp3`: a scream, "Nooo!", three "AAAH!", "oh no, oh no!"): cut from
   the voices in **Lenslist**'s video *"how testing your games sounds like: Halloween edition"*, without its
   background (Demucs by Meta, MIT; `tools/cut-voices.py` in the Spectacles Lens's repository, then `npm run voices`).
-  **Not cleared yet**: the Lens ships with them only with Lenslist's (and those people's) permission; else the
-  team records its own.
+  Used with Lenslist's permission (the team has it, October 2026).
 - **PlayCanvas** engine (MIT), **meshoptimizer** decoder (MIT), **@snap/web-lens-api**.
 - Fonts (SIL Open Font License 1.1, bundled through Fontsource): **Griffy** by Font Diner (Neapolitan) and
   **Mystery Quest** by Font Diner (Sideshow).

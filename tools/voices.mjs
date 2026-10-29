@@ -1,6 +1,6 @@
 // The Bitmoji's cries for the phone game: the Spectacles Lens's Assets/Audio/voice-*.wav (cut from the voices of a
 // Lenslist video, without its background, by that repository's tools/cut-voices.py) as small MP3s in
-// public/assets/voice/ (mono, 22 kHz, 48 kbps: about 30 KB in all). Not cleared yet: see CREDITS.md.
+// public/assets/voice/ (mono, 22 kHz, 48 kbps: about 30 KB in all). Used with Lenslist's permission (CREDITS.md).
 //   npm run voices [-- <the Lens Studio project> = ../trick-or-treat-rush-spectacles]   (needs ffmpeg)
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, statSync } from 'node:fs';

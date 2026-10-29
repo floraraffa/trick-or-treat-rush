@@ -178,8 +178,7 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   spotted → "oh no" / "Nooo" (6 s apart), grabbed → "AAAH" / scream, a trick's swarm → scream, robbed → "Nooo",
   boo → "Boo!". The phone game has them too (no boo): `npm run voices` makes `public/assets/voice/*.mp3` (~30 KB)
   from the Lens repo's WAVs; audio.js `loadVoices` / `cry(names, gap)` (decoded once the audio unlocks), the same
-  moments in main.js's onEvent; `tests/play.mjs` checks them. Not cleared: they ship only with Lenslist's
-  permission, else the team records its own.
+  moments in main.js's onEvent; `tests/play.mjs` checks them. Used with Lenslist's permission (the team has it).
 
 ## Commands
 
