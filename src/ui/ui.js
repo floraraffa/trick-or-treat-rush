@@ -7,7 +7,7 @@ import { STEPS } from './tutorial.js';
 import { LANGS, t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
-const SCREENS = ['loading', 'menu', 'how', 'lobby', 'results'];
+const SCREENS = ['loading', 'menu', 'how', 'nights', 'lobby', 'results'];
 /** A costume's icon as HTML: the drawn vampire face, emoji for the rest. */
 const icon = (id, other = '🙂') => (id === 'cape' ? vampireFace() : COSTUME_ICON[id] ?? other);
 const POWER_ICON = { rain: '🍬', shield: '🛡️', magnet: '🧲', double: '✖2' };
@@ -36,8 +36,12 @@ export function createUI(on) {
   bind('btnCam', () => on.camera());
   bind('btnPower', () => on.power());
   bind('btnKnock', () => on.knock());
+  bind('btnBoo', () => on.boo());
+  bind('btnNightPlay', () => on.nightPlay());
+  bind('btnNightsBack', () => on.menu());
+  bind('btnNext', () => on.next());
   $('paused').addEventListener('click', () => on.resume());
-  for (const b of ['btnCam', 'btnPower', 'btnKnock']) $(b).addEventListener('pointerdown', (e) => e.stopPropagation());
+  for (const b of ['btnCam', 'btnPower', 'btnKnock', 'btnBoo']) $(b).addEventListener('pointerdown', (e) => e.stopPropagation());
   $('nameInput').addEventListener('change', (e) => on.name(e.target.value));
   $('nameInput').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
   let taps = 0, tapT = 0;
@@ -128,6 +132,11 @@ export function createUI(on) {
     $('lblCandy').textContent = t('myCandy');
     $('powerLbl').textContent = t('powerup');
     $('btnKnock').textContent = t('trickOrTreat');
+    $('booLbl').textContent = t('lens.skills.boo');
+    $('nightsTitle').textContent = t('lens.nights');
+    $('btnNightPlay').textContent = t('play');
+    $('btnNightsBack').textContent = t('back');
+    $('btnNext').textContent = t('lens.next');
     for (const b of levels.children) b.textContent = t(`levels.${b.dataset.id}`);
     $('lblName').textContent = t('name');
     $('pausedTitle').textContent = t('paused');
@@ -163,13 +172,29 @@ export function createUI(on) {
     setLanguage(id) { for (const b of langs.children) b.classList.toggle('on', b.dataset.id === id); },
     showName(v) { $('nameField').classList.toggle('hidden', !v); },
     setBest(n) { $('bestLine').innerHTML = n > 0 ? `${t('best')}: <b>${n}</b>` : ''; },
+    /** The stars won on every night, on the menu. */
+    setStars(n) { $('bestLine').innerHTML = n > 0 ? `<b>${t('nights.total', { n })}</b>` : ''; },
     setModeNote(s) { $('modeNote').textContent = s; },
     /** The menu's button to Snapchat's friends ranking (only where there is one). */
     showBoard(on) { $('btnBoard').classList.toggle('hidden', !on); },
     setBoardBest,
 
-    lobby({ room, roster, isHost, phase, meInRound, full, level }) {
-      $('roomName').textContent = `${t('room')}: ${room} · ${t(`levels.${level}`)}`;
+    /**
+     * The nights: `tiles` [{ n, stars, open }] (a tap on one: on.night(n)), the one picked (`pick`) and what it
+     * holds (`info`: name, how, goals, best), a line under it all (`note`).
+     */
+    nights({ tiles, pick, info, note }) {
+      $('nightGrid').innerHTML = tiles.map((s) => `<button class="nightTile${s.open ? '' : ' lock'}${s.n === pick ? ' on' : ''}" data-n="${s.n}">${s.n + 1}<span class="st">${[0, 1, 2].map((k) => (k < s.stars ? '<b>★</b>' : '★')).join('')}</span></button>`).join('');
+      for (const b of $('nightGrid').children) b.addEventListener('click', (e) => { e.stopPropagation(); on.click?.(); on.night(+b.dataset.n); });
+      $('nightName').textContent = info.name;
+      $('nightHow').textContent = info.how;
+      $('nightGoals').textContent = info.goals;
+      $('nightBest').textContent = info.best;
+      $('nightsNote').textContent = note ?? '';
+    },
+
+    lobby({ room, roster, isHost, phase, meInRound, full, level, night }) {
+      $('roomName').textContent = `${t('room')}: ${room} · ${night != null ? t('lens.night', { n: night + 1 }) : t(`levels.${level}`)}`;
       const slots = [];
       for (let i = 0; i < 4; i++) {
         const p = roster[i];
@@ -186,6 +211,13 @@ export function createUI(on) {
 
     /** The in-game HUD. */
     hud(h) {
+      const boo = $('btnBoo');
+      boo.classList.toggle('hidden', !h.boo);
+      if (h.boo) {
+        boo.classList.toggle('ready', h.boo.left <= 0);
+        boo.classList.toggle('wait', h.boo.left > 0);
+        setText('booLbl', h.boo.left > 0 ? `${Math.ceil(h.boo.left)}s` : t('lens.skills.boo'));
+      }
       const m = Math.floor(h.time / 60), s = Math.floor(h.time % 60);
       setText('timer', `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
       $('timer').classList.toggle('mad', h.mad);
@@ -255,9 +287,21 @@ export function createUI(on) {
       for (const [k, el] of tagEls) if (!seen.has(k)) el.style.display = 'none';
     },
 
-    results({ hero, king, rows, note, friends }) {
+    /**
+     * `night`: { plate, stars, next } for a night (its stars lit one by one, `onStar(k)` as each lights; NEXT NIGHT
+     * when there is one), else null.
+     */
+    results({ hero, king, rows, note, friends, night = null, onStar }) {
       $('resHero').textContent = hero;
       $('resKing').textContent = king;
+      $('resPlate').textContent = night?.plate ?? '🎃';
+      const stars = $('resStars');
+      stars.classList.toggle('hidden', !night);
+      [...stars.children].forEach((s) => s.classList.remove('on'));
+      if (night) for (let k = 0; k < night.stars; k++) setTimeout(() => { stars.children[k].classList.add('on'); onStar?.(k); }, 500 + k * 450);
+      $('btnNext').classList.toggle('hidden', !night?.next);
+      $('btnAgain').classList.toggle('go', !night?.next);
+      $('btnAgain').textContent = night ? t('lens.again') : t('playAgain');
       // the player's own rows carry their 2D Bitmoji (the API gives no one else's)
       $('ranking').innerHTML = rows.map((r) => `<div class="rank${r.win ? ' win' : ''}${r.me ? ' me' : ''}"><span class="pos"><span>${r.pos}</span></span><span class="ci">${r.face ? `<img class="bitmoji" src="${esc(r.face)}" alt="" />` : icon(r.costume, '🎃')}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`).join('');
       setBoardBest(null);

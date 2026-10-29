@@ -18,7 +18,7 @@ export function unlockAudio() {
 }
 
 // The Bitmoji's cries: fetched at once, decoded once the audio is unlocked (it needs the context).
-const VOICES = ['scream', 'nooo', 'ohno', 'aah-1', 'aah-2', 'aah-3'];
+const VOICES = ['scream', 'nooo', 'ohno', 'aah-1', 'aah-2', 'aah-3', 'boo'];
 const voiceData = {}, voiceBuf = {};
 let cryEnd = 0, cryAt = -99, lastCry = '';
 export function loadVoices(base = './assets/voice/') {

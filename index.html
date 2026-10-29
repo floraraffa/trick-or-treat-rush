@@ -179,6 +179,24 @@
       @keyframes tutCrown { 50% { transform: translateY(-10px) rotate(4deg); } }
       .moon { font-size: 46px; filter: drop-shadow(0 0 14px rgba(255,60,40,.9)); animation: tutFloat 2.4s ease-in-out infinite; }
 
+      /* --- the nights: eight tiles with the stars won, padlocks on the ones not open yet --- */
+      .nightGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+      .nightTile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0 5px; border-radius: 12px 4px 12px 4px;
+        font-family: var(--title); font-size: 28px; line-height: 1; color: #f6e7c8; background: linear-gradient(180deg, #4a2c60, #23142f); border: 2px solid #6d5a87; box-shadow: 0 3px 0 #120a18; }
+      .nightTile .st { font-family: var(--ui); font-size: 13px; letter-spacing: 1px; color: rgba(195,184,220,.3); }
+      .nightTile .st b { color: var(--gold); font-weight: normal; text-shadow: 0 0 6px rgba(240,190,90,.7); }
+      .nightTile.on { border-color: var(--gold); box-shadow: 0 3px 0 #120a18, 0 0 14px rgba(240,190,90,.55); transform: scale(1.06) rotate(-2deg); }
+      .nightTile.lock { color: rgba(246,231,200,.35); filter: grayscale(.6) brightness(.7); }
+      .nightTile.lock::after { content: '🔒'; position: absolute; top: 3px; right: 4px; font-size: 13px; }
+      .nightName { text-align: center; font-family: var(--title); font-size: 24px; color: var(--gold); margin-bottom: 4px; }
+      .nightGoals { text-align: center; font-size: 15px; color: #f3e9d8; margin-top: 8px; }
+      /* results: up to three stars, lit one by one (the middle one higher) */
+      .bigStars { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin: 4px 0 8px; }
+      .bigStars span { font-size: 54px; line-height: 1; color: rgba(195,184,220,.25); transform: scale(.8); transition: color .25s, transform .35s cubic-bezier(.2, 1.8, .4, 1), text-shadow .25s; }
+      .bigStars span:nth-child(2) { font-size: 68px; transform: translateY(-8px) scale(.8); }
+      .bigStars span.on { color: var(--gold); text-shadow: 0 0 18px rgba(255,210,90,.9); transform: scale(1.08); }
+      .bigStars span:nth-child(2).on { transform: translateY(-8px) scale(1.12); }
+
       /* --- lobby --- */
       .slots { display: flex; flex-direction: column; gap: 8px; }
       .slot { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px 4px 12px 4px; background: rgba(0,0,0,.3); border: 1px solid rgba(195,184,220,.25); font-size: 18px; }
@@ -236,6 +254,9 @@
       #btnPower.empty { opacity: .45; }
       #btnPower.ready { border-color: var(--gold); animation: glowpulse 1s infinite; }
       @keyframes glowpulse { 50% { box-shadow: 0 4px 0 #120a18, 0 0 26px rgba(240,190,90,.9); } }
+      #btnBoo { grid-column: 1; grid-row: 1; width: 64px; height: 64px; }
+      #btnBoo.ready { border-color: var(--gold); animation: glowpulse 1s infinite; }
+      #btnBoo.wait { opacity: .55; }
       #btnKnock { grid-column: 2; grid-row: 2; width: 112px; height: 112px; border-radius: 48% 52% 46% 54% / 56% 50% 50% 44%; font-family: var(--title); font-size: 19px; line-height: 1; color: #2a0f20; padding: 18px 10px 10px;
         background: radial-gradient(ellipse at 50% 30%, #ffe0a0 0%, #ffb347 30%, #ff7a1a 62%, #b23e0a 100%); border: 3px solid #3a1208; box-shadow: 0 5px 0 #3a1208, 0 0 28px rgba(255,130,30,.7); text-shadow: 0 1px 0 rgba(255,230,180,.6); position: relative; }
       #btnKnock::before { content: ''; position: absolute; top: -14px; left: 50%; width: 10px; height: 18px; margin-left: -5px; background: #4d6a2c; border-radius: 4px 6px 2px 2px; transform: rotate(12deg); }
@@ -303,6 +324,7 @@
       <div id="joy"><div id="knob"></div></div>
       <div id="doorHint" class="ink"></div>
       <div class="pad">
+        <button id="btnBoo" class="round ui-block hidden" aria-label="boo"><span class="i">👻</span><span id="booLbl">BOO!</span></button>
         <button id="btnCam" class="round ui-block" aria-label="camera"><span class="i">👁</span><span id="camLbl">3RD</span></button>
         <button id="btnPower" class="round ui-block empty" aria-label="power-up"><span class="i" id="powerIcon">✦</span><span id="powerLbl">POWER-UP</span></button>
         <button id="btnKnock" class="ui-block hidden">TRICK OR TREAT!</button>
@@ -316,7 +338,7 @@
       <img id="portrait" class="portrait" alt="" />
       <div class="costumes" id="costumes"></div>
       <div class="costumeName" id="costumeName"></div>
-      <div class="levels" id="levels"></div>
+      <div class="levels hidden" id="levels"></div>
       <div class="levels langs" id="langs" role="group" aria-label="Language"></div>
       <div class="field" id="nameField"><span id="lblName">NAME</span><input id="nameInput" maxlength="12" autocomplete="off" spellcheck="false" /></div>
       <div class="bestLine" id="bestLine"></div>
@@ -328,6 +350,19 @@
     <div id="how" class="layer screen hidden">
       <div class="tome tut" id="tut"><div class="plate" id="howTitle">HOW TO PLAY</div><div class="tutStep" id="tutStep"></div><div class="tutDots" id="tutDots"></div></div>
       <div class="btns"><button class="btn" id="btnTutSkip">SKIP</button><button class="btn go next" id="btnTutNext">NEXT</button></div>
+    </div>
+
+    <div id="nights" class="layer screen hidden">
+      <div class="tome"><div class="plate" id="nightsTitle">NIGHTS</div>
+        <div class="nightGrid" id="nightGrid"></div>
+        <div class="nightName" id="nightName"></div>
+        <div class="note" id="nightHow"></div>
+        <div class="nightGoals" id="nightGoals"></div>
+        <div class="bestLine" id="nightBest" style="text-align:center;margin-top:4px"></div>
+      </div>
+      <div class="note" id="nightsNote"></div>
+      <div class="btns"><button class="btn go" id="btnNightPlay">PLAY</button></div>
+      <div class="btns"><button class="btn" id="btnNightsBack">BACK</button></div>
     </div>
 
     <div id="lobby" class="layer screen hidden">
@@ -343,9 +378,10 @@
     <div id="results" class="layer screen hidden">
       <div class="hero" id="resHero">TIME'S UP!</div>
       <div class="king" id="resKing"></div>
-      <div class="tome"><div class="plate">🎃</div><div id="ranking"></div><div class="boardBest hidden" id="resBoard"></div><div class="note" id="resNote" style="margin-top:10px"></div></div>
-      <div class="btns"><button class="btn go" id="btnAgain">PLAY AGAIN</button></div>
-      <div class="btns"><button class="btn board" id="btnFriends">🏆 FRIENDS</button><button class="btn" id="btnMenu">MENU</button></div>
+      <div class="tome"><div class="plate" id="resPlate">🎃</div><div class="bigStars hidden" id="resStars"><span>★</span><span>★</span><span>★</span></div><div id="ranking"></div><div class="boardBest hidden" id="resBoard"></div><div class="note" id="resNote" style="margin-top:10px"></div></div>
+      <div class="btns"><button class="btn go hidden" id="btnNext">NEXT NIGHT</button></div>
+      <div class="btns"><button class="btn go" id="btnAgain">PLAY AGAIN</button><button class="btn" id="btnMenu">MENU</button></div>
+      <div class="btns"><button class="btn board" id="btnFriends">🏆 FRIENDS</button></div>
     </div>
 
     <div id="paused" class="hidden"><span id="pausedTitle">PAUSED</span><small id="pausedSub">tap to carry on</small></div>

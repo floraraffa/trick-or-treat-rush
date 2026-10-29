@@ -27,6 +27,8 @@ export class Session {
     this.phase = 'lobby'; // the host's phase as last announced: lobby, countdown, playing, over
     this.level = DEFAULT_LEVEL; // this player's choice; the host's is the room's
     this.roomLevel = DEFAULT_LEVEL;
+    this.night = null; // the night picked (null: the levels' 3-minute rounds); the host's is the room's
+    this.roomNight = null;
     this.inRound = new Set();
     this.full = false;
     this.lastSeq = 0;
@@ -59,6 +61,7 @@ export class Session {
   becomeHost() {
     this.hostId = this.me.id;
     this.roomLevel = this.level;
+    this.roomNight = this.night;
     this.hostSince = Date.now();
     this.lastSeq = 0;
     this.seq = 0;
@@ -81,6 +84,12 @@ export class Session {
     this.fire('roster', this.rosterList());
   }
 
+  /** This player's night (0..7, or null for the levels' rounds); the host's choice is the room's. */
+  setNight(n) {
+    this.night = n;
+    if (this.isHost || this.solo) { this.roomNight = n; this.broadcastRoster(); }
+  }
+
   /** This player's level; the host's choice is the room's (announced in the roster). */
   setLevel(level) {
     if (!LEVELS.includes(level)) return;
@@ -94,7 +103,7 @@ export class Session {
 
   broadcastRoster() {
     if (!this.isHost) return;
-    this.send({ t: 'roster', host: this.me.id, since: this.hostSince, phase: this.phase, level: this.roomLevel, players: [...this.roster.values()].map(({ seen, ...p }) => p), inRound: [...this.inRound] });
+    this.send({ t: 'roster', host: this.me.id, since: this.hostSince, phase: this.phase, level: this.roomLevel, night: this.roomNight, players: [...this.roster.values()].map(({ seen, ...p }) => p), inRound: [...this.inRound] });
   }
 
   // --- the host's side -------------------------------------------------------------------------
@@ -103,7 +112,7 @@ export class Session {
   startRound() {
     if (!this.isHost) { this.send({ t: 'start-req', to: this.hostId }); return; }
     const players = [...this.roster.values()].sort((a, b) => a.joined - b.joined).slice(0, MAX_PLAYERS);
-    this.authority.start(players.map((p) => ({ id: p.id, name: p.name, costume: p.costume })), this.level);
+    this.authority.start(players.map((p) => ({ id: p.id, name: p.name, costume: p.costume })), this.level, this.night != null ? { night: this.night } : {});
   }
 
   hostEmit(ev) {
@@ -181,6 +190,7 @@ export class Session {
         if (hostChanged) this.lastSeq = 0;
         this.phase = m.phase;
         if (LEVELS.includes(m.level)) this.roomLevel = m.level;
+        this.roomNight = Number.isInteger(m.night) ? m.night : null;
         this.inRound = new Set(m.inRound);
         const mine = this.roster.get(this.me.id);
         this.roster = new Map(m.players.map((p) => [p.id, { ...p, seen: this.clock }]));

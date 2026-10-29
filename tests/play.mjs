@@ -1,6 +1,8 @@
-// A full solo night in headless Chromium, checking the rules from the outside:
-// movement and running on its own, camera switch, a door visit and its cooldown, a candy pickup, a
-// power-up, candy rain, gems (a ghost floats through a house), madness, the end.
+// Solo nights in headless Chromium, checking the rules from the outside. The nights: PLAY opens them, the
+// first open and the rest locked, a night of 1:30 with only its own skill, its stars and the next night opened,
+// NEXT NIGHT, the boo button and "Boo!" on its night. Then a full 3-minute round of the shared rules (as the
+// Specs WebXR version still plays them): movement and running on its own, camera switch, a door visit and its
+// cooldown, a candy pickup, a power-up, the cries, candy rain, gems (a ghost floats through a house), madness, the end.
 //   node tests/play.mjs <outdir>
 import assert from 'node:assert/strict';
 import { launch } from './browser.mjs';
@@ -31,8 +33,64 @@ for (let i = 0; i < cards; i++) {
   assert.equal(c.last, i === cards - 1, 'SKIP on every card but the last');
   await page.click('#btnTutNext');
 }
-console.log(`✔ tutorial: the first PLAY shows ${cards} picture cards, then the night starts`);
+console.log(`✔ tutorial: the first PLAY shows ${cards} picture cards, then the nights`);
+
+// The nights: eight tiles, the first open; a locked one says why; PLAY starts the night picked.
+await page.waitForFunction(() => !document.getElementById('nights').classList.contains('hidden'), null, { timeout: 10000 });
+const tiles = await G(() => [...document.querySelectorAll('#nightGrid .nightTile')].map((b) => ({ n: b.textContent.trim()[0], lock: b.classList.contains('lock'), on: b.classList.contains('on') })));
+assert.equal(tiles.length, 8, 'eight nights');
+assert.ok(!tiles[0].lock && tiles[0].on && tiles.slice(1).every((x) => x.lock), 'the first open and picked, the rest locked');
+await page.click('#nightGrid .nightTile[data-n="2"]');
+await page.waitForFunction(() => [...document.querySelectorAll('#popups .popup')].some((p) => /2/.test(p.textContent)), null, { timeout: 5000 }); // ("play night 2 to open this one")
+assert.ok(await G(() => document.querySelector('#nightGrid .nightTile[data-n="0"]').classList.contains('on')), "a locked night can't be picked");
+const info = await G(() => ({ name: document.getElementById('nightName').textContent, goals: document.getElementById('nightGoals').textContent }));
+assert.ok(/1/.test(info.name) && /70/.test(info.goals) && /150/.test(info.goals), `the night's skill and its stars (${info.name} · ${info.goals})`);
+await page.click('#btnNightPlay');
+await page.waitForFunction(() => window.__game.screen === 'game' && window.__game.view.night === 0, null, { timeout: 30000 });
+await page.waitForFunction(() => /^01:(30|2\d)$/.test(document.getElementById('timer').textContent), null, { timeout: 10000 }); // (the HUD's first frame)
+const t0 = await G(() => ({ secs: window.__game.view.seconds, timer: document.getElementById('timer').textContent, skills: [...window.__game.view.skills] }));
+assert.ok(t0.secs === 90 && /^01:(30|2\d)$/.test(t0.timer) && t0.skills.join() === 'knock', `a minute and a half, only its own skill (${t0.timer}, ${t0.skills})`);
 await page.waitForFunction(() => window.__game.view.phase === 'playing', null, { timeout: 60000 });
+await page.waitForFunction(() => /!/.test(document.getElementById('banner').textContent) && document.getElementById('banner').classList.contains('show') && document.querySelector('#banner small')?.textContent.length > 20, null, { timeout: 10000 });
+assert.equal(await G(() => window.__game.view.orbs.size), 0, 'no power-up orbs on the first night');
+assert.ok(await G(() => document.getElementById('btnBoo').classList.contains('hidden')), 'no boo button yet');
+const two = await G(() => { const g = window.__game, A = g.session.authority, s = 85; A.players.get(g.me.id).score = s; g.skip(91); return s; });
+await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
+await page.waitForTimeout(2200);
+const r1 = await G(() => ({ stars: [...document.querySelectorAll('#resStars span')].map((s) => s.classList.contains('on')), king: document.getElementById('resKing').textContent, next: !document.getElementById('btnNext').classList.contains('hidden'), camp: JSON.parse(JSON.stringify(window.__game.camp)) }));
+assert.deepEqual(r1.stars, [true, true, false], `${two} candy: two stars`);
+assert.ok(/2/.test(r1.king) && r1.next && r1.camp.nights[0].stars === 2, `night 2 opens, NEXT NIGHT (${r1.king})`);
+await page.screenshot({ path: `${out}/p0-night-results.png` });
+await page.click('#btnNext');
+await page.waitForFunction(() => window.__game.screen === 'game' && window.__game.view.night === 1, null, { timeout: 30000 });
+assert.ok(await G(() => window.__game.view.skills.has('autorun')), 'the second night: running on its own');
+console.log(`✔ nights: eight, the first open; 1:30 with its own skill; ${two} candy = 2 stars, night 2 opens; NEXT NIGHT`);
+
+// The boo night: its button, "Boo!", the monsters near run off; a giant says "Boo!" too.
+await G(() => { const c = window.__game.camp; for (const n of [1, 2]) c.nights[n] = { best: 0, stars: 0 }; window.__game.skip(91); });
+await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
+await page.click('#btnMenu'); await page.click('#btnPlay');
+await page.click('#nightGrid .nightTile[data-n="3"]');
+await page.click('#btnNightPlay');
+await page.waitForFunction(() => window.__game.view.night === 3 && window.__game.view.phase === 'playing', null, { timeout: 60000 });
+await page.waitForFunction(() => !document.getElementById('btnBoo').classList.contains('hidden'), null, { timeout: 5000 });
+await page.waitForTimeout(1500);
+await page.click('#btnBoo');
+await page.waitForFunction(() => window.__game.view.boo(window.__game.me.id) > 10 && window.__game.lastCry() === 'boo', null, { timeout: 10000 });
+await page.waitForFunction(() => /\d+s/.test(document.getElementById('booLbl').textContent), null, { timeout: 5000 });
+await page.waitForTimeout(1800); // (a grab's cry waits 1.5 s after the last cry)
+await G(() => { const g = window.__game, A = g.session.authority; A.emit({ e: 'hit', id: g.me.id, by: 'ghost', mon: A.monsters[0].id, delta: 0 }); });
+await page.waitForFunction(() => /^(aah|scream)/.test(window.__game.lastCry()), null, { timeout: 10000 });
+await page.waitForTimeout(1000);
+await G(() => { const g = window.__game, A = g.session.authority, me = A.players.get(g.me.id); me.fx.giant = A.rt + 5; A.emit({ e: 'gem-', id: 'test', by: g.me.id, kind: 'giant', until: me.fx.giant }); });
+await page.waitForFunction(() => window.__game.lastCry() === 'boo', null, { timeout: 10000 });
+console.log('✔ the boo night: the BOO! button, "Boo!" and its wait; a giant says "Boo!"');
+await G(() => window.__game.skip(91));
+await page.waitForFunction(() => window.__game.screen === 'results', null, { timeout: 20000 });
+
+// The shared rules' full round (3 minutes, the levels' rules): started through the session.
+await G(() => { const s = window.__game.session; s.setNight(null); s.startRound(); });
+await page.waitForFunction(() => window.__game.view.night == null && window.__game.view.phase === 'playing', null, { timeout: 60000 });
 const p0 = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
 await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
 await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x - x, window.__game.player.state.z - z) > 2, p0, { timeout: 30000 });

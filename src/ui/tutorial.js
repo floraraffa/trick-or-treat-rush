@@ -25,5 +25,5 @@ export const STEPS = [
   { id: 'monsters', art: () => `<div class="ghostArt"><span>👻</span><em>−10 🍬</em></div><div class="crew">${Object.keys(SHAPES).map((n) => head(n, 33)).join('')}<em>🐢</em></div>` },
   { id: 'powers', art: () => '<div class="gems"><i class="gem red"></i><i class="gem green"></i><i class="gem white"></i></div><div class="orbs"><span>🍬</span><span>🛡️</span><span>🧲</span><span>✖2</span></div><div class="secs">⏱ 20 s</div>' },
   { id: 'storm', art: () => `<div class="cloudArt">⛈️</div><i class="boltArt">⚡</i>${DROPS.map(([c, x, d]) => `<i class="drop" style="left:${x}%;animation-delay:${d}s">${c}</i>`).join('')}<div class="round powArt"><span class="i">🍬</span><span>${t('powerup')}</span></div>` },
-  { id: 'win', art: () => '<div class="timerArt">3:00</div><div class="crown">👑</div><div class="moon">🌕</div>' },
+  { id: 'win', art: () => '<div class="timerArt">1:30</div><div class="crown">⭐</div><div class="moon">🌕</div>' },
 ];

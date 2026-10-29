@@ -4,7 +4,7 @@
 // the current user's avatar (its `participant` parameter is reserved and rejected). Until a GLB has
 // loaded, a jointed stand-in plays the same clips. Costumes ride on the head or spine joints.
 // A ghost gem turns the same Bitmoji into a ghost of itself: see-through, pale and floating.
-import { BLEND_NORMAL, Color, Entity, Mat4, Quat } from 'playcanvas';
+import { BLEND_NORMAL, Color, Entity, Mat4, Quat, Vec3 } from 'playcanvas';
 import { unpackGlb } from '../lib/meshopt-glb.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { snapchat } from '../lib/snap.js';
@@ -55,8 +55,10 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
   let worn = [], costumeId = costume, cape = null, capeSway = 0;
   let ghost = false, ghostT = 0, float = 0;
   const original = new WeakMap(), ghostly = new Map(); // mesh instance → its own material; material → its ghost copy
+  /** A node's place in the figure's (unscaled) frame. */
+  const inFig = (e) => new Mat4().mul2(figure.getWorldTransform().clone().invert(), e.getWorldTransform()).getTranslation();
   // Where the head and back are, in the figure's (unscaled) frame: puppet values until a Bitmoji arrives.
-  let headInfo = { joint: puppet.joints[J.Head], spine: puppet.joints[J.Spine1], top: 1.12, cx: 0, cz: 0, r: 0.12, neckY: 0.86, neckZ: 0, back: -0.12, half: 0.14 };
+  let headInfo = { joint: puppet.joints[J.Head], spine: puppet.joints[J.Spine1], top: 1.12, jointY: inFig(puppet.joints[J.Head]).y, cx: 0, cz: 0, r: 0.12, neckY: 0.86, neckZ: 0, back: -0.12, half: 0.14 };
 
   /** A costume piece from its parts (one mesh per material). */
   function build(parts, name) {
@@ -145,11 +147,10 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
     }
     const joint = b.joint('Head'), spine = b.joint('Spine1') ?? b.joint('Spine'), neck = b.joint('Neck');
     if (!joint || !spine) return;
-    const inFig = (e) => { const m = new Mat4().mul2(figure.getWorldTransform().clone().invert(), e.getWorldTransform()); return m.getTranslation(); };
     const jp = inFig(joint), np = neck ? inFig(neck) : jp;
     headInfo = {
       joint, spine,
-      top: Number.isFinite(top) ? top : jp.y + 0.27,
+      top: Number.isFinite(top) ? top : jp.y + 0.27, jointY: jp.y,
       cx: head ? head.center.x : jp.x, cz: head ? head.center.z : jp.z + 0.01,
       r: head ? Math.max(0.12, Math.min(0.24, Math.max(head.halfExtents.x, head.halfExtents.z))) : 0.16,
       neckY: np.y, neckZ: np.z,
@@ -197,6 +198,16 @@ export function createAvatar(app, tex, { own = false, costume = 'none', bitmojiU
       puppet.play(name, fade);
     },
     get anim() { return anim; },
+    /**
+     * The top of the head as drawn now (its hat too, and a giant's), in the world, over the head as it moves: a
+     * storm cloud stays tied to it.
+     */
+    headTop(out = new Vec3()) {
+      const h = headInfo, j = h.joint.getPosition();
+      let y = j.y + (h.top - h.jointY) * figure.getWorldTransform().getScale().y;
+      for (const e of worn) for (const r of e.findComponents('render')) for (const mi of r.meshInstances) y = Math.max(y, mi.aabb.getMax().y);
+      return out.set(j.x, y, j.z);
+    },
     /** Ghost form on or off (a ghost gem). */
     setGhost(on) { if (on !== ghost) { ghost = on; dress(); } },
     get ghost() { return ghost; },

@@ -7,7 +7,7 @@
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, blob, box, cylinder, texturedMaterial, trs } from '../geo.js';
 import { circleOutline, extrude, flat, lathe, tube } from '../world/shapes.js';
-import { CANDY, GEMS, GEM_R, ORB_R, PICKUP_R, POWERUPS } from '../game/config.js';
+import { CANDY, GEMS, GEM_R, ORB_R, PICKUP_R, POWERUPS, SKILL } from '../game/config.js';
 
 const HUES = [[1, 0.3, 0.35], [1, 0.62, 0.15], [1, 0.95, 0.3], [0.35, 0.95, 0.5], [0.3, 0.7, 1], [0.7, 0.4, 1]];
 export const CANDY_GLOW = { caramel: [1, 0.6, 0.2], lollipop: [1, 0.4, 0.7], chocolate: [0.75, 0.45, 1], pumpkin: [1, 0.8, 0.25], rainbow: [0.6, 0.9, 1] };
@@ -221,7 +221,7 @@ export function createCandy(app, tex, fx, { onLand = null, cloudOver = null } = 
         if ((c.type === 'rainbow' || c.type === 'pumpkin') && Math.random() < dt * 6) fx?.emit({ x: s.x, y: bob, z: s.z }, { x: 0, y: 0.5, z: 0 }, { n: 1, spread: 1, size: 0.12, grow: 0.3, life: 0.7, color: CANDY_GLOW[c.type], gravity: 0.5, alpha: 0.9, twinkle: true });
         if (me && view.phase === 'playing' && k >= 1) {
           // Asked for once it is in reach as drawn: a magnet's candy has flown to its player by then.
-          const d = Math.hypot(me.x - s.x, me.z - s.z), reach = (pulled ? PICKUP_R + 0.5 : PICKUP_R) * (me.giant ? GEMS.giant.reach : 1);
+          const d = Math.hypot(me.x - s.x, me.z - s.z), reach = (pulled ? PICKUP_R + 0.5 : PICKUP_R) * (me.giant ? GEMS.giant.reach : 1) * (me.smell ? SKILL.smell.reach : 1);
           if ((d < reach || (pulled && d < 2.5)) && (!asked.has(id) || now - asked.get(id) > 1.5)) { asked.set(id, now); ask('pickup', id); }
         }
       }

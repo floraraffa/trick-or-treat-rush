@@ -35,7 +35,16 @@ export const STRINGS = {
       monsters: ['RUN!', 'Ghosts <b>steal candy</b>. Creatures <b>slow you down</b>.'],
       powers: ['POWERS', 'Grab gems and orbs: <b>20 seconds</b> of super powers.'],
       storm: ['CANDY STORM', 'Got the storm orb? Tap POWER-UP: a thundercloud <b>rains candy</b> all around you!'],
-      win: ['WIN', '<b>Most candy in 3 minutes wins.</b> The last minute is Monster Madness!'],
+      win: ['WIN', '<b>Each night lasts a minute and a half:</b> the more candy, the more stars (up to 3). The last 30 seconds are Monster Madness!'],
+    },
+    nights: {
+      pick: 'Pick a night: each one opens once the one before has been played.',
+      goals: 'Stars: ★ {a} · ★★ {b} · ★★★ {c} candy', best: 'Best: {n}', total: '{n} / 24 ★',
+      how: {
+        powers: 'Power-up orbs appear: candy storm, shield, magnet, double. Tap POWER-UP to use one.',
+        boo: 'Tap BOO!: every monster round you runs off. Again after 18 s.',
+        gems: 'Gems appear: giant, candy thief, ghost. Grab one for 20 s of super powers.',
+      },
     },
     specs: {
       sub: 'A HAUNTED VILLAGE ON YOUR TABLE', enter: 'PLAY ON THE TABLE', noXr: 'Open this page in the Specs browser (or another headset with WebXR) to play.',
@@ -101,7 +110,16 @@ export const STRINGS = {
       monsters: ['¡CORRÉ!', 'Los fantasmas <b>roban dulces</b>. Las criaturas <b>te frenan</b>.'],
       powers: ['PODERES', 'Agarrá gemas y orbes: <b>20 segundos</b> de superpoderes.'],
       storm: ['LLUVIA DE DULCES', '¿Tenés el orbe de tormenta? Tocá PODER: una nube <b>hace llover dulces</b> a tu alrededor.'],
-      win: ['GANÁ', '<b>Gana quien junte más dulces en 3 minutos.</b> ¡El último minuto es la Locura Monstruosa!'],
+      win: ['GANÁ', '<b>Cada noche dura un minuto y medio:</b> cuantos más dulces, más estrellas (hasta 3). ¡Los últimos 30 segundos son la Locura Monstruosa!'],
+    },
+    nights: {
+      pick: 'Elegí una noche: cada una se abre al jugar la anterior.',
+      goals: 'Estrellas: ★ {a} · ★★ {b} · ★★★ {c} dulces', best: 'Récord: {n}', total: '{n} / 24 ★',
+      how: {
+        powers: 'Aparecen orbes de poder: tormenta de dulces, escudo, imán, doble. Tocá PODER para usar uno.',
+        boo: 'Tocá ¡BU!: todos los monstruos cerca salen corriendo. Otra vez a los 18 s.',
+        gems: 'Aparecen gemas: gigante, ladrón de dulces, fantasma. Agarrá una: 20 s de superpoderes.',
+      },
     },
     specs: {
       sub: 'UN PUEBLO EMBRUJADO SOBRE TU MESA', enter: 'JUGAR SOBRE LA MESA', noXr: 'Abrí esta página en el navegador de los Specs (u otros anteojos con WebXR) para jugar.',
@@ -167,7 +185,16 @@ export const STRINGS = {
       monsters: ['COURS !', 'Les fantômes <b>volent des bonbons</b>. Les créatures <b>te ralentissent</b>.'],
       powers: ['POUVOIRS', 'Attrape gemmes et orbes : <b>20 secondes</b> de super-pouvoirs.'],
       storm: ['PLUIE DE BONBONS', 'Tu as l’orbe tempête ? Touche POUVOIR : un nuage <b>fait pleuvoir des bonbons</b> autour de toi !'],
-      win: ['GAGNE', '<b>Le plus de bonbons en 3 minutes gagne.</b> La dernière minute, c’est la Folie des monstres !'],
+      win: ['GAGNE', '<b>Chaque nuit dure une minute et demie :</b> plus de bonbons, plus d’étoiles (jusqu’à 3). Les 30 dernières secondes, c’est la Folie des monstres !'],
+    },
+    nights: {
+      pick: 'Choisis une nuit : chacune s’ouvre quand la précédente a été jouée.',
+      goals: 'Étoiles : ★ {a} · ★★ {b} · ★★★ {c} bonbons', best: 'Record : {n}', total: '{n} / 24 ★',
+      how: {
+        powers: 'Des orbes de pouvoir apparaissent : tempête de bonbons, bouclier, aimant, double. Touche POUVOIR pour en utiliser un.',
+        boo: 'Touche BOU ! : tous les monstres autour de toi s’enfuient. À nouveau après 18 s.',
+        gems: 'Des gemmes apparaissent : géant, voleur de bonbons, fantôme. Attrapes-en une : 20 s de super-pouvoirs.',
+      },
     },
     specs: {
       sub: 'UN VILLAGE HANTÉ SUR TA TABLE', enter: 'JOUER SUR LA TABLE', noXr: 'Ouvre cette page dans le navigateur des Specs (ou un autre casque WebXR) pour jouer.',
@@ -233,7 +260,16 @@ export const STRINGS = {
       monsters: ['RENN!', 'Geister <b>klauen Süßigkeiten</b>. Wesen <b>bremsen dich</b>.'],
       powers: ['KRÄFTE', 'Schnapp dir Edelsteine und Kugeln: <b>20 Sekunden</b> Superkräfte.'],
       storm: ['BONBONREGEN', 'Hast du die Sturm-Kugel? Tippe auf KRAFT: eine Wolke <b>lässt Süßes regnen</b>, rund um dich!'],
-      win: ['GEWINNEN', '<b>Wer in 3 Minuten am meisten sammelt, gewinnt.</b> Die letzte Minute ist Monsterwahnsinn!'],
+      win: ['GEWINNEN', '<b>Jede Nacht dauert anderthalb Minuten:</b> je mehr Süßes, desto mehr Sterne (bis zu 3). Die letzten 30 Sekunden sind Monsterwahnsinn!'],
+    },
+    nights: {
+      pick: 'Wähle eine Nacht: jede öffnet sich, sobald die vorige gespielt wurde.',
+      goals: 'Sterne: ★ {a} · ★★ {b} · ★★★ {c} Süßes', best: 'Rekord: {n}', total: '{n} / 24 ★',
+      how: {
+        powers: 'Kraft-Kugeln erscheinen: Süßigkeitensturm, Schild, Magnet, Doppelt. Tippe auf KRAFT, um eine zu nutzen.',
+        boo: 'Tippe auf BUH!: alle Monster um dich herum laufen weg. Wieder nach 18 s.',
+        gems: 'Edelsteine erscheinen: Riese, Süßigkeitendieb, Geist. Schnapp dir einen: 20 s Superkräfte.',
+      },
     },
     specs: {
       sub: 'EIN SPUKDORF AUF DEINEM TISCH', enter: 'AUF DEM TISCH SPIELEN', noXr: 'Öffne diese Seite im Browser der Specs (oder einer anderen WebXR-Brille), um zu spielen.',

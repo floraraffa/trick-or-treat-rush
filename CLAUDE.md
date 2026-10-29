@@ -1,7 +1,12 @@
 # Trick or Treat Rush: project context
 
 Halloween entry for the **Lenslist Halloween Challenge**, built as a **Snap Web Lens** on the Cruise Rush base
-(PlayCanvas 2 + Vite + `@snap/web-lens-api`). Players' Bitmojis roam a gothic-storybook haunted village for 180 s,
+(PlayCanvas 2 + Vite + `@snap/web-lens-api`). The phone plays the Spectacles Lens's campaign too: PLAY opens the
+8 nights of 90 s (see NIGHTS below; main.js `showNights` / `playNight`, `saveData.camp = { night, nights: {n: {best,
+stars}} }`, the `nights` screen, results stars + NEXT NIGHT, a `#btnBoo` from the boo night, reflexes and the
+sniffing light (`sniff`) in main.js, smell's reach in candy.js; the board gets the sum of every night's best; the
+levels' 3-minute rounds stay for the Specs WebXR version and tests/play.mjs's full round). The levels' rounds:
+players' Bitmojis roam a gothic-storybook haunted village for 180 s,
 knock on doors (trick or treat), collect candy, dodge monsters (a ghost and five creatures drawn by the team; keep
 going one way and you run on your own; or scare them off with a gem, or turn ghost); the last minute is Monster
 Madness. Levels: easy, medium, hard (the first hard tuning was too easy; hard is now meant to be really hard: 4 ghosts
@@ -176,9 +181,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   The Bitmoji's cries (Lens repo: `Assets/Audio/voice-*.wav`, `tools/cut-voices.py`): cut from the voices of a
   Lenslist video (Demucs parts them from the games' sounds); `Sound.cry` on its own channel, one at a time:
   spotted → "oh no" / "Nooo" (6 s apart), grabbed → "AAAH" / scream, a trick's swarm → scream, robbed → "Nooo",
-  boo → "Boo!". The phone game has them too (no boo): `npm run voices` makes `public/assets/voice/*.mp3` (~30 KB)
+  boo → "Boo!". The phone game has them too: `npm run voices` makes `public/assets/voice/*.mp3` (~30 KB)
   from the Lens repo's WAVs; audio.js `loadVoices` / `cry(names, gap)` (decoded once the audio unlocks), the same
   moments in main.js's onEvent; `tests/play.mjs` checks them. Used with Lenslist's permission (the team has it).
+  Growing into a giant (a giant gem) says "Boo!" too, in both. The storm cloud is tied to the top of the head as
+  drawn (web: `avatar.headTop()` from the head joint and the worn hat's bounds, `auras.update(…, head)`, ahead a
+  fixed 3.5 m, not ×the giant's size; Lens: `Avatar.headTop()` from the rig's head joint + HEAD_TOP / HAT_TOP,
+  over the head, rising instead of standing back so the eyes still see the head): a giant's stood far off before.
 
 ## Commands
 

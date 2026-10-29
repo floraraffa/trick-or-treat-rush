@@ -23,10 +23,12 @@ function glowMat(color, opacity) {
   return m;
 }
 
-// The thundercloud hangs over its player's head, reaching ahead (where a third-person camera looks: its belly
-// shows at the top of the view, under the HUD), and grows and rises with a giant. Metres: the head's height, the
-// cloud's size (×1: 14 m across), its middle over the head and its underside under its middle (both ×size), how
-// far ahead its middle is (×the player's size), how far its belly reaches from its middle (×size).
+// The thundercloud is tied to its player's head (the top of it as drawn, hat and a giant's size included,
+// wherever the head goes), reaching a little ahead (where a third-person camera looks: its belly shows at the top
+// of the view, under the HUD), and grows with a giant. Metres: the head's height (only where no head is given),
+// the cloud's size (×1: 14 m across), its middle over the head and its underside under its middle (both ×size),
+// how far ahead of the head its middle is (the same for a giant: it stays over the head), how far its belly
+// reaches from its middle (×size).
 export const CLOUD = { head: 1.65, size: 1.15, lift: 3, under: 1.6, ahead: 3.5, grow: 0.7, reach: 7 };
 /** The cloud's size over a player `k` times as tall (a giant's grows, less than the giant). */
 export const cloudSize = (k = 1) => CLOUD.size * (1 + (k - 1) * CLOUD.grow);
@@ -197,8 +199,11 @@ export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
   }
 
   return {
-    /** fxLeft(kind) → seconds left; x/z where the player is drawn; `fp`: this is my own body in first person. */
-    update(dt, id, parent, fxLeft, x, z, fp = false) {
+    /**
+     * fxLeft(kind) → seconds left; x/z where the player is drawn; `fp`: this is my own body in first person;
+     * `head`: the top of its head in the world (avatar.headTop()), which the storm cloud is tied to.
+     */
+    update(dt, id, parent, fxLeft, x, z, fp = false, head = null) {
       const a = get(id, parent);
       a.t += dt;
       const shield = fxLeft('shield') > 0, magnet = fxLeft('magnet') > 0;
@@ -213,12 +218,13 @@ export function createAuras(app, fx, { tex = null, onStrike = null } = {}) {
       if (a.cloud.enabled) {
         // Over the head (a giant's too), and never down round the camera: over it, it rises clear of it.
         const k = parent.getLocalScale().x || 1, g = cloudSize(k), s = a.storm * g;
-        let y = CLOUD.head * k + CLOUD.lift * g;
-        const p = parent.getPosition(), f = parent.forward, mx = p.x - f.x * CLOUD.ahead * k, mz = p.z - f.z * CLOUD.ahead * k; // (its middle: +Z ahead)
+        const p = parent.getPosition(), f = parent.forward, h = head ?? { x: p.x, y: p.y + CLOUD.head * k, z: p.z };
+        let y = h.y - p.y + CLOUD.lift * g;
+        const mx = h.x - f.x * CLOUD.ahead, mz = h.z - f.z * CLOUD.ahead; // (its middle: +Z ahead)
         const ey = eye.y - p.y; // (a camera high over it, as over a table, leaves it be)
         if (ey < y + 2 * g && Math.hypot(eye.x - mx, eye.z - mz) < (CLOUD.reach + 1.5) * g) y = Math.max(y, ey + CLOUD.under * g + 0.4);
         a.cloud.setLocalScale(s / k, s / k, s / k);
-        a.cloud.setLocalPosition(0, y / k, CLOUD.ahead);
+        a.cloud.setPosition(mx, p.y + y, mz);
         a.cloud.setEulerAngles(0, a.t * 12, 0);
         a.size = g;
       }

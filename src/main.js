@@ -1,6 +1,8 @@
 // GameManager: boots the Lens and runs the night. Wires the village, the player's Bitmoji and
 // camera, the session (one authority, everyone else mirroring it), the monsters and candy on
-// screen, the HUD and the screens: menu → (lobby) → 3, 2, 1, GO! → 180 s → TIME'S UP! → ranking.
+// screen, the HUD and the screens: menu → nights → (lobby) → 3, 2, 1, GO! → 1:30 → TIME'S UP! → stars.
+// The nights are the Spectacles Lens's: eight of a minute and a half, up to three stars each, a new skill each
+// (config.js NIGHTS, SKILLS), the next one open once a night has been played.
 import { Application, CameraFrame, Color, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO, TONEMAP_NEUTRAL, Vec3 } from 'playcanvas';
 import '@fontsource/griffy/latin-400.css';
 import '@fontsource/mystery-quest/latin-400.css';
@@ -20,7 +22,7 @@ import { createInput } from './input.js';
 import { createTransport } from './net/transport.js';
 import { Session } from './net/session.js';
 import { View, playerOf } from './game/view.js';
-import { DEFAULT_LEVEL, GEMS, LEVELS, MADNESS_AT, MIN_PLAYERS, POSE_HZ, ROUND_SECONDS } from './game/config.js';
+import { DEFAULT_LEVEL, GEMS, LEVELS, MADNESS_AT, MIN_PLAYERS, NIGHTS, POSE_HZ, ROUND_SECONDS, SKILL, starsFor } from './game/config.js';
 import { buzz, cry, lastCryName, loadVoices, music, musicMadness, sfx, suspendAudio, unlockAudio } from './audio.js';
 import { createUI } from './ui/ui.js';
 import { detectLang, getLang, setLang, t } from './ui/i18n.js';
@@ -42,6 +44,10 @@ setLang(detectLang(null));
 const ui = createUI({
   click: () => { unlockAudio(); sfx.click(); },
   play: () => onPlay(),
+  nightPlay: () => onNightPlay(),
+  night: (n) => pickNight(n),
+  next: () => onNext(),
+  boo: () => input.press('boo'),
   start: () => session.startRound(),
   lobbyBack: () => toMenu(),
   again: () => onAgain(),
@@ -124,7 +130,8 @@ app.start();
 ui.loadProgress(0.2);
 
 // --- profile, session ------------------------------------------------------------------
-const DEFAULT_SAVE = { best: 0, bests: {}, level: DEFAULT_LEVEL, name: '', costume: 'witch', camera: 'third', nights: [], lang: null, tutorial: false };
+// (`nights`: the ten best nights played, a history; `camp`: the nights of the campaign, the one picked and each one's best and stars)
+const DEFAULT_SAVE = { best: 0, bests: {}, level: DEFAULT_LEVEL, name: '', costume: 'witch', camera: 'third', nights: [], camp: { night: 0, nights: {} }, lang: null, tutorial: false };
 const SPOOKY = ['Pumpkin', 'Raven', 'Moth', 'Wisp', 'Bat', 'Ghoul', 'Hex', 'Toad', 'Newt', 'Crow'];
 let saveData = structuredClone(DEFAULT_SAVE);
 const me = { id: `p${Math.random().toString(36).slice(2, 9)}`, name: params.get('name') || `${SPOOKY[Math.floor(Math.random() * SPOOKY.length)]}${Math.floor(Math.random() * 90 + 10)}`, costume: 'witch' };
@@ -134,7 +141,7 @@ const view = new View(me.id);
 let myAvatar = null, player = null;
 const remotes = new Map(); // id → { avatar }
 let screen = 'loading';
-let poseT = 0, paused = false, knockLock = 0, lastTick = -1, madK = 0, menuT = 0;
+let poseT = 0, paused = false, knockLock = 0, lastTick = -1, madK = 0, menuT = 0, dodgeAt = -99;
 const doors = HOUSES.map(() => ({ t: -1 }));
 const houseReady = HOUSES.map(() => null);
 
@@ -154,6 +161,8 @@ async function boot() {
   if (!LEVELS.includes(saveData.level)) saveData.level = DEFAULT_LEVEL;
   if (LEVELS.includes(params.get('level'))) saveData.level = params.get('level');
   saveData.bests ??= {};
+  saveData.camp ??= { night: 0, nights: {} };
+  if (!nightOpen(saveData.camp.night)) saveData.camp.night = 0;
   setLang(detectLang(params.get('lang') ?? saveData.lang)); // the language picked in the menu, else the phone's
   if (saveData.name && !params.get('name')) me.name = saveData.name;
   me.costume = params.get('costume') && COSTUMES.includes(params.get('costume')) ? params.get('costume') : saveData.costume;
@@ -161,6 +170,7 @@ async function boot() {
 
   session = new Session({ transport, me });
   session.setLevel(saveData.level);
+  session.setNight(saveData.camp.night);
   session.on('event', onEvent);
   session.on('snapshot', (s) => view.snapshot(s));
   session.on('pose', (id, p) => view.pose(id, p));
@@ -216,7 +226,7 @@ function menuTexts() {
   ui.texts();
   ui.setLanguage(getLang());
   ui.setCostume(me.costume);
-  ui.setBest(bestFor(saveData.level));
+  ui.setStars(starsTotal());
   ui.setModeNote(session.solo ? (snapchat.isStub ? `${t('soloShort')} · ${t('solo')}` : t('solo')) : `${t('room')}: ${transport.room}`);
   renderLobby();
 }
@@ -238,18 +248,59 @@ function setName(n) {
   session?.setProfile(me.name, me.costume);
 }
 
+// --- the nights -------------------------------------------------------------------------------------
+/** A night is open once the one before has been played, however it went (the first, always). */
+const nightOpen = (n) => n === 0 || (n > 0 && n < NIGHTS.length && !!saveData.camp.nights[n - 1]);
+const starsTotal = () => Object.values(saveData.camp.nights).reduce((s, r) => s + (r.stars ?? 0), 0);
+/** What the campaign scores on Snapchat's board: the best candy of every night played, added up. */
+const campTotal = () => Object.values(saveData.camp.nights).reduce((s, r) => s + (r.best ?? 0), 0);
+/** How a night's skill is played (the phone's taps where the Lens's words speak of pinches). */
+const skillHow = (id) => (['powers', 'boo', 'gems'].includes(id) ? t(`nights.how.${id}`) : t(`lens.skillHow.${id}`));
+
+/** PLAY: the nights (after the tutorial, the first time). */
 function onPlay() {
   unlockAudio();
   if (session.solo && !saveData.tutorial) { ui.tutorial(() => onPlay()); return; } // the first night: the visual tutorial first (it can be skipped)
-  if (session.solo) { session.startRound(); return; }
-  goTo('lobby');
-  renderLobby();
+  goTo('nights');
+  showNights();
 }
-function onAgain() {
+function showNights() {
+  const pick = saveData.camp.night, N = NIGHTS[pick], rec = saveData.camp.nights[pick];
+  ui.nights({
+    tiles: NIGHTS.map((_, n) => ({ n, stars: saveData.camp.nights[n]?.stars ?? 0, open: nightOpen(n) })),
+    pick,
+    info: { name: `${t('lens.night', { n: pick + 1 })} · ${t(`lens.skills.${N.skill}`)}`, how: skillHow(N.skill), goals: t('nights.goals', { a: N.stars[0], b: N.stars[1], c: N.stars[2] }), best: rec ? t('nights.best', { n: rec.best }) : '' },
+    note: t('nights.pick'),
+  });
+}
+function pickNight(n) {
+  if (!nightOpen(n)) { ui.popup(t('lens.locked', { n }), 'bad'); return; } // ("play night n to open this one": the one before)
+  saveData.camp.night = n;
+  save(saveData);
+  session?.setNight(n);
+  showNights();
+}
+/** Starts the picked night (on your own), or takes it to the room's lobby. */
+function playNight(n) {
+  session.setNight(n);
   if (session.solo) { session.startRound(); return; }
   if (session.isHost) session.toLobby();
   goTo('lobby');
   renderLobby();
+}
+function onNightPlay() { unlockAudio(); playNight(saveData.camp.night); }
+function onAgain() {
+  if (session.roomNight != null || session.solo) { playNight(view.night ?? saveData.camp.night); return; }
+  if (session.isHost) session.toLobby();
+  goTo('lobby');
+  renderLobby();
+}
+function onNext() {
+  const n = (view.night ?? saveData.camp.night) + 1;
+  if (!nightOpen(n)) return;
+  saveData.camp.night = n;
+  save(saveData);
+  playNight(n);
 }
 function toMenu() {
   if (screen === 'game') return;
@@ -259,7 +310,7 @@ function toMenu() {
 
 function renderLobby() {
   if (!session || session.solo) return;
-  ui.lobby({ room: transport.room, roster: session.rosterList(), isHost: session.isHost, phase: session.phase, meInRound: session.inRound.has(me.id), full: session.full, level: session.roomLevel });
+  ui.lobby({ room: transport.room, roster: session.rosterList(), isHost: session.isHost, phase: session.phase, meInRound: session.inRound.has(me.id), full: session.full, level: session.roomLevel, night: session.roomNight });
 }
 
 // --- round events (from the authority) ------------------------------------------------------
@@ -270,7 +321,16 @@ function onEvent(ev) {
   const mine = playerOf(ev) === me.id;
   switch (ev.e) {
     case 'count': ui.banner(String(ev.n), '', 800, 'big'); sfx.beep(); break;
-    case 'go': ui.banner(t('go'), '', 900, 'big good'); sfx.go(); break;
+    case 'go': {
+      ui.banner(t('go'), '', 900, 'big good'); sfx.go();
+      const n = view.night; // a night: its skill, and how it's played
+      if (n != null) setTimeout(() => { if (screen === 'game' && view.round === ev.round) { ui.banner(t('lens.newSkill'), `${t(`lens.skills.${NIGHTS[n].skill}`)}: ${skillHow(NIGHTS[n].skill)}`, 3200, 'good'); sfx.power(); } }, 1100);
+      break;
+    }
+    case 'boo': // a ring of light rushes out, and every monster near runs off
+      for (let i = 0; i < 36; i++) { const a = (i / 36) * Math.PI * 2; sparks.emit({ x: ev.x, y: 0.6, z: ev.z }, { x: Math.cos(a) * SKILL.boo.radius * 1.6, y: 0.3, z: Math.sin(a) * SKILL.boo.radius * 1.6 }, { n: 1, spread: 0.1, size: 0.4, grow: 0.6, life: 0.6, color: [1, 0.85, 0.4], gravity: 0, alpha: 1, twinkle: true }); }
+      if (mine) { ui.banner(t('lens.skills.boo'), '', 900, 'good'); sfx.ghost(); sfx.blocked(); cry(['boo']); buzz(40); }
+      break;
     case 'candy-':
       if (mine) { ui.popup(t('plusCandy', { n: ev.pts })); sfx.candy(ev.pts); buzz(15); }
       break;
@@ -283,7 +343,7 @@ function onEvent(ev) {
       if (mine) { ui.banner(t(`power.${ev.kind}`), '', 1000, 'good'); sfx.power(); buzz(25); }
       break;
     case 'gem-':
-      if (mine) { ui.banner(t(`gem.${ev.kind}`), t(`gemSub.${ev.kind}`), 1800, 'good'); sfx.jackpot(); buzz(60); }
+      if (mine) { ui.banner(t(`gem.${ev.kind}`), t(`gemSub.${ev.kind}`), 1800, 'good'); sfx.jackpot(); buzz(60); if (ev.kind === 'giant') cry(['boo']); } // (growing huge: "Boo!")
       break;
     case 'scare': {
       sparks.emit({ x: ev.x, y: 1.2, z: ev.z }, { x: 0, y: 3, z: 0 }, { n: 34, spread: 5, size: 0.3, grow: 0.5, life: 0.9, color: ev.kind === 'ghost' ? [0.6, 0.8, 1] : [0.6, 1, 0.5], gravity: -3, alpha: 1, twinkle: true });
@@ -383,22 +443,31 @@ async function finishRound() {
   ((session.solo ? mine > 0 : won) ? sfx.win : sfx.lose)();
   music(false);
   // Personal records and Snapchat's leaderboard (friends compare there: the API can't read entries back).
-  const level = view.level ?? saveData.level;
-  const prevBest = bestFor(level);
-  saveData.bests = { ...saveData.bests, [level]: Math.max(prevBest, mine) };
-  saveData.nights = [...saveData.nights, { score: mine, at: Date.now(), players: ranking.length, level }].sort((a, b) => b.score - a.score).slice(0, 10);
+  const level = view.level ?? saveData.level, night = view.night ?? null;
+  let prevBest, stars = 0, opened = false;
+  if (night != null) { // a night: its stars (the best of every try kept), and the next night if this one opened it
+    const rec = saveData.camp.nights[night] ?? { best: 0, stars: 0 }, wasOpen = nightOpen(night + 1);
+    prevBest = rec.best;
+    stars = starsFor(night, mine);
+    saveData.camp.nights = { ...saveData.camp.nights, [night]: { best: Math.max(rec.best, mine), stars: Math.max(rec.stars, stars) } };
+    opened = night + 1 < NIGHTS.length && !wasOpen && nightOpen(night + 1);
+  } else {
+    prevBest = bestFor(level);
+    saveData.bests = { ...saveData.bests, [level]: Math.max(prevBest, mine) };
+  }
+  saveData.nights = [...saveData.nights, { score: mine, at: Date.now(), players: ranking.length, level, night }].sort((a, b) => b.score - a.score).slice(0, 10);
   save(saveData);
-  ui.setBest(bestFor(saveData.level));
-  const best = submitScore(mine);
+  ui.setStars(starsTotal());
+  const best = submitScore(night != null ? campTotal() : mine); // (the nights: every night's best candy, added up)
   setTimeout(() => {
     if (screen !== 'game') return;
     let rows, king, note = '';
     if (session.solo) {
-      const nights = saveData.nights.filter((n) => (n.level ?? 'hard') === level);
+      const nights = saveData.nights.filter((n) => (night != null ? n.night === night : n.night == null && (n.level ?? 'hard') === level));
       const idx = nights.findIndex((n) => n.score === mine);
       rows = nights.slice(0, 5).map((n, i) => ({ pos: i + 1, name: i === idx ? `${me.name} · ${t('you')}` : new Date(n.at).toLocaleDateString(), score: n.score, win: i === idx && mine > prevBest, me: i === idx, costume: i === idx ? me.costume : 'none', face }));
-      king = mine > prevBest && mine > 0 ? `${t('newBest')} · ${t('king')}` : '';
-      note = `${t(`levels.${level}`)} · ${t('solo')}`;
+      king = opened ? t('lens.opened', { n: night + 2 }) : night != null && stars === 0 ? t('lens.noStar') : mine > prevBest && mine > 0 ? `${t('newBest')} · ${t('king')}` : '';
+      note = night != null ? `${t('lens.night', { n: night + 1 })} · ${t(`lens.skills.${NIGHTS[night].skill}`)}` : `${t(`levels.${level}`)} · ${t('solo')}`;
     } else {
       const tie = view.winners.length > 1;
       let pos = 0, last = null;
@@ -406,7 +475,8 @@ async function finishRound() {
       const names = ranking.filter((r) => view.winners.includes(r.id)).map((r) => r.name).join(' & ');
       king = tie ? `${t('tie')}: ${names}` : `${t('king')} ${won ? t('youWin') : names}`;
     }
-    ui.results({ hero: t('timesUp'), king, rows, note, friends: board });
+    const nightRes = night != null ? { plate: t('lens.night', { n: night + 1 }), stars, next: night + 1 < NIGHTS.length && nightOpen(night + 1) } : null;
+    ui.results({ hero: t('timesUp'), king, rows, note, friends: board, night: nightRes, onStar: (k) => (k === 2 ? sfx.jackpot() : sfx.candy(25)) });
     best.then((n) => { if (screen === 'results' && board && n != null) ui.setBoardBest(n); }); // what Snapchat's board holds for the player
     if (board && !snapchat.isStub && session.solo) showLeaderboard(); // after every night: the friends' ranking, with their Bitmojis
     screen = 'results';
@@ -425,7 +495,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // --- the frame ----------------------------------------------------------------------------
-const tmp = new Vec3(), scr = new Vec3();
+const tmp = new Vec3(), scr = new Vec3(), headV = new Vec3();
 let last = performance.now();
 app.on('update', () => {
   const nowMs = performance.now();
@@ -465,9 +535,16 @@ function playFrame(dt, now) {
   const playing = view.phase === 'playing';
   if (input.take('camera')) { saveData.camera = camCtl.toggle(); save(saveData); sfx.click(); }
   const move = input.read();
-  const mods = { slow: view.fx(me.id, 'slow') > 0, frozen: !playing, giant: view.fx(me.id, 'giant') > 0, ghost: view.fx(me.id, 'ghost') > 0 };
+  const skills = view.skills ?? new Set(), ps = player.state;
+  // Reflexes (a skill): a monster chasing the Bitmoji about to grab it, and it leaps clear (now and then).
+  if (playing && skills.has('dodge') && now - dodgeAt > SKILL.dodge.cooldown) {
+    for (const m of view.monsters.values()) { // (where the authority last said it is: no drawing lag)
+      if (m.state !== 'chase' || m.target !== me.id || m.x === undefined) continue;
+      if (Math.hypot(m.x - ps.x, m.z - ps.z) < SKILL.dodge.range * (ps.scale || 1)) { player.dodge(ps.x - m.x, ps.z - m.z); dodgeAt = now; ui.popup(t('lens.dodged'), 'power'); sfx.power(); break; }
+    }
+  }
+  const mods = { slow: view.fx(me.id, 'slow') > 0, frozen: !playing, giant: view.fx(me.id, 'giant') > 0, ghost: view.fx(me.id, 'ghost') > 0, autorun: !view.skills || skills.has('autorun') };
   const pose = player.update(dt, move, camCtl, mods);
-  const ps = player.state;
   session.authority?.setPose(me.id, ps.x, ps.z); // the host's own position, every frame
   if (ps.sprinting && ps.moving && Math.random() < dt * 25) fx.emit({ x: ps.x, y: 0.15, z: ps.z }, { x: -ps.vx * 0.15, y: 0.6, z: -ps.vz * 0.15 }, { n: 1, spread: 0.6, size: 0.35, grow: 1.6, life: 0.6, color: [0.62, 0.58, 0.7], gravity: 0, alpha: 0.45 });
   poseT += dt;
@@ -490,6 +567,7 @@ function playFrame(dt, now) {
     session.intent({ kind: 'knock', house: door.h.id });
   }
   if (input.take('use') && meP?.held && playing) session.intent({ kind: 'use' });
+  if (input.take('boo') && playing && skills.has('boo') && view.boo(me.id) <= 0) session.intent({ kind: 'boo' });
 
   // Doors swing open on every device when the authority says a house was visited.
   doors.forEach((d, i) => {
@@ -503,7 +581,8 @@ function playFrame(dt, now) {
     const ready = !((view.houses[i] ?? 0) > now);
     if (houseReady[i] !== ready) { houseReady[i] = ready; village.setHouseReady(i, ready); }
   });
-  village.setClock(Math.max(0, rt) / ROUND_SECONDS);
+  const seconds = view.seconds ?? ROUND_SECONDS; // (a night: 90 s)
+  village.setClock(Math.max(0, rt) / seconds);
 
   // Monster Madness: the fog thickens, the moon reddens, the lamps flicker.
   const mt = view.madness ? 1 : 0;
@@ -526,9 +605,9 @@ function playFrame(dt, now) {
     const rblink = p.inv > now && Math.floor(now * 10) % 2 === 0;
     r.avatar.setVisible(!rblink);
     r.avatar.update(dt, (ex.s ?? 0) * 5);
-    auras.update(dt, id, r.avatar.root, (k) => view.fx(id, k), s.x, s.z);
+    auras.update(dt, id, r.avatar.root, (k) => view.fx(id, k), s.x, s.z, false, r.avatar.headTop(headV));
   }
-  auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody);
+  auras.update(dt, me.id, myAvatar.root, (k) => view.fx(me.id, k), ps.x, ps.z, camCtl.hideBody, myAvatar.headTop(headV));
   const cp = camera.getPosition();
   auras.tick(dt, cp);
   village.setLightning(auras.flashAt(cp.x, cp.z));
@@ -537,19 +616,21 @@ function playFrame(dt, now) {
   rain.update(dt, cp, storm);
   village.setStorm(storm);
   monsters.update(dt, view, now, camera.getPosition());
-  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant }, (kind, id) => session.intent({ kind, id }), now);
+  candy.update(dt, view, { x: ps.x, z: ps.z, magnet: view.fx(me.id, 'magnet') > 0, giant: mods.giant, smell: skills.has('smell') }, (kind, id) => session.intent({ kind, id }), now);
+  if (playing && skills.has('smell')) sniff(dt, ps);
   ambient(dt);
 
   // HUD.
-  const left = view.phase === 'countdown' ? ROUND_SECONDS : view.remaining();
+  const left = view.phase === 'countdown' ? seconds : view.remaining();
   const leader = view.leader();
   const effects = ['giant', 'thief', 'ghost', 'rain', 'shield', 'magnet', 'double', 'slow'].map((k) => ({ kind: k, left: view.fx(me.id, k) })).filter((e) => e.left > 0);
   const solo = session.solo;
   ui.hud({
     time: Math.ceil(left - 1e-6), mad: view.madness, myCandy: meP?.score ?? 0,
     leaderLabel: solo ? t('best') : t('leader'),
-    leaderName: solo ? String(Math.max(bestFor(view.level ?? saveData.level), meP?.score ?? 0)) : leader ? (leader.id === me.id ? t('you') : leader.name) : '—',
+    leaderName: solo ? String(Math.max(view.night != null ? saveData.camp.nights[view.night]?.best ?? 0 : bestFor(view.level ?? saveData.level), meP?.score ?? 0)) : leader ? (leader.id === me.id ? t('you') : leader.name) : '—',
     effects, held: meP?.held ?? null, camMode: camCtl.mode,
+    boo: skills.has('boo') ? { left: view.boo(me.id) } : null,
     knock: { visible: !!door && playing, ready: coolLeft <= 0, left: coolLeft, name: door?.h.name ?? '' },
   });
   if (playing && left <= 10 && Math.ceil(left) !== lastTick) { lastTick = Math.ceil(left); sfx.tick(); }
@@ -574,6 +655,20 @@ function playFrame(dt, now) {
     label(`h${h.id}`, h.door.x, 3.6, h.door.z, cl > 0 ? `⏳ ${Math.ceil(cl)}s` : `🎃 ${h.name}`, cl > 0 ? 'house' : 'house ready');
   }
   ui.tags(tags);
+}
+
+/**
+ * Sniffing (a skill): a little golden light floats ahead of the Bitmoji towards the best candy near (chocolate,
+ * golden pumpkins, rainbows, gems), as the Spectacles Lens's.
+ */
+const SNIFF = { chocolate: 10, pumpkin: 25, rainbow: 50 };
+function sniff(dt, ps) {
+  let best = null, bv = 0;
+  for (const c of view.candies.values()) { const p = SNIFF[c.type], d = Math.hypot(c.x - ps.x, c.z - ps.z); if (p && !c.fall && d > 1.5 && p / (d + 6) > bv) { bv = p / (d + 6); best = c; } }
+  for (const g of view.gems.values()) { const d = Math.hypot(g.x - ps.x, g.z - ps.z); if (d > 1.5 && 60 / (d + 6) > bv) { bv = 60 / (d + 6); best = g; } }
+  if (!best || Math.random() > dt * 45) return;
+  const dx = best.x - ps.x, dz = best.z - ps.z, d = Math.hypot(dx, dz), k = ps.scale || 1, ahead = Math.min(d - 0.8, 1.8 * k), t2 = performance.now() / 1000;
+  sparks.emit({ x: ps.x + (dx / d) * ahead, y: (1.1 + Math.sin(t2 * 2.6) * 0.15) * k, z: ps.z + (dz / d) * ahead }, { x: (dx / d) * 0.6, y: 0.1, z: (dz / d) * 0.6 }, { n: 1, spread: 0.12, size: 0.3 * k, grow: -0.3, life: 0.45, color: [1, 0.82, 0.35], gravity: 0, alpha: 1, twinkle: true });
 }
 
 /** A few will-o'-the-wisps drifting round the camera (the mist itself is the height fog). */
@@ -602,10 +697,11 @@ async function showDiagnostics() {
 
 if (debug) {
   window.__game = {
-    app, get session() { return session; }, view, get player() { return player; }, camCtl, input, ui, me,
+    app, get session() { return session; }, view, get player() { return player; }, get avatar() { return myAvatar; }, camCtl, input, ui, me,
     get screen() { return screen; },
     houses: HOUSES,
     lastCry: lastCryName,
+    get camp() { return saveData.camp; },
     /** Test hook: fast-forwards the host's round clock (the authority still simulates every step). */
     skip(seconds) { for (let k = 0; k < seconds * 10; k++) session.authority?.tick(0.1); },
   };

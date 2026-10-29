@@ -10,8 +10,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const lens = resolve(process.argv[2] ?? join(ROOT, '../trick-or-treat-rush-spectacles'));
 const OUT = join(ROOT, 'public/assets/voice');
-// (the ones the phone game cries: no boo here, the phone has no boo skill)
-const CRIES = ['scream', 'nooo', 'ohno', 'aah-1', 'aah-2', 'aah-3'];
+const CRIES = ['scream', 'nooo', 'ohno', 'aah-1', 'aah-2', 'aah-3', 'boo'];
 mkdirSync(OUT, { recursive: true });
 let total = 0;
 for (const n of CRIES) {

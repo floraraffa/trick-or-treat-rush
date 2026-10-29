@@ -3,8 +3,10 @@
 Juego de Halloween para el **Halloween Challenge de Lenslist**, hecho como **Snap Web Lens** sobre la misma base
 que *Cruise Rush* (PlayCanvas + Vite + `@snap/web-lens-api`). Tu Bitmoji recorre un pueblo embrujado de cuento
 gótico, golpea puertas (*¡dulce o truco!*), junta caramelos (o hace que lluevan del cielo), esquiva fantasmas y las criaturas dibujadas por el equipo
-(o los espanta con una gema, o se vuelve fantasma y los atraviesa) y, en el último minuto, sobrevive a la
-**Monster Madness**. Gana quien tenga más caramelos a los 3 minutos (180 segundos).
+(o los espanta con una gema, o se vuelve fantasma y los atraviesa) y, en los últimos 30 segundos, sobrevive a la
+**Monster Madness**. Se juega en **8 noches de un minuto y medio**, como en la Lens de Spectacles: cada noche da
+hasta **3 estrellas** según los caramelos (la primera con cualquier caramelo) y una **destreza nueva**, y jugarla
+abre la siguiente.
 
 ## Cómo correrlo
 
@@ -59,8 +61,9 @@ no es posible hoy jugar en vivo entre teléfonos.**
 
 | Sistema | Detalle |
 |---|---|
-| Ronda | 3-2-1-GO, **180 s exactos** (reloj real del anfitrión), últimos 60 s **Monster Madness**, fin compartido y puntajes bloqueados |
-| Niveles | **Easy / Medium / Hard** en el menú (en una sala manda el del anfitrión). **Las cinco criaturas aparecen en todos los niveles** (cada una en su propio recorrido); lo que cambia es qué tan rápidos y atentos son los monstruos y **cuánta ayuda reparte la noche** (`DIFFICULTY` en `config.js`). **Easy**: 2 fantasmas y 5 criaturas lentas (1,5 m/s, te ven a 4,5 m, te frenan 3 s), un truco suelta 6 monstruos, 26 caramelos en las calles, 4 orbes (vuelven a los 8 s), gemas desde los 6 s y cada 8–12 s, tormenta de 12 caramelos/s. **Medium**: 2 fantasmas + 5 criaturas (1,9 m/s, te frenan 4 s), trucos de 7 monstruos, 22 caramelos, 3 orbes, gemas desde los 10 s cada 10–16 s, 10 caramelos/s. **Hard, difícil de verdad**: 4 fantasmas casi tan rápidos como correr (4,8 m/s contra 5; sólo la carrera automática te despega) que ven a 12 m, persiguen hasta 11 s y **apuntan adonde vas** para cortarte el paso; 5 criaturas rápidas (2,8 m/s, te ven a 8,5 m, te frenan 5 s); trucos de 8 monstruos; en la Madness los fantasmas corren más que vos y sólo el sprint escapa; 2 s de protección tras un golpe; 16 caramelos en las calles, 2 orbes (25 s para volver), una gema a la vez desde los 30 s y cada 30–40 s, monstruos espantados que vuelven a los 2 s y sólo sueltan lo que robaron, tormenta de 7 caramelos/s |
+| Noches | **JUGAR** abre las **8 noches** (la primera abierta; cada una se abre al jugar la anterior, como haya salido; candado en las demás): cada una con su número y sus estrellas, la destreza y cuántos caramelos pide cada estrella (★ 1 · ★★ 70 · ★★★ 150 en la primera, `NIGHTS` en `config.js`). Cada noche dura **1:30** (los últimos 30 s, la Madness), con sus monstruos y **una destreza nueva** que se conserva: 1 dulce o truco, 2 carrera sola, 3 poderes (antes no hay orbes), 4 **¡BU!** (un botón 👻: los monstruos cerca salen corriendo, otra vez a los 18 s), 5 gemas, 6 reflejos (saltás a un costado solo si te van a agarrar), 7 olfato (juntás desde el doble de lejos y una lucecita dorada te lleva a los mejores caramelos), 8 sigilo (caminando, los monstruos sólo te ven de cerca). Al terminar, las estrellas aparecen de a una, **SIGUIENTE NOCHE**, **OTRA VEZ** y **MENÚ**; el menú cuenta las estrellas (*n / 24*). Al leaderboard de Snapchat va **la suma de los mejores caramelos de cada noche** |
+| Ronda | 3-2-1-GO, **90 s exactos** en una noche (reloj real del anfitrión), últimos 30 s **Monster Madness**, fin compartido y puntajes bloqueados (las rondas de 3 minutos de los niveles siguen en el código: las usan la versión WebXR de Spectacles y la prueba completa de las reglas) |
+| Niveles | Cada noche usa uno como base (en una sala manda la noche del anfitrión); ya no se eligen en el menú. **Easy / Medium / Hard**: **Las cinco criaturas aparecen en todos los niveles** (cada una en su propio recorrido); lo que cambia es qué tan rápidos y atentos son los monstruos y **cuánta ayuda reparte la noche** (`DIFFICULTY` en `config.js`). **Easy**: 2 fantasmas y 5 criaturas lentas (1,5 m/s, te ven a 4,5 m, te frenan 3 s), un truco suelta 6 monstruos, 26 caramelos en las calles, 4 orbes (vuelven a los 8 s), gemas desde los 6 s y cada 8–12 s, tormenta de 12 caramelos/s. **Medium**: 2 fantasmas + 5 criaturas (1,9 m/s, te frenan 4 s), trucos de 7 monstruos, 22 caramelos, 3 orbes, gemas desde los 10 s cada 10–16 s, 10 caramelos/s. **Hard, difícil de verdad**: 4 fantasmas casi tan rápidos como correr (4,8 m/s contra 5; sólo la carrera automática te despega) que ven a 12 m, persiguen hasta 11 s y **apuntan adonde vas** para cortarte el paso; 5 criaturas rápidas (2,8 m/s, te ven a 8,5 m, te frenan 5 s); trucos de 8 monstruos; en la Madness los fantasmas corren más que vos y sólo el sprint escapa; 2 s de protección tras un golpe; 16 caramelos en las calles, 2 orbes (25 s para volver), una gema a la vez desde los 30 s y cada 30–40 s, monstruos espantados que vuelven a los 2 s y sólo sueltan lo que robaron, tormenta de 7 caramelos/s |
 | Idioma | se elige en el menú con banderas: **🇺🇸 English, 🇦🇷 Español, 🇫🇷 Français, 🇩🇪 Deutsch** (cada uno escrito en su propio idioma; la bandera es la de la variante en que están escritos los textos: inglés americano, español rioplatense; dibujadas en SVG, `src/ui/flags.js`); se guarda con el perfil y la primera vez se usa el idioma del teléfono; todo el texto del juego (menú, cómo jugar, HUD, avisos, resultados) está en los cuatro; para probar: `?lang=de` |
 | Cómo jugar | un **tutorial de 8 tarjetas** para quien no lee (moverse, cámara, golpear puertas, caramelos, monstruos, poderes, lluvia de dulces, ganar): cada una un dibujo animado grande hecho con piezas del juego (joystick, botón de la cámara que cambia 3ª/1ª persona, botón calabaza, caramelos, las cabezas de las criaturas recortadas de sus dibujos, gemas, la nube de tormenta que llueve caramelos) y una sola frase; se pasa con SIGUIENTE, los puntitos o deslizando; aparece solo antes de la primera noche (con SALTAR) y desde CÓMO JUGAR (`src/ui/tutorial.js`) |
 | Casas | 8 casas; botón **TRICK OR TREAT!** cerca de la puerta; la autoridad tira una sola vez: **treat 70 %** (3–6 caramelos), **trick 20 %** (**de la casa sale una manada de monstruos** a perseguirte: 6 / 7 / 8 según el nivel, fantasmas y criaturas, que salen en abanico por la puerta y te persiguen 6 / 9 / 15 s; y una de cada cinco veces, además, **la casa te roba todos los caramelos**: ~4 % de las visitas; el escudo lo evita), **jackpot 10 %** (calabaza dorada + power-up); puerta animada para todos; **cooldown 15 s** compartido (farol dorado / violeta y contador sobre la puerta) |
@@ -249,10 +252,14 @@ textos de esa versión están en `lens.*` de `src/ui/i18n.js`.
 
 ## Estado y pendientes
 
-- Probado en Chromium headless (WebGL por software): noche completa en solitario, controles táctiles y de teclado,
-  carrera automática, cambio de cámara, casas, caramelos, power-ups, lluvia de caramelos, forma fantasma (atraviesa
-  una casa y vuelve a ser sólida), gemas, Madness, fin a los 180 s, y una sala de 3 instancias (lobby,
-  anfitrión único, inicio, posiciones, caramelo sin duplicar, cooldown compartido, mismo ranking, segunda ronda).
+- Probado en Chromium headless (WebGL por software): **las noches** (8, la primera abierta y el resto con candado,
+  1:30 con sólo su destreza, 85 caramelos = 2 estrellas que aparecen de a una, se abre la noche 2, SIGUIENTE NOCHE;
+  la noche del ¡BU!: su botón, el *"Boo!"* y la espera; un gigante dice *"Boo!"*), una ronda completa de las reglas
+  en solitario, controles táctiles y de teclado,
+  carrera automática, cambio de cámara, casas, caramelos, power-ups, los gritos del Bitmoji, lluvia de caramelos,
+  forma fantasma (atraviesa una casa y vuelve a ser sólida), gemas, Madness, fin a los 180 s, y una sala de 3
+  instancias en la noche del anfitrión (lobby, anfitrión único, inicio, posiciones, caramelo sin duplicar, cooldown
+  compartido, mismo ranking, segunda ronda).
 - **Pendiente de validar en un teléfono dentro de Snapchat** (sólo es posible después de la revisión de Snap):
   el Bitmoji real del jugador y su retrato, el leaderboard, el guardado, el rendimiento real y los márgenes seguros.
 - Pendiente del equipo: activar el leaderboard de la Lens en My Lenses (el ícono y el video ya están, ver abajo).

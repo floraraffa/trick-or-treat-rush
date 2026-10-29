@@ -431,7 +431,7 @@ function playFrame(dt, now) {
   const mt = view.madness ? 1 : 0;
   if (Math.abs(madK - mt) > 0.001) { madK += Math.sign(mt - madK) * Math.min(Math.abs(mt - madK), dt / 3); village.setMadness(madK); }
 
-  auras.update(dt, me.id, avatar.root, (kind) => view.fx(me.id, kind), ps.x, ps.z);
+  auras.update(dt, me.id, avatar.root, (kind) => view.fx(me.id, kind), ps.x, ps.z, false, avatar.headTop());
   auras.tick(dt, camera.getPosition()); // (lightning turns to the eyes)
   village.setLightning(auras.flashAt(ps.x, ps.z));
   village.setStorm(auras.stormAt(ps.x, ps.z, (id) => (id === me.id ? ps : null)));

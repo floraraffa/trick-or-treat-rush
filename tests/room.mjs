@@ -16,7 +16,9 @@ for (const [i, name] of names.entries()) {
   p.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
   await p.goto(`${base}?test&lowfx&res=0.3&room=crypt&name=${name}&costume=${['witch', 'horns', 'pumpkin'][i]}`, { waitUntil: 'commit', timeout: 180000 });
   await p.waitForFunction(() => window.__game?.screen === 'menu', null, { timeout: 180000 });
-  await p.click('#btnPlay');
+  await p.click('#btnPlay'); // the nights, then the first (the host's pick is the room's) to the lobby
+  await p.waitForFunction(() => !document.getElementById('nights').classList.contains('hidden'), null, { timeout: 60000 });
+  await p.click('#btnNightPlay');
   pages.push(p);
 }
 const all = (fn, arg) => Promise.all(pages.map((p) => p.evaluate(fn, arg)));
@@ -73,7 +75,8 @@ const rain = await all(() => JSON.stringify([...window.__game.view.candies.value
 console.log(`✔ a client turned ghost and called a candy rain; all three see it (first drop ${rain[0]})`);
 
 // Fast-forward the host to the end: everyone gets the same ranking and winner.
-await host.evaluate(() => window.__game.skip(Math.max(0, 180.3 - window.__game.view.rt())));
+assert.ok((await all(() => window.__game.view.night === 0 && window.__game.view.seconds === 90)).every(Boolean), "everyone plays the host's night: the first, 1:30");
+await host.evaluate(() => window.__game.skip(Math.max(0, window.__game.view.seconds + 0.3 - window.__game.view.rt())));
 await Promise.all(pages.map((p) => p.waitForFunction(() => window.__game.view.phase === 'over' && window.__game.view.ranking, null, { timeout: 200000 })));
 const ranks = await all(() => JSON.stringify({ r: window.__game.view.ranking.map((r) => [r.name, r.score]), w: window.__game.view.winners }));
 assert.ok(ranks.every((r) => r === ranks[0]), `same ranking everywhere:\n${ranks.join('\n')}`);
