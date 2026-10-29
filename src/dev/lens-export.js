@@ -23,6 +23,7 @@ import { renderOffline, sfx, musicPhrase, MUSIC_STEP, MUSIC_STEPS } from '../aud
 import { Geo, blob, trs } from '../geo.js';
 import { lightningPaths, ribbons, stormCloudGeo } from '../actors/effects.js';
 import { rng } from '../rng.js';
+import { AMBIENCE, nightAmbience } from './night-ambience.js';
 import { UI, UI_PAD, plateKey, plateLooks, plateNode } from './lens-ui.js';
 
 const BASE = '../assets/';
@@ -772,21 +773,10 @@ async function sounds() {
     for (let k = 0; k < d.length; k++) o[k % n] += d[k];
     files[`Audio/${mad ? 'music-madness' : 'music'}.wav`] = b64(wav(loop));
   }
-  // Wind: filtered noise rising and falling, every swell a whole number of times in 12 s, so it loops.
+  // The night under everything (it loops): crickets and a far owl (night-ambience.js; the wind's hiss is gone).
   {
-    const secs = 12, octx = new OfflineAudioContext(1, RATE * secs, RATE);
-    const buf = octx.createBuffer(1, RATE * secs, RATE), d = buf.getChannelData(0);
-    for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
-    const src = octx.createBufferSource(), bp = octx.createBiquadFilter(), g = octx.createGain();
-    src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 1.4;
-    for (let t = 0; t <= secs; t += 0.25) {
-      const u = (t / secs) * Math.PI * 2;
-      bp.frequency.linearRampToValueAtTime(320 + 200 * Math.sin(u * 2) + 90 * Math.sin(u * 5 + 1), t);
-      g.gain.linearRampToValueAtTime(0.3 + 0.2 * Math.sin(u * 3 + 0.5) + 0.08 * Math.sin(u * 7), t);
-    }
-    src.connect(bp).connect(g).connect(octx.destination);
-    src.start();
-    files['Audio/wind.wav'] = b64(wav(await octx.startRendering()));
+    const d = nightAmbience(AMBIENCE, { rate: RATE });
+    files['Audio/night.wav'] = b64(wav({ getChannelData: () => d, sampleRate: RATE }));
   }
   report.sounds = Object.keys(files).filter((f) => f.startsWith('Audio/')).length;
 }

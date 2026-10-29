@@ -114,7 +114,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   steer), pieces ×1.7 and candy ×1.5 on the table; checked by `tools/check` there (tsc + a Node simulation).
   Its night, from fx.glb: four mist sheets + red-violet `mist-mad-*` twins, moon/moon-mad/halo and stars (cards
   turned to the eyes), wisps, bats (`wing-l/r` hinges flapped), the storm's cloud + `bolt-0..2` (flickered by
-  the game's `flashAt`, lights flash, thunder), moonlight tint, `wind.wav`. First person (VIEW in its menu): the
+  the game's `flashAt`, lights flash, thunder), moonlight tint, `night.wav` (the ambience under everything: `src/dev/night-ambience.js`, drawn sample by
+  sample on a ring so it loops; crickets + a far owl by default (`AMBIENCE`), or `leaves` / `drone`; it replaced a
+  wind the team didn't like). First person (VIEW in its menu): the
   village life-size, the eyes at the Bitmoji's (body hidden), real steps move it by the player's pace rules,
   look at your feet + pinch = power-up; back to the table for the results. `--only=fx,sounds` re-exports just
   those steps; `--rules` only the scripts and fonts.
