@@ -115,9 +115,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   Its night, from fx.glb: four mist sheets + red-violet `mist-mad-*` twins, moon/moon-mad/halo and stars (cards
   turned to the eyes), wisps, bats (`wing-l/r` hinges flapped), the storm's cloud + `bolt-0..2` (flickered by
   the game's `flashAt`, lights flash, thunder), moonlight tint, `night.wav` (the ambience under everything: `src/dev/night-ambience.js`, drawn sample by
-  sample on a ring so it loops; quiet, crickets far under everything: `soft` (air, crickets, a far owl) by default
-  (`AMBIENCE`), or `far` / `chimes` / `marsh`; it replaced a wind the team didn't like, then close crickets they
-  found too loud). First person (VIEW in its menu): the
+  sample on a ring so it loops; barely there: `hush` (a breath of air, two crickets, a couple of bats flitting
+  past, a far owl; about 18 dB under the first crickets) by default (`AMBIENCE`), or `soft` / `far` / `chimes` /
+  `marsh`; it replaced a wind the team didn't like, then close crickets, then `soft`, both still too much). First person (VIEW in its menu): the
   village life-size, the eyes at the Bitmoji's (body hidden), real steps move it by the player's pace rules,
   look at your feet + pinch = power-up; back to the table for the results. `--only=fx,sounds` re-exports just
   those steps; `--rules` only the scripts and fonts.

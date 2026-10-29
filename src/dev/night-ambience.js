@@ -2,15 +2,16 @@
 // always gives the same sound, in the browser or in Node. Everything is laid on a ring of the loop's length
 // (what runs past the end comes back in at the start, filters run round it twice), so it loops without a seam.
 // Quiet on purpose: the crickets are far off, well under the rest (a first version, crickets close by, was
-// too loud; the wind before it, a hiss).
-//   soft    a soft breath of air, crickets far off, now and then an owl (the default)
+// too loud; the wind before it, a hiss; then even 'soft' was too much: 'hush').
+//   hush    barely there: a breath of air, two crickets far off, a couple of bats flitting past, a far owl (the default)
+//   soft    a soft breath of air, crickets far off, now and then an owl
 //   far     hardly more than crickets far away, an owl farther still
 //   chimes  a breath of air, crickets far off, a few soft chimes on a porch
 //   marsh   a breath of air, crickets far off, frogs croaking by a pond
 import { rng } from '../rng.js';
 
-export const AMBIENCES = ['soft', 'far', 'chimes', 'marsh'];
-export const AMBIENCE = 'soft';
+export const AMBIENCES = ['hush', 'soft', 'far', 'chimes', 'marsh'];
+export const AMBIENCE = 'hush';
 
 /** A loop of `seconds` (Float32Array at `rate`). */
 export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, seed = 7 } = {}) {
@@ -52,13 +53,13 @@ export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, see
     const b = filter(filter(white(), 330, 0.6, 'band'), 650, 0.7, 'low'), k = level / rms(b);
     return b.map((v, i) => v * k * (0.45 + 0.55 * swell(i / rate, 2) * swell(i / rate, 3, 1.3)));
   };
-  /** Crickets far off: a few soft, slow chirps each (round pulses, no clicks), coming and going. */
-  const crickets = (level) => {
+  /** Crickets far off (`count` of them): a few soft, slow chirps each (round pulses, no clicks), coming and going. */
+  const crickets = (level, count = 6, rest = 0.2) => {
     const b = ring();
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < count; j++) {
       const f = 3700 + R() * 700, p = 0.9 + R() * 0.9, n = 2 + Math.floor(R() * 2), g0 = 0.5 + R() * 0.5;
       for (let t = R() * p; t < L; t += p * (0.9 + R() * 0.2)) {
-        if (R() < 0.2) continue; // (it rests now and then)
+        if (R() < rest) continue; // (it rests now and then)
         const g = g0 * swell(t, 1 + (j % 3), j * 1.7) ** 2;
         for (let k = 0; k < n; k++) { const d = 0.024; tone(b, t + k * 0.04, d, () => f, (u) => g * Math.sin((Math.PI * u) / d) ** 2); }
       }
@@ -76,6 +77,16 @@ export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, see
       for (let i = 0; i < n; i++) add(buf, i0 + i, breath[(i0 + i) % N] * bk * g * 0.04 * env(i / rate));
     }
   };
+  /** A bat flitting past: its wings fluttering (soft, fast beats of air) and a few tiny squeaks sweeping down. */
+  const bat = (buf, t0, g) => {
+    const wings = filter(white(), 1800, 1.1, 'band'), wk = 1 / rms(wings), dur = 1.3, beat = 10 + R() * 3;
+    const i0 = Math.round(t0 * rate), n = Math.round(dur * rate), pass = ar(dur, 0.45, 0.6);
+    for (let i = 0; i < n; i++) { const u = i / rate; add(buf, i0 + i, wings[(i0 + i) % N] * wk * g * 0.5 * pass(u) * Math.abs(Math.sin(Math.PI * beat * u)) ** 4); }
+    for (let t = 0.25 + R() * 0.15; t < dur - 0.2; t += 0.17 + R() * 0.2) {
+      const d = 0.018 + R() * 0.014, f0 = 7800 + R() * 1200, f1 = 4600 + R() * 600;
+      tone(buf, t0 + t, d, (u) => f0 + (f1 - f0) * (u / d), (u) => g * pass(t + u) * Math.sin((Math.PI * u) / d) ** 2);
+    }
+  };
   /** A soft chime (glass more than bell). */
   const chime = (buf, t0, f, g) => tone(buf, t0, 4, () => f, (u) => g * Math.min(1, u / 0.012) * Math.exp(-u * 1.3), [[1, 1], [2, 0.1], [3, 0.03]]);
   /** A frog by the pond: a few low, buzzing croaks. */
@@ -88,7 +99,11 @@ export function nightAmbience(kind = AMBIENCE, { rate = 22050, seconds = 24, see
 
   const out = ring();
   const mix = (b) => { for (let i = 0; i < N; i++) out[i] += b[i]; };
-  if (kind === 'soft') {
+  if (kind === 'hush') {
+    mix(breeze(0.005)); mix(crickets(0.0012, 2, 0.45));
+    bat(out, L * 0.2, 0.012); bat(out, L * 0.7, 0.009);
+    owl(out, L * 0.42, 320, 0.018);
+  } else if (kind === 'soft') {
     mix(breeze(0.016)); mix(crickets(0.0025));
     owl(out, L * 0.3, 320, 0.035);
   } else if (kind === 'far') {
