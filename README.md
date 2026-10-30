@@ -250,6 +250,28 @@ tormenta, brillos de faroles, dulces y gemas, rayos de las gemas, anillos) y los
 `--only=fx,sounds` exporta sólo esos pasos. `dev/glb-view.html?f=...` muestra un GLB como lo vería cualquier visor glTF. Los
 textos de esa versión están en `lens.*` de `src/ui/i18n.js`.
 
+## Versión para Meta Quest (Unity 6)
+
+El juego también tiene un **proyecto de Unity 6 para Meta Quest 3 / 3S**, en su propio repositorio
+(`trick-or-treat-rush-quest`). Tiene la campaña de Spectacles (8 noches de 1:30), la aldea en miniatura sobre la mesa
+real (passthrough) o a tamaño real en primera persona, y **el avatar de Meta de cada jugador** como figura: Meta Avatars
+SDK, animado con las poses de este juego como clips Humanoid. Las reglas se portan a C# a mano (`Rules/` de ese repo),
+pero los datos se generan de acá, y el C# tiene que jugar las mismas partidas que este árbitro, evento por evento.
+
+```bash
+npm run quest -- ../trick-or-treat-rush-quest           # reglas en C#, partidas de referencia, modelos, sonidos, fuentes, FBX
+npm run quest -- ../trick-or-treat-rush-quest --rules   # sólo el C# y las partidas (segundos)
+```
+
+`tools/quest/`:
+- `rules-cs.mjs`: `config.js`, el plano de `layout.js` y los paneles de `lens-ui.js` como C#.
+- `texts-cs.mjs`: los textos, con los propios de Quest en `quest.*` de `src/ui/i18n.js`.
+- `trace.mjs`: 13 partidas de referencia con jugadores programados, que son solo una herramienta de prueba.
+- `clips-fbx.mjs` + `blender/clips.py`: las poses de `src/poses.js` como FBX Humanoid sobre un esqueleto propio, armado
+  con Blender headless.
+- `export.mjs`: corre todo lo anterior. Los modelos y sonidos salen de `npm run lens`, exportados a una carpeta
+  temporal.
+
 ## Estado y pendientes
 
 - Probado en Chromium headless (WebGL por software): **las noches** (8, la primera abierta y el resto con candado,

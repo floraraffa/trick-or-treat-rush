@@ -190,12 +190,24 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   fixed 3.5 m, not ×the giant's size; Lens: `Avatar.headTop()` from the rig's head joint + HEAD_TOP / HAT_TOP,
   over the head, rising instead of standing back so the eyes still see the head): a giant's stood far off before.
 
+- Meta Quest version (Unity 6000.0.66f2+, Meta XR Core 207, Platform 201 (the Avatars SDK 40.0.1's samples don't compile
+  with Platform 203+), Avatars SDK 40.0.1 (EOF), OpenXR, glTFast, Built-in pipeline): its own repo
+  `trick-or-treat-rush-quest`. `npm run quest -- <that folder> [--rules]` (`tools/quest/export.mjs`): `rules-cs.mjs`
+  generates C# data (config incl. ready-made NIGHT_RULES, the layout's houses/colliders/spots/patrols, lens-ui panels),
+  `texts-cs.mjs` the texts (Quest-only strings: `quest.*`), `trace.mjs` 13 reference rounds (scripted players, a test
+  harness only) that its hand-ported C# authority must replay line for line (`tools/check` there: dotnet), assets from
+  a scratch `npm run lens` (models, WAVs, fonts) + the phone's voice mp3s, `clips-fbx.mjs` + `blender/clips.py` the poses
+  as a Humanoid FBX on our own skeleton (Mixamo names; the Snap in-between joints dropped). The player is their own
+  Meta Avatar (SampleAvatarEntity + OvrAvatarAnimationBehavior custom-only, our moves on Meta's Humanoid rig). There a
+  `tools/check/unity/compile.py` compiles every script against Unity 6's real assemblies and the packages' real sources
+  (player + editor). A rules change here needs the C# port changed there too (the reference rounds catch it).
+
 ## Commands
 
 `npm run dev`, `npm run build`, `npm run pack`, `npm run clips`, `npm test` (authority rules),
 `npm run test:e2e` (solo night + 3-instance room + Specs in an emulated headset, headless Chromium; slow with software
 WebGL), `npm run build:specs`,
-`npm run lens -- <Lens Studio project>`, `node tests/showcase.mjs <dir>` (README screenshots), `dev/viewer.html?view=cx,cy,cz,tx,ty,tz` (scene viewer).
+`npm run lens -- <Lens Studio project>`, `npm run quest -- <Unity project> [--rules]`, `node tests/showcase.mjs <dir>` (README screenshots), `dev/viewer.html?view=cx,cy,cz,tx,ty,tz` (scene viewer).
 
 ## Status
 

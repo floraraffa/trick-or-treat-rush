@@ -17,7 +17,8 @@
     "textures": "node tools/fetch-textures.mjs",
     "creatures": "node tools/make-creatures.mjs",
     "build:specs": "vite build --config vite.specs.config.js",
-    "lens": "node tools/lens-studio/export.mjs"
+    "lens": "node tools/lens-studio/export.mjs",
+    "quest": "node tools/quest/export.mjs"
   },
   "dependencies": {
     "@snap/web-lens-api": "^0.1.2",
