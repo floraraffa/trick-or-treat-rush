@@ -66,7 +66,13 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   night's, behind the panel) and at a round's start; `hoods.<id>` names in i18n, shown on the nights screen, the
   lobby and the 3-2-1. Every hood is about as heavy as the classic village or lighter (triangles: moon 67k … transylvania
   131k, classic 129k; mesh instances 48–73, classic 63) and
-  builds in ~0.2 s in headless Chromium. Spectacles and Quest still use the classic village.
+  builds in ~0.2 s in headless Chromium. The Specs WebXR version (levels, no nights) has a neighbourhood picker on
+  its 2D page (`save.hood`, `hoods.classic` named too); the Spectacles Lens has them per night (below, round 9);
+  the Quest version is the team's own now (not touched from here).
+  For the Lens export only: `createVillage(…, { split: true })` builds three groups (`parts`: ground, props, dress)
+  instead of one merged set, and geo.js `DETAIL.k` < 1 (lens-export.js sets 0.5 while it builds a neighbourhood)
+  gives round shapes fewer sides (`sides(n, floor)` in cylinder/blob/tube/lathe), lighter trees, half the far woods,
+  a coarser ground grid, no window sills, fewer balcony bars and stripes. The phone never sets either.
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.
@@ -145,7 +151,7 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   Round 4: the Lens's panels are the web menu's: `src/dev/lens-ui.js` lays them out (cm; also exported as
   `Generated/lensUi.ts`), `dev/lens-ui.html` draws every plate look (off / on / hover) with index.html's own CSS,
   export.mjs photographs them (Playwright, transparent) into `ui.glb` (a quad per plate, glTF UVs top-left).
-  Realism: `tools/fetch-textures.mjs --lens` → `tools/lens-studio/tex/` (2048 px ground and streets, 1024 the rest,
+  Realism: `tools/fetch-textures.mjs --lens` → `tools/lens-studio/tex/` (2048 px ground and streets, 1024 the rest; the export caps them at 1536 since round 9,
   normal maps; never in public/: the phone Lens's 8 MB), the export keeps normal maps and export.mjs squeezes
   every GLB's images in Node (mozjpeg for opaque, palette PNG for see-through) to fit Spectacles' 25 MB.
   Hands: the Lens project carries SIK 0.17.2 (its scene objects cut from Snap's Essentials sample, hands as
@@ -176,6 +182,21 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   round the room (`ROOM_SKY` 4.2 m on the eyes; the board's own in first person); the village glb gets `WET`
   roughness and normal scale 1.4 (`tidyGlb` finish) and the scene's env map is the Lens repo's NightSky.hdr
   (`tools/make-night-sky.py`, half the template's daytime light, blue).
+  Round 9: the neighbourhoods. Every Lens round is a night, so `village.glb` lost the classic houses and trees: it
+  holds the props every neighbourhood shares (`village-props-*`), the board rim and a shelf of the textured materials
+  (`materials` → `mat-<key>`, one small quad each, hidden). Each night's neighbourhood is `hood-<id>.glb`
+  (`ground-<id>`: ground, streets, plaza; `dress-<id>`: houses with doors / porch lamps (+ cool twins), trees,
+  woods, lamps (`halo-<i>`, `lamp-pools`), landmark (+ clock hands where it has a clock)), geometry only: no
+  images; decimated harder (vertex clustering 0.12 m, the fine work's materials 0.3 m, `FINE` in lens-export.js).
+  TrickOrTreat.ts `dressHoods` gives each mesh the shelf's material for the key in its node name (`HOOD_MATERIAL`
+  in themes.js as a fallback), `useHood(id)` parents the night's one under the board (the rest in the templates)
+  and rebinds doors, porch lamps, clock hands, lamp glows; called at load (`save.night`'s), on picking a night in
+  the panel (behind it) and at a night's start. Each brings its `moonLight` (calm / mad) into `tint`, and its sky
+  (`skyFor`): fx.glb `moon-earth` (the Moon), `moon-bulb` + no stars (the model town), `moon-mad` ×1.5 calm
+  (Transylvania), `northern-lights` curtains (the North Pole); the classic moon turns red in the madness, the others
+  stay. The panel's name line is "Night n · <hood>", the skill moves to the start of its line; the 3-2-1 says the
+  hood. Weight: the Lens's files ~23.2 MB (was 18.6; not counting the template's unused Echopark.hdr), the base
+  textures 1536 px (were 2048). `Scripts/Generated/themes.ts` is converted from themes.js (export.mjs MODULES).
   Round 8: the campaign. PLAY opens the `nights` panel (8 `night` tiles: number written over, `lock` look and
   padlock until the night before has been played (however it went), 3 `star` plates each; the picked night's skill, `goal` stars and
   best); the HUD clock counts 1:30 (first 5:00, then shortened); the night's skill is announced after GO and its line is the first hint; boo =

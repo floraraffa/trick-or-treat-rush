@@ -4,7 +4,7 @@
 // village plan: a tree stands where the plan's tree is (its collider is the plan's), a landmark within the clock
 // tower's footprint, and a house's finery on its walls.
 import { BLEND_ADDITIVEALPHA, Color, CULLFACE_NONE, Entity, StandardMaterial } from 'playcanvas';
-import { Geo, blob, box, cylinder, trs } from '../geo.js';
+import { DETAIL, Geo, blob, box, cylinder, trs } from '../geo.js';
 import { rng } from '../rng.js';
 import { archOutline, circleOutline, extrude, flat, gableRoof, lathe, spireRoof, tube } from './shapes.js';
 import { CANDY_SPOTS, CEMETERY, HOUSES, MAP_R, PLAZA_R, RING, TOWER_R, ringR } from './layout.js';
@@ -17,6 +17,7 @@ const SNOW = [0.92, 0.95, 1];
 
 /** A tube striped in two colours, `bands` long (along its points), into batch `key`. */
 function stripedTube(B, key, pts, r, colors, bands, segs = 6) {
+  if (DETAIL.k < 1) bands = Math.max(2, Math.round(bands * 0.6)); // (fewer, longer stripes for the glasses)
   // resample the path evenly, then lay one short tube per band
   const len = [0];
   for (let k = 1; k < pts.length; k++) len.push(len[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1], pts[k][2] - pts[k - 1][2]));
@@ -397,7 +398,8 @@ export function floorFinery(B, S, M, f, fh, i, wall, trim, R) {
   if (S.balconies && i > 0 && R() < 0.75) { // a little balcony with an iron rail (and geraniums in Italy)
     const bw = Math.min(f.w * 0.55, 2.2), y = fh * 0.12;
     B.get('stone').add(box(bw, 0.12, 0.7), front.clone().mul(trs(0, y, 0.35)), dark(trim, 0.9));
-    for (let k = 0; k <= 6; k++) B.get('glossy').add(cylinder(0.02, 0.02, 0.6, 4), front.clone().mul(trs(-bw / 2 + (k / 6) * bw, y, 0.68)), IRON);
+    const bars = DETAIL.k < 1 ? 3 : 6; // (fewer bars for the glasses)
+    for (let k = 0; k <= bars; k++) B.get('glossy').add(cylinder(0.02, 0.02, 0.6, 4), front.clone().mul(trs(-bw / 2 + (k / bars) * bw, y, 0.68)), IRON);
     B.get('glossy').add(box(bw, 0.04, 0.04), front.clone().mul(trs(0, y + 0.62, 0.68)), IRON);
     if (S.flowers) for (let k = 0; k < 5; k++) B.get('plain').add(blob(0.13, 6, { rand: R, jitter: 0.3 }), front.clone().mul(trs(-bw / 2 + 0.2 + (k / 4) * (bw - 0.4), y + 0.72, 0.62)), [[0.85, 0.15, 0.2], [0.95, 0.4, 0.55], [0.9, 0.85, 0.85]][k % 3]);
   }

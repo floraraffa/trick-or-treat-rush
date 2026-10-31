@@ -5,7 +5,7 @@
 // A neighbourhood (themes.js `house`) dresses them its own way: its colours, walls, roofs, windows and finery
 // (hoods.js), on the same footprint.
 import { Color, Entity, StandardMaterial } from 'playcanvas';
-import { Geo, box, cylinder, trs } from '../geo.js';
+import { DETAIL, Geo, box, cylinder, sides, trs } from '../geo.js';
 import { rng } from '../rng.js';
 import { archOutline, circleOutline, extrude, flat, gableRoof, lathe, spireRoof, tube } from './shapes.js';
 import { PAL } from './layout.js';
@@ -16,9 +16,9 @@ const WOOD_UV = 0.45, SHINGLE_UV = 0.55;
 
 /** Window outline of a kind, centred on its middle. */
 function windowOutline(kind, w, h) {
-  if (kind === 'round') return circleOutline(w / 2, 14).map(([x, y]) => [x, y]);
+  if (kind === 'round') return circleOutline(w / 2, sides(14, 8)).map(([x, y]) => [x, y]);
   if (kind === 'rect') return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
-  return archOutline(w, h, { point: kind === 'point' ? 0.6 : 0 }).map(([x, y]) => [x, y - h / 2]);
+  return archOutline(w, h, { point: kind === 'point' ? 0.6 : 0, segs: sides(8, 4) }).map(([x, y]) => [x, y - h / 2]);
 }
 
 /** A window on a face whose frame is `M` (local XY = the wall, +Z out of it). */
@@ -29,7 +29,7 @@ export function addWindow(B, R, M, cx, cy, w, h, { kind = 'rect', lit = true, ro
   B.get('plain').add(extrude(frame, 0.12), at, dark(trim, 0.55));
   const warm = lit ? (color ? color.map((v) => v * (0.85 + R() * 0.15)) : [1, 0.82 + R() * 0.15, 0.55 + R() * 0.25]) : [0.07, 0.06, 0.13];
   B.get('glow').add(flat(outline), at.clone().mul(trs(0, 0, 0.065)), warm);
-  if (kind !== 'round') B.get('plain').add(box(w + 0.34, 0.08, 0.22), at.clone().mul(trs(0, -h / 2 - 0.1, 0.06)), trim); // sill
+  if (kind !== 'round' && DETAIL.k >= 1) B.get('plain').add(box(w + 0.34, 0.08, 0.22), at.clone().mul(trs(0, -h / 2 - 0.1, 0.06)), trim); // sill (not on the glasses: their budget)
   if (shutters) {
     for (const s of [-1, 1]) {
       B.get('wood').add(box(w * 0.5, h * 1.02, 0.05, WOOD_UV), at.clone().mul(trs(s * (w * 0.5 + 0.18), 0, 0.05, 0, 0, s * (4 + R() * 8))), shutters);

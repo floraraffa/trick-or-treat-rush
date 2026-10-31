@@ -5,7 +5,7 @@
 // `theme` (themes.js) dresses it as one of the campaign's neighbourhoods: Little Italy, Paris, New York, Buenos
 // Aires, the model town, the North Pole, Transylvania, the Moon (the plan, and so the rules, never change).
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, FOG_EXP2, Quat, SHADOW_PCF3_32F, StandardMaterial, Vec3 } from 'playcanvas';
-import { Batches, Geo, texturedMaterial } from '../geo.js';
+import { Batches, DETAIL, Geo, texturedMaterial } from '../geo.js';
 import { flat } from './shapes.js';
 import { installHeightFog } from './heightfog.js';
 import { rng } from '../rng.js';
@@ -35,7 +35,10 @@ function noise2(seed) {
   };
 }
 
-export function createVillage(app, tex, { lowFx = false, theme = 'classic' } = {}) {
+// `split` (the Lens export): three groups instead of one merged set, so the glasses can swap the neighbourhood's
+// part and keep the rest: `ground` (ground, streets, plaza), `props` (pumpkins, fences, graves, garden), `dress`
+// (houses, trees, woods, lamps, landmark, extras, skyline); returned as `parts`.
+export function createVillage(app, tex, { lowFx = false, theme = 'classic', split = false } = {}) {
   const T = THEMES[theme] ?? THEMES.classic;
   const FOG_CALM = T.fog.calm, FOG_MAD = T.fog.mad;
   const [AMBIENT_CALM, AMBIENT_MAD] = T.ambient, [MOON_CALM, MOON_MAD] = T.moonLight;
@@ -71,10 +74,11 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic' } = {
   materials.emit.emissiveIntensity = 2; materials.emit.update();
   materials.neon.emissiveIntensity = 3.2; materials.neon.update();
   const B = new Batches(materials);
+  const P = split ? new Batches(materials) : B, D = split ? new Batches(materials) : B; // (props, dress: see `split`)
 
   // Ground: a big disc of moss and earth that rises into low mounds beyond the village.
   {
-    const n = noise2(5), rings = 30, segs = 72, R0 = 95;
+    const n = noise2(5), rings = DETAIL.k < 1 ? 14 : 30, segs = DETAIL.k < 1 ? 40 : 72, R0 = 95; // (fewer for the glasses' export)
     const m = { p: [], n: [], uv: [], i: [] };
     const height = (x, z, r) => (r < MAP_R + 2 ? 0 : Math.pow((r - MAP_R - 2) / 20, 1.5) * 4 * (0.6 + n(x * 0.08, z * 0.08)));
     for (let k = 0; k <= rings; k++) {
@@ -112,49 +116,55 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic' } = {
     const disc = { p: [0, 0.045, 0], n: [0, 1, 0], uv: [0, 0], i: [] }, segs = 48;
     for (let s = 0; s <= segs; s++) { const a = (s / segs) * Math.PI * 2; disc.p.push(Math.cos(a) * PLAZA_R, 0.045, Math.sin(a) * PLAZA_R); disc.n.push(0, 1, 0); disc.uv.push(Math.cos(a) * PLAZA_R * 0.4, Math.sin(a) * PLAZA_R * 0.4); }
     for (let s = 0; s < segs; s++) disc.i.push(0, s + 2, s + 1);
-    const P = T.plaza;
-    B.get(P.key).add(disc, null, P.color);
-    if (P.checker) for (let ring = 0; ring < 4; ring++) for (let s = 0; s < 16; s++) { // black squares on a white floor
+    const PZ = T.plaza;
+    B.get(PZ.key).add(disc, null, PZ.color);
+    if (PZ.checker) for (let ring = 0; ring < 4; ring++) for (let s = 0; s < 16; s++) { // black squares on a white floor
       if ((ring + s) % 2) continue;
       const r0 = 1.9 + ring * (PLAZA_R - 1.9) / 4, r1 = r0 + (PLAZA_R - 1.9) / 4, a0 = (s / 16) * Math.PI * 2, a1 = ((s + 1) / 16) * Math.PI * 2;
       B.get('plain').add({ p: [Math.cos(a0) * r0, 0.05, Math.sin(a0) * r0, Math.cos(a1) * r0, 0.05, Math.sin(a1) * r0, Math.cos(a1) * r1, 0.05, Math.sin(a1) * r1, Math.cos(a0) * r1, 0.05, Math.sin(a0) * r1], n: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 2, 1, 0, 3, 2] }, null, [0.07, 0.07, 0.07]);
     }
     const edge = Array.from({ length: 64 }, (_, k) => [Math.cos((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35), Math.sin((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35)]);
-    B.get(ST.key).add(ribbon(edge, 0.8, { closed: true, y: 0.05, uvScale: 0.5 }), null, P.edge);
+    B.get(ST.key).add(ribbon(edge, 0.8, { closed: true, y: 0.05, uvScale: 0.5 }), null, PZ.edge);
   }
 
   // Houses.
   const houses = HOUSES.map((h) => {
-    const built = buildHouse(app, h, B, T.house);
+    const built = buildHouse(app, h, D, T.house);
     root.addChild(built.root);
     return built;
   });
   // Props.
-  const tree = (t, style, o) => (style === 'twisted' ? addTree(B, t, o) : style === 'dead' ? addTree(B, { ...t, dead: true }, o) : addHoodTree(B, t, style, o));
-  for (const t of TREES) tree(t, t.dead && T.trees !== 'rock' ? 'dead' : T.trees);
-  for (const t of WOODS) tree(t, T.woods, { detail: 0.3, key: 'woods' });
+  const tree = (t, style, o) => (style === 'twisted' ? addTree(D, t, o) : style === 'dead' ? addTree(D, { ...t, dead: true }, o) : addHoodTree(D, t, style, o));
+  const lite = DETAIL.k < 1; // (the Lens export's neighbourhoods: lighter trees for the glasses' 25 MB)
+  for (const t of TREES) tree(t, t.dead && T.trees !== 'rock' ? 'dead' : T.trees, lite ? { detail: 0.3 } : undefined);
+  for (const [k, t] of WOODS.entries()) if (!lite || k % 2 === 0) tree(t, T.woods, { detail: lite ? 0.15 : 0.3, key: 'woods' }); // (every other one for the glasses)
   const PR = rng(123);
-  for (const p of PUMPKINS) addPumpkin(B, p, PR); // (Halloween everywhere: pumpkins on every porch)
+  for (const p of PUMPKINS) addPumpkin(P, p, PR); // (Halloween everywhere: pumpkins on every porch)
   const fence = T.house.trims;
-  for (const [k, f] of FENCES.entries()) addFence(B, fence ? { ...f, color: fence[k % fence.length] } : f);
-  addCemetery(B, TOMBS);
+  for (const [k, f] of FENCES.entries()) addFence(P, fence ? { ...f, color: fence[k % fence.length] } : f);
+  addCemetery(P, TOMBS);
   // The small wonders: the haunted garden's, except in the snow (presents) and on the Moon (none: dust).
   if (T.name !== 'northpole' && T.name !== 'moon') {
-    for (const m of MUSHROOMS) addMushrooms(B, m);
-    for (const f of FLOWERS) addFlowers(B, f);
+    for (const m of MUSHROOMS) addMushrooms(P, m);
+    for (const f of FLOWERS) addFlowers(P, f);
   }
-  if (T.name !== 'moon') for (const b of BUSHES) addBush(B, b);
+  if (T.name !== 'moon') for (const b of BUSHES) addBush(P, b);
   if (T.ground.craters) addCraters(B);
-  if (T.skyline === 'hills') addSilhouettes(B); else addHoodSkyline(B, T.skyline);
+  if (T.skyline === 'hills') addSilhouettes(D); else addHoodSkyline(D, T.skyline);
   const clockMat = texturedMaterial(tex.clock, { emissive: new Color(0.55, 0.5, 0.4), alphaTest: 0.5 });
-  const clock = T.landmark === 'clock' ? addClockTower(app, B, clockMat) : addLandmark(app, B, clockMat, T.landmark);
+  const clock = T.landmark === 'clock' ? addClockTower(app, D, clockMat) : addLandmark(app, D, clockMat, T.landmark);
   root.addChild(clock.root);
-  const lampSpots = LAMPS.map((l) => ({ at: (T.lamp === 'crook' ? null : addHoodLamp(B, l, T.lamp, T.lampColor)) ?? addLamp(B, l), real: l.real }));
-  addHoodExtras(B, T);
+  const lampSpots = LAMPS.map((l) => ({ at: (T.lamp === 'crook' ? null : addHoodLamp(D, l, T.lamp, T.lampColor)) ?? addLamp(D, l), real: l.real }));
+  addHoodExtras(D, T);
 
-  const statics = B.build(app.graphicsDevice, 'village-static', { castShadows: true });
+  let statics, parts = null;
+  if (split) {
+    statics = new Entity('village-static');
+    parts = { ground: B.build(app.graphicsDevice, 'village-ground'), props: P.build(app.graphicsDevice, 'village-props'), dress: D.build(app.graphicsDevice, 'village-dress') };
+    for (const e of Object.values(parts)) statics.addChild(e);
+  } else statics = B.build(app.graphicsDevice, 'village-static');
   for (const r of statics.findComponents('render')) {
-    const key = r.entity.name.replace('village-static-', '');
+    const key = r.entity.name.replace(/^village-(static|ground|props|dress)-/, '');
     r.castShadows = !['ground', 'cobble', 'dirt', 'silhouette', 'stone', 'glow', 'emit', 'woods'].includes(key);
     r.receiveShadows = key !== 'silhouette';
   }
@@ -218,6 +228,7 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic' } = {
   return {
     root,
     theme: T.name,
+    parts,
     houses,
     clock,
     materials,

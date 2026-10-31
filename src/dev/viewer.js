@@ -3,6 +3,7 @@
 import { Application, CameraFrame, Color, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO, TONEMAP_NEUTRAL } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
+import { DETAIL, Geo } from '../geo.js';
 
 const canvas = document.getElementById('app');
 const app = new Application(canvas, { graphicsDeviceOptions: { antialias: false } });
@@ -33,6 +34,8 @@ village.setClock(0.3);
 const m = Number(new URLSearchParams(location.search).get('madness') ?? 0);
 village.setMadness(m);
 app.on('update', (dt) => village.update(dt, camera));
+window.__build = (opts) => createVillage(app, tex, opts); // (dev: build another village, e.g. to measure it)
+window.__Geo = Geo; window.__DETAIL = DETAIL;
 app.start();
 if (!new URLSearchParams(location.search).has("avatars")) tex.ready.then(() => setTimeout(() => { window.__ready = true; }, 1500));
 // ?avatars: four default Bitmojis in costume, each playing a different clip.

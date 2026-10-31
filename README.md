@@ -20,6 +20,11 @@ calles y colisiones), así que las reglas no cambian; lo que cambia es todo lo q
 anfitrión, así que también su barrio; las rondas de nivel (3 minutos) siguen en el pueblo clásico. Todo está hecho con código (geometría y texturas pintadas en canvas): **no suma archivos**,
 el build pasó de 5,84 MB a 5,89 MB (límite de My Lenses 8 MB, `npm run pack` exige menos de 7,2 MB).
 
+Los barrios también están en Spectacles: en la Lens (cada noche su barrio, con su cielo: la Tierra sobre la Luna,
+una lamparita sobre la maqueta, una luna roja enorme en Transilvania, auroras boreales en el Polo Norte; ver el README
+de `trick-or-treat-rush-spectacles`) y en la versión WebXR (`specs.html`), que juega niveles y no noches: ahí el
+barrio se elige en la página antes de entrar.
+
 ## Cómo correrlo
 
 ```bash

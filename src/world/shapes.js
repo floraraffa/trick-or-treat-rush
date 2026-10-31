@@ -2,6 +2,7 @@
 // tubes (chimneys, branches, lamp crooks), lathes (pumpkins, ghosts, tower roofs), crooked roofs and
 // extruded outlines (arched doors, tombstones). Everything is merged into batches by Geo.
 import { calculateNormals } from 'playcanvas';
+import { sides } from '../geo.js';
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -13,6 +14,7 @@ const nrm = (a) => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l
  * Frames are carried along the curve (no twisting flips), UVs in metres.
  */
 export function tube(pts, r, segs = 8, { caps = true, uvScale = 1 } = {}) {
+  segs = sides(segs, 4);
   const m = { p: [], n: [], uv: [], i: [] };
   const rad = (k) => (Array.isArray(r) ? r[k] : r);
   const tangents = pts.map((p, k) => nrm(sub(pts[Math.min(pts.length - 1, k + 1)], pts[Math.max(0, k - 1)])));
@@ -61,6 +63,7 @@ export function tube(pts, r, segs = 8, { caps = true, uvScale = 1 } = {}) {
  * `shape(angle, v)` scales the radius per side (ribs, waves); `wave(angle, v)` shifts y (hems).
  */
 export function lathe(profile, segs = 16, { shape = null, wave = null, uvScale = 1 } = {}) {
+  segs = sides(segs, 6);
   const m = { p: [], n: [], uv: [], i: [] };
   const rows = profile.length;
   for (let j = 0; j < rows; j++) {

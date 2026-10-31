@@ -173,6 +173,12 @@ export const THEMES = {
   }),
 };
 
+/**
+ * The Spectacles Lens: its neighbourhood models carry no images (their budget); their meshes wear the base
+ * village's textured materials, matched by the key in the mesh's name, these keys through the material they take.
+ */
+export const HOOD_MATERIAL = { plainGround: 'plain', snowfield: 'plain', snow: 'plain', ice: 'glossy', asphalt: 'dirt', regolith: 'rock', neon: 'emit' };
+
 /** The neighbourhood of night n (0-based) of the campaign, in its order; the classic village without a night. */
 export const NIGHT_THEMES = ['italy', 'france', 'newyork', 'buenosaires', 'modeltown', 'northpole', 'transylvania', 'moon'];
 export const themeOfNight = (n) => (Number.isInteger(n) && NIGHT_THEMES[n]) || 'classic';

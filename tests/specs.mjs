@@ -29,6 +29,12 @@ for (const l of ['de', 'fr', 'en', 'es']) {
 }
 assert.equal(new Set(Object.values(words)).size, 4, 'the menu changes language');
 await page.click('#levels button[data-id="easy"]');
+// The neighbourhoods (the phone's nights' ones): picked on the page, the village dressed as it before the night.
+const hoods = await G(() => [...document.querySelectorAll('#hoods button')].map((b) => [b.dataset.id, b.textContent]));
+assert.equal(hoods.length, 9, 'the classic village and the eight neighbourhoods');
+await page.click('#hoods button[data-id="northpole"]');
+await until(() => window.__specs.village.theme === 'northpole' && document.querySelector('#hoods button.on')?.dataset.id === 'northpole', null, 30000);
+console.log(`✔ neighbourhoods on the page: ${hoods.map((h) => h[1]).join(', ')}; the North Pole picked`);
 await page.waitForTimeout(1500);
 await page.screenshot({ path: `${out}/s1-menu.png` });
 console.log(`✔ menu: four languages (${Object.values(words).join(' / ')}), headset found`);

@@ -26,8 +26,17 @@ export function box(sx, sy, sz, uvScale = 1) {
   return m;
 }
 
+/**
+ * Detail of curved shapes (sides of cylinders, tubes, lathes, blobs): 1 in the game. The Lens export lowers it
+ * while it builds the neighbourhoods for the glasses (their 25 MB), so round things get fewer sides; shapes of
+ * few sides (square posts, pyramids) keep theirs.
+ */
+export const DETAIL = { k: 1 };
+export const sides = (n, floor) => (DETAIL.k >= 1 || n <= floor ? n : Math.max(floor, Math.round(n * DETAIL.k)));
+
 /** Smooth-sided cylinder / cone frustum standing on the origin along +Y. */
 export function cylinder(rBottom, rTop, h, segs = 10, { caps = true, uvScale = 1, vScale = null } = {}) {
+  segs = sides(segs, 6);
   const m = { p: [], n: [], uv: [], i: [] };
   const slope = (rBottom - rTop) / h;
   const circ = Math.PI * 2 * Math.max(rBottom, rTop);
@@ -62,6 +71,7 @@ export function cylinder(rBottom, rTop, h, segs = 10, { caps = true, uvScale = 1
 
 /** Lumpy sphere (rocks, bushes, snowballs): smooth normals, optional noise and flattening. */
 export function blob(r, segs = 8, { rand = null, jitter = 0, squashY = 1, uvScale = 1 } = {}) {
+  segs = sides(segs, 5);
   const m = { p: [], n: [], uv: [], i: [] };
   const rings = Math.max(4, Math.round(segs / 2)), off = [];
   for (let k = 0; k < segs; k++) off.push(rand ? 1 + (rand() - 0.5) * jitter : 1);

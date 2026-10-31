@@ -11,6 +11,8 @@
 import { ADDRESS_CLAMP_TO_EDGE, ADDRESS_REPEAT, BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mat4, Mesh, MeshInstance, PIXELFORMAT_SRGBA8, Quat, StandardMaterial, Texture, Vec2, Vec3, Application } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
+import { NIGHT_THEMES } from '../world/themes.js';
+import { flat } from '../world/shapes.js';
 import { HOUSES } from '../world/layout.js';
 import { CANDY_GLOW, GEM_COLOR, ORB_COLOR, createCandy } from '../actors/candy.js';
 import { CREATURES, createCreature } from '../actors/creatures.js';
@@ -20,7 +22,7 @@ import { ghostParts } from '../actors/monsters.js';
 import { loadBitmoji } from '../lib/bitmoji-anim.js';
 import { unpackGlb } from '../lib/meshopt-glb.js';
 import { renderOffline, sfx, musicPhrase, MUSIC_STEP, MUSIC_STEPS } from '../audio.js';
-import { Geo, blob, trs } from '../geo.js';
+import { DETAIL, Geo, blob, trs } from '../geo.js';
 import { lightningPaths, ribbons, stormCloudGeo } from '../actors/effects.js';
 import { rng } from '../rng.js';
 import { AMBIENCE, nightAmbience } from './night-ambience.js';
@@ -381,65 +383,121 @@ async function ui(images) {
  */
 const WET = { cobble: 0.24, stone: 0.36, shingle: 0.38, masonry: 0.58, ground: 0.7, dirt: 0.6, wood: 0.6, rock: 0.5, bark: 0.78 };
 
-async function village(tex) {
-  const v = createVillage(app, tex, { lowFx: true });
-  const root = v.root;
-  // Not on a table: the sky and the lights (the Lens lights the board itself).
+const HOOD_CELL = 0.12; // metres: a neighbourhood's walls, roofs and ground pieces, decimated (vertex clustering)
+const HOOD_DETAIL = 0.5; // geo.js DETAIL while a neighbourhood is built
+const PROPS_CELL = 0.08; // metres: the props every neighbourhood shares (pumpkins, mushrooms, fences, graves)
+const HOOD_FINE = 0.3, FINE = ['plain', 'glossy', 'emit', 'neon', 'snow', 'ice', 'bark']; // metres: the fine work (frames, railings, finery, lamps, branches), coarser
+
+/**
+ * One village for the glasses, split for swapping (createVillage `split`): `village-props` (pumpkins, fences,
+ * graves, garden: every neighbourhood keeps the classic ones), `ground-<theme>` (ground, streets, plaza) and
+ * `dress-<theme>` (houses with their doors and porch lamps, trees, woods, lamps (halo spots, light pools), the
+ * landmark with its clock hands). The classic village (`base`) has all three; a neighbourhood only its ground and dress.
+ */
+async function boardVillage(tex, theme, { base = false } = {}) {
+  DETAIL.k = base ? 1 : HOOD_DETAIL; // (round things with fewer sides in a neighbourhood: the glasses' 25 MB)
+  const v = createVillage(app, tex, { lowFx: true, theme, split: true });
+  DETAIL.k = 1;
+  const root = v.root, out = new Entity(base ? 'village' : `hood-${theme}`);
+  // Not on a table: the sky, the lights and the snowfall (the Lens lights the board itself).
   v.sky.root.destroy();
-  for (const e of root.find((n) => n.light)) e.destroy();
+  for (const e of root.find((n) => n.light || n.name === 'snowfall')) e.destroy();
+  const ground = new Entity(`ground-${theme}`), dress = new Entity(`dress-${theme}`);
   // The lamps: an empty node where each one glows (the Lens turns a glow to the eyes there, as the game's
   // halos do) and a pool of warm light on the ground round its foot (the game's lamp lights and mist).
   const pools = new Geo();
   root.find((n) => n.name === 'lamp-halo').forEach((h, i) => {
     const p = h.getLocalPosition(), spot = new Entity(`halo-${i}`);
     spot.setLocalPosition(p.x, p.y, p.z);
-    root.addChild(spot);
+    dress.addChild(spot);
     pools.add(disc(3.6), trs(p.x, 0.08, p.z), [1, 1, 1]);
     h.destroy();
   });
-  root.addChild(pools.build(device, glowMat(tex, [1, 0.62, 0.3], 0.5), 'lamp-pools'));
-  const statics = root.findByName('village-static');
+  dress.addChild(pools.build(device, glowMat(tex, [1, 0.62, 0.3], 0.5), 'lamp-pools'));
   let cut = 0;
-  for (const e of [...statics.children]) {
-    const key = e.name.replace('village-static-', '');
+  for (const part of Object.values(v.parts)) for (const e of [...part.children]) {
+    const key = e.name.replace(/^village-(ground|props|dress)-/, '');
     if (key === 'silhouette') { e.destroy(); continue; }
     cut += cutToBoard(e, key);
-    if (['plain', 'bark', 'emit', 'glossy', 'woods', 'rock'].includes(key)) simplify(e, SIMPLIFY);
+    if (!base && part !== v.parts.ground) simplify(e, FINE.includes(key) ? HOOD_FINE : HOOD_CELL, 200); // (the fine work coarser)
+    else if (part === v.parts.props) simplify(e, PROPS_CELL, 200); // (shared by every night: tiny on the table)
+    else if (['plain', 'bark', 'emit', 'glossy', 'woods', 'rock'].includes(key)) simplify(e, SIMPLIFY);
     else if (key === 'wood') simplify(e, 0.03);
   }
   // Clock hands: named so the Lens can turn them (minute and hour on each of the four faces).
   v.clock.hands.forEach((h, f) => { h.minute.name = `clock-${f}-minute`; h.hour.name = `clock-${f}-hour`; });
   // Porch lamps: a violet twin beside each gold one (the Lens shows one or the other: ready / cooling down).
-  v.houses.forEach((h, i) => {
+  for (const [i, h] of v.houses.entries()) {
     const cool = h.lamp.clone();
     cool.name = `porch-cool-${HOUSES[i].id}`;
     const m = new StandardMaterial();
     m.diffuse = new Color(0.1, 0.08, 0.06); m.emissive = new Color(0.45, 0.25, 0.78); m.update();
     cool.render.meshInstances[0].material = m;
     h.lamp.parent.addChild(cool);
-  });
-  // The board's rim: a thin glowing ring where the village ends.
-  const rimMat = new StandardMaterial();
-  rimMat.useLighting = false; rimMat.diffuse = new Color(0, 0, 0); rimMat.emissive = new Color(1, 0.55, 0.16); rimMat.update();
-  const rim = new Geo();
-  const N = 160, tube = 0.22;
-  const m = { p: [], n: [], uv: [], i: [] };
-  for (let k = 0; k <= N; k++) {
-    const a = (k / N) * Math.PI * 2;
-    for (let s = 0; s <= 6; s++) {
-      const b = (s / 6) * Math.PI * 2, rr = BOARD_R + 0.4 + Math.cos(b) * tube;
-      m.p.push(Math.cos(a) * rr, 0.15 + Math.sin(b) * tube, Math.sin(a) * rr);
-      m.n.push(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)); m.uv.push(k / N, s / 6);
+    if (!base) simplify(h.root, HOOD_CELL, 200);
+  }
+  v.parts.ground.reparent(ground);
+  v.parts.dress.reparent(dress);
+  for (const h of v.houses) h.root.reparent(dress);
+  v.clock.root.reparent(dress);
+  if (base) {
+    // Every round on the glasses is a night, each in its neighbourhood: the classic houses and trees never show
+    // there. The base keeps what every neighbourhood shares (the props) and a library of the textured materials,
+    // one small quad each (`mat-<key>`), that the neighbourhoods' meshes wear in the Lens.
+    v.parts.props.reparent(out);
+    const lib = new Entity('materials'), quad = () => new Geo().add(flat([[0, 0], [1, 0], [1, 1], [0, 1]]), trs(0, -50, 0, -90, 0, 0), [1, 1, 1]);
+    for (const [key, m] of Object.entries(v.materials)) lib.addChild(quad().build(device, m, `mat-${key}`));
+    const face = v.clock.root.findByName('clock-face-0');
+    if (face) lib.addChild(quad().build(device, face.render.meshInstances[0].material, 'mat-clock-face'));
+    lib.addChild(quad().build(device, glowMat(tex, [1, 0.62, 0.3], 0.5), 'mat-pools'));
+    out.addChild(lib);
+    ground.destroy(); dress.destroy();
+  } else { out.addChild(ground); out.addChild(dress); }
+  if (base) { // the board's rim: a thin glowing ring where the village ends
+    const rimMat = new StandardMaterial();
+    rimMat.useLighting = false; rimMat.diffuse = new Color(0, 0, 0); rimMat.emissive = new Color(1, 0.55, 0.16); rimMat.update();
+    const rim = new Geo();
+    const N = 160, tube = 0.22;
+    const m = { p: [], n: [], uv: [], i: [] };
+    for (let k = 0; k <= N; k++) {
+      const a = (k / N) * Math.PI * 2;
+      for (let s = 0; s <= 6; s++) {
+        const b = (s / 6) * Math.PI * 2, rr = BOARD_R + 0.4 + Math.cos(b) * tube;
+        m.p.push(Math.cos(a) * rr, 0.15 + Math.sin(b) * tube, Math.sin(a) * rr);
+        m.n.push(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)); m.uv.push(k / N, s / 6);
+      }
+    }
+    for (let k = 0; k < N; k++) for (let s = 0; s < 6; s++) { const a = k * 7 + s, b = a + 7; m.i.push(a, b, a + 1, a + 1, b, b + 1); }
+    rim.add(m, null, [1, 1, 1]);
+    out.addChild(rim.build(device, rimMat, 'board-rim'));
+  }
+  out.addChild(unitMarker());
+  root.destroy(); // (what's left: nothing the glasses draw)
+  bakeTiling(out.find((n) => !!n.render));
+  if (!base) { // no images: the Lens dresses these meshes in the base village's materials
+    for (const r of out.findComponents('render')) for (const mi of r.meshInstances) {
+      const m = mi.material;
+      for (const map of ['diffuseMap', 'normalMap', 'emissiveMap', 'opacityMap', 'glossMap', 'metalnessMap', 'aoMap']) m[map] = null;
+      m.update();
     }
   }
-  for (let k = 0; k < N; k++) for (let s = 0; s < 6; s++) { const a = k * 7 + s, b = a + 7; m.i.push(a, b, a + 1, a + 1, b, b + 1); }
-  rim.add(m, null, [1, 1, 1]);
-  root.addChild(rim.build(device, rimMat, 'board-rim'));
-  root.addChild(unitMarker());
-  bakeTiling(root.find((n) => !!n.render));
+  return { out, cut, v };
+}
+
+async function village(tex) {
+  const { out, cut, v } = await boardVillage(tex, 'classic', { base: true });
   report.villageCutTris = cut;
-  await glb('village', root, 2048, { rough: WET, normalScale: 1.4 });
+  await glb('village', out, 1536, { rough: WET, normalScale: 1.4 }); // (1536: the ground and streets were 2048, before the neighbourhoods)
   return v;
+}
+
+/** The campaign's eight neighbourhoods (themes.js NIGHT_THEMES), each `Models/hood-<theme>.glb`: geometry only. */
+async function hoods(tex) {
+  for (const theme of NIGHT_THEMES) {
+    const { out } = await boardVillage(tex, theme);
+    await glb(`hood-${theme}`, out, 16);
+    out.destroy();
+  }
 }
 
 // --- monsters, candy ----------------------------------------------------------------------------
@@ -532,6 +590,8 @@ async function pickups(tex) {
  *   mist-0..3   four wide sheets of drifting mist low over the board (the Lens turns them slowly), and
  *               mist-mad-0..3, their red-violet twins for the Monster Madness
  *   moon, moon-mad, moon-halo, stars   the sky (cards the Lens turns to the eyes; stars on a unit dome)
+ *   moon-earth, moon-bulb, northern-lights   the neighbourhoods' own: the Earth (the Moon), a bulb (the model
+ *               town), the northern lights (the North Pole); Transylvania's blood moon is moon-mad
  *   wisp, bat (wing-l / wing-r hinges)   will-o'-wisps and bats
  *   storm-cloud, bolt-0..2, flash-pool   the candy storm's thundercloud and lightning
  *   halo-warm   a lamp's glow, a card the Lens turns to the eyes
@@ -564,6 +624,24 @@ async function fx(tex) {
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.98, 0.92], 1, tex.moon), 'moon');
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.55, 0.48], 1, tex.moon), 'moon-mad');
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.5, 0.56, 0.85], 0.55), 'moon-halo');
+  // The neighbourhoods' own lights in the sky: the Earth over the Moon, a bare warm bulb over the model town, and
+  // the North Pole's northern lights (curtains round the northern sky, in game metres, as the game's sky.js).
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 1, 1], 1, tex.earth), 'moon-earth');
+  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.9, 0.62], 1), 'moon-bulb');
+  {
+    const AR = rng(5), g = new Geo();
+    for (let k = 0; k < 5; k++) {
+      const n = 20, a0 = -Math.PI * 0.85 + k * 0.32, span = 0.8 + AR() * 0.4, r = 44 + AR() * 6, foot = 8 + AR() * 4, h = 16 + AR() * 8;
+      const m = { p: [], n: [], uv: [], i: [] };
+      for (let j = 0; j <= n; j++) {
+        const t = j / n, a = a0 + span * t, wob = Math.sin(t * 7 + k) * 2.5, x = Math.cos(a) * (r + wob), z = Math.sin(a) * (r + wob);
+        m.p.push(x, foot, z, x, foot + h, z); m.n.push(-Math.cos(a), 0, -Math.sin(a), -Math.cos(a), 0, -Math.sin(a)); m.uv.push(t, 0, t, 1);
+      }
+      for (let j = 0; j < n; j++) { const b = j * 2; m.i.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
+      g.add(m, null, [1, 1, 1]);
+    }
+    add(g, glowMat(tex, [1, 1, 1], 0.8, tex.aurora), 'northern-lights');
+  }
   {
     const R = rng(7), g = new Geo();
     for (let k = 0; k < 260; k++) {
@@ -784,7 +862,7 @@ async function sounds() {
 window.__export = async (only = null, { uiImages = null } = {}) => {
   const tex = createTextures(device, { base: BASE, photos: PHOTOS });
   await tex.ready;
-  const steps = { village: () => village(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), costumes: () => costumes(tex), clips, sounds };
+  const steps = { village: () => village(tex), hoods: () => hoods(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), costumes: () => costumes(tex), clips, sounds };
   const errors = [];
   for (const [name, step] of Object.entries(steps)) {
     if (only && !only.includes(name)) continue;

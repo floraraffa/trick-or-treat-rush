@@ -16,6 +16,7 @@ import '@fontsource/mystery-quest/latin-400.css';
 import { Application, Color, Entity, FILLMODE_FILL_WINDOW, Mesh, MeshInstance, Quat, RESOLUTION_AUTO, StandardMaterial, TONEMAP_NEUTRAL, TorusGeometry, Vec3, XRSPACE_LOCAL, XRTYPE_AR } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
+import { NIGHT_THEMES, THEMES } from '../world/themes.js';
 import { DOOR_RANGE, HOUSES } from '../world/layout.js';
 import { createFx } from '../fx.js';
 import { createAvatar } from '../actors/avatar.js';
@@ -43,10 +44,12 @@ const $ = (id) => document.getElementById(id);
 
 // --- save (on the glasses: no Snapchat storage here) ----------------------------------------
 const SAVE_KEY = 'trick-or-treat-rush-specs';
-let save = { level: DEFAULT_LEVEL, lang: null, bests: {} };
+let save = { level: DEFAULT_LEVEL, lang: null, bests: {}, hood: 'classic' }; // (hood: the neighbourhood picked, themes.js)
 try { save = { ...save, ...JSON.parse(localStorage.getItem(SAVE_KEY) ?? '{}') }; } catch { /* private mode: defaults */ }
 const store = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* keep playing */ } };
 if (!LEVELS.includes(save.level)) save.level = DEFAULT_LEVEL;
+if (!THEMES[save.hood]) save.hood = 'classic';
+const HOODS = ['classic', ...NIGHT_THEMES]; // (the glasses' browser plays the levels: the neighbourhood is picked on the page)
 setLang(detectLang(params.get('lang') ?? save.lang));
 
 // --- engine ---------------------------------------------------------------------------------
@@ -66,9 +69,18 @@ camera.camera.toneMapping = TONEMAP_NEUTRAL;
 rig.addChild(camera);
 
 const tex = createTextures(app.graphicsDevice);
-const village = createVillage(app, tex, { lowFx: true });
+let village = createVillage(app, tex, { lowFx: true, theme: save.hood });
 app.root.addChild(village.root);
 village.sky.root.enabled = false; // the room is the sky
+/** The village dressed as another neighbourhood (picked on the 2D page, before a night; the plan and rules stay). */
+function useHood(id) {
+  if (village.theme === id) return;
+  village.root.destroy();
+  village = createVillage(app, tex, { lowFx: true, theme: id });
+  app.root.addChild(village.root);
+  village.sky.root.enabled = false;
+  houseReady.fill(null);
+}
 app.scene.exposure = BRIGHT;
 const fx = createFx(app, tex.glow, { max: 200 });
 const sparks = createFx(app, tex.glow, { max: 260, additive: true });
@@ -188,6 +200,7 @@ function menuTexts() {
   $('how').innerHTML = t('specs.how').map((s) => `<div>${s}</div>`).join('');
   $('enter').textContent = t('specs.enter');
   for (const b of $('levels').children) { b.textContent = t(`levels.${b.dataset.id}`); b.classList.toggle('on', b.dataset.id === save.level); }
+  for (const b of $('hoods').children) { b.textContent = t(`hoods.${b.dataset.id}`); b.classList.toggle('on', b.dataset.id === save.hood); }
   for (const b of $('langs').children) b.classList.toggle('on', b.dataset.id === getLang());
   const best = save.bests[save.level] ?? 0;
   $('best').textContent = best > 0 ? `${t('specs.best')}: ${best}` : '';
@@ -198,6 +211,12 @@ for (const id of LEVELS) {
   b.dataset.id = id;
   b.onclick = () => { save.level = id; store(); session.setLevel(id); sfx.click(); menuTexts(); };
   $('levels').appendChild(b);
+}
+for (const id of HOODS) {
+  const b = document.createElement('button');
+  b.dataset.id = id;
+  b.onclick = () => { save.hood = id; store(); useHood(id); sfx.click(); menuTexts(); };
+  $('hoods').appendChild(b);
 }
 for (const [id, label] of Object.entries(LANGS)) {
   const b = document.createElement('button');
@@ -477,7 +496,7 @@ function panelsFrame(dt) {
 
 if (import.meta.env.DEV) {
   window.__specs = {
-    app, session, view, player, hands, rig, face, village, houses: HOUSES, panels: { hud, banner, hint, toast, results },
+    app, session, view, player, hands, rig, face, get village() { return village; }, houses: HOUSES, panels: { hud, banner, hint, toast, results },
     get state() { return state; },
     skip(seconds) { for (let k = 0; k < seconds * 10; k++) session.authority?.tick(0.1); },
   };

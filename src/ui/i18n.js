@@ -38,7 +38,7 @@ export const STRINGS = {
       win: ['WIN', '<b>Each night lasts a minute and a half:</b> the more candy, the more stars (up to 3). The last 30 seconds are Monster Madness!'],
     },
     // the neighbourhood each night of the campaign is played in (themes.js NIGHT_THEMES)
-    hoods: { italy: 'Italian Quarter', france: 'French Quarter', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'The Model Town', northpole: 'North Pole', transylvania: 'Transylvania', moon: 'The Moon' },
+    hoods: { classic: 'The Haunted Village', italy: 'Italian Quarter', france: 'French Quarter', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'The Model Town', northpole: 'North Pole', transylvania: 'Transylvania', moon: 'The Moon' },
     nights: {
       pick: 'Pick a night: each one opens once the one before has been played.',
       goals: 'Stars: ★ {a} · ★★ {b} · ★★★ {c} candy', best: 'Best: {n}', total: '{n} / 24 ★',
@@ -132,7 +132,7 @@ export const STRINGS = {
       storm: ['LLUVIA DE DULCES', '¿Tenés el orbe de tormenta? Tocá PODER: una nube <b>hace llover dulces</b> a tu alrededor.'],
       win: ['GANÁ', '<b>Cada noche dura un minuto y medio:</b> cuantos más dulces, más estrellas (hasta 3). ¡Los últimos 30 segundos son la Locura Monstruosa!'],
     },
-    hoods: { italy: 'Barrio italiano', france: 'Barrio francés', newyork: 'Nueva York', buenosaires: 'Buenos Aires', modeltown: 'La maqueta', northpole: 'Polo Norte', transylvania: 'Transilvania', moon: 'La Luna' },
+    hoods: { classic: 'El pueblo embrujado', italy: 'Barrio italiano', france: 'Barrio francés', newyork: 'Nueva York', buenosaires: 'Buenos Aires', modeltown: 'La maqueta', northpole: 'Polo Norte', transylvania: 'Transilvania', moon: 'La Luna' },
     nights: {
       pick: 'Elegí una noche: cada una se abre al jugar la anterior.',
       goals: 'Estrellas: ★ {a} · ★★ {b} · ★★★ {c} dulces', best: 'Récord: {n}', total: '{n} / 24 ★',
@@ -226,7 +226,7 @@ export const STRINGS = {
       storm: ['PLUIE DE BONBONS', 'Tu as l’orbe tempête ? Touche POUVOIR : un nuage <b>fait pleuvoir des bonbons</b> autour de toi !'],
       win: ['GAGNE', '<b>Chaque nuit dure une minute et demie :</b> plus de bonbons, plus d’étoiles (jusqu’à 3). Les 30 dernières secondes, c’est la Folie des monstres !'],
     },
-    hoods: { italy: 'Quartier italien', france: 'Quartier français', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'La maquette', northpole: 'Pôle Nord', transylvania: 'Transylvanie', moon: 'La Lune' },
+    hoods: { classic: 'Le village hanté', italy: 'Quartier italien', france: 'Quartier français', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'La maquette', northpole: 'Pôle Nord', transylvania: 'Transylvanie', moon: 'La Lune' },
     nights: {
       pick: 'Choisis une nuit : chacune s’ouvre quand la précédente a été jouée.',
       goals: 'Étoiles : ★ {a} · ★★ {b} · ★★★ {c} bonbons', best: 'Record : {n}', total: '{n} / 24 ★',
@@ -320,7 +320,7 @@ export const STRINGS = {
       storm: ['BONBONREGEN', 'Hast du die Sturm-Kugel? Tippe auf KRAFT: eine Wolke <b>lässt Süßes regnen</b>, rund um dich!'],
       win: ['GEWINNEN', '<b>Jede Nacht dauert anderthalb Minuten:</b> je mehr Süßes, desto mehr Sterne (bis zu 3). Die letzten 30 Sekunden sind Monsterwahnsinn!'],
     },
-    hoods: { italy: 'Italienisches Viertel', france: 'Französisches Viertel', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'Die Modellstadt', northpole: 'Nordpol', transylvania: 'Transsilvanien', moon: 'Der Mond' },
+    hoods: { classic: 'Das Spukdorf', italy: 'Italienisches Viertel', france: 'Französisches Viertel', newyork: 'New York', buenosaires: 'Buenos Aires', modeltown: 'Die Modellstadt', northpole: 'Nordpol', transylvania: 'Transsilvanien', moon: 'Der Mond' },
     nights: {
       pick: 'Wähle eine Nacht: jede öffnet sich, sobald die vorige gespielt wurde.',
       goals: 'Sterne: ★ {a} · ★★ {b} · ★★★ {c} Süßes', best: 'Rekord: {n}', total: '{n} / 24 ★',
