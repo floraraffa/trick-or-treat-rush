@@ -122,10 +122,50 @@ const PAINTERS = {
     }
     return c;
   },
+  // The Earth as the Moon neighbourhood sees it: blue seas, green and ochre lands, white clouds, the night side dark.
+  earth() {
+    const [c, g] = canvas(256, 256), r = rng(41);
+    g.save();
+    g.beginPath(); g.arc(128, 128, 118, 0, Math.PI * 2); g.clip();
+    const sea = g.createRadialGradient(100, 96, 10, 128, 128, 120);
+    sea.addColorStop(0, '#5fa8ff'); sea.addColorStop(0.7, '#1d5bc4'); sea.addColorStop(1, '#0d2d6e');
+    g.fillStyle = sea; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9; i++) { // lands: clumps of blobs
+      const x = 40 + r() * 176, y = 40 + r() * 176, n = 4 + Math.floor(r() * 6);
+      g.fillStyle = r() > 0.4 ? '#3f8a3a' : '#a68a4c';
+      for (let k = 0; k < n; k++) { g.beginPath(); g.arc(x + (r() - 0.5) * 50, y + (r() - 0.5) * 40, 8 + r() * 18, 0, Math.PI * 2); g.fill(); }
+    }
+    g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineCap = 'round';
+    for (let i = 0; i < 9; i++) { // clouds in swirls
+      g.lineWidth = 2 + r() * 4;
+      g.beginPath(); const y = r() * 256, x = r() * 256; g.arc(x, y, 20 + r() * 50, r() * 6, r() * 6 + 1 + r()); g.stroke();
+    }
+    const night = g.createLinearGradient(60, 40, 230, 220); // the terminator: the sunlit side to the upper left
+    night.addColorStop(0, 'rgba(0,0,10,0)'); night.addColorStop(0.55, 'rgba(0,0,10,0.05)'); night.addColorStop(0.85, 'rgba(0,0,12,0.8)');
+    g.fillStyle = night; g.fillRect(0, 0, 256, 256);
+    g.restore();
+    return c;
+  },
+  // A curtain of the northern lights: bright green at its foot fading through teal to violet, in rays.
+  aurora() {
+    const [c, g] = canvas(128, 128), r = rng(8), img = g.createImageData(128, 128);
+    const rays = Array.from({ length: 128 }, (_, x) => 0.55 + 0.45 * Math.sin(x * 0.31 + r() * 0.5) * Math.sin(x * 0.07 + 1));
+    for (let y = 0; y < 128; y++) {
+      const v = 1 - y / 127; // 0 at the curtain's foot (the image's bottom row), 1 at its top
+      const fade = Math.min(1, v * 8) * Math.pow(1 - v, 0.9); // a sharp foot, fading away upwards
+      const col = v < 0.35 ? [0.35, 1, 0.55] : v < 0.7 ? [0.2, 0.85, 0.75] : [0.6, 0.35, 0.95];
+      for (let x = 0; x < 128; x++) {
+        const edge = Math.min(1, x / 16, (127 - x) / 16), a = fade * rays[x] * edge;
+        img.data.set([col[0] * 255, col[1] * 255, col[2] * 255, Math.min(1, a) * 255], (y * 128 + x) * 4);
+      }
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  },
 };
 
 const PHOTOS = ['grass', 'dirt', 'rock', 'bark', 'siding', 'slates', 'cobbles', 'flags', 'masonry', 'velvet'];
-const CLAMPED = new Set(['glow', 'window', 'clock', 'moon', 'bolt']);
+const CLAMPED = new Set(['glow', 'window', 'clock', 'moon', 'bolt', 'earth', 'aurora']);
 const AVERAGE = { grass: '#968359', dirt: '#4b3c2c', rock: '#8c775f', bark: '#665240', siding: '#a59388', slates: '#a7a6a0', cobbles: '#897d60', flags: '#8d8d88', masonry: '#887e6f', velvet: '#aaaaaa' };
 
 /**

@@ -2,6 +2,8 @@
 // its clock tower, the eight houses, the cemetery, the woods, the lamps, the sky, and the night's
 // lighting (moonlight with long shadows, warm lamps, violet fog). `setMadness` turns the last
 // minute sinister: thicker fog, a red moon, flickering, brighter lamps.
+// `theme` (themes.js) dresses it as one of the campaign's neighbourhoods: Little Italy, Paris, New York, Buenos
+// Aires, the model town, the North Pole, Transylvania, the Moon (the plan, and so the rules, never change).
 import { BLEND_ADDITIVEALPHA, CULLFACE_NONE, Color, Entity, FOG_EXP2, Quat, SHADOW_PCF3_32F, StandardMaterial, Vec3 } from 'playcanvas';
 import { Batches, Geo, texturedMaterial } from '../geo.js';
 import { flat } from './shapes.js';
@@ -10,6 +12,8 @@ import { rng } from '../rng.js';
 import { buildHouse } from './houses.js';
 import { addBush, addCemetery, addClockTower, addFence, addFlowers, addLamp, addMushrooms, addPumpkin, addTree } from './props.js';
 import { addSilhouettes, createSky } from './sky.js';
+import { THEMES } from './themes.js';
+import { addCraters, addHoodExtras, addHoodLamp, addHoodSkyline, addHoodTree, addLandmark, createSnowfall } from './hoods.js';
 import { ribbon } from './shapes.js';
 import { BUSHES, FENCES, FLOWERS, HOUSES, LAMPS, MAP_R, MUSHROOMS, PLAZA_R, PUMPKINS, RING, RING_W, STREETS, TOMBS, TREES, WOODS } from './layout.js';
 
@@ -17,11 +21,8 @@ const D2R = Math.PI / 180;
 export const MOON_DIR = [-0.55, 0.42, -0.72]; // towards the moon: low in the north-west, long shadows
 
 // Height fog (heightfog.js): a light haze overall, thick pale mist on the ground that thins as it
-// rises and drifts in banks; the lamps glow into it.
-const FOG_CALM = { color: [0.12, 0.1, 0.2], density: 0.012, ground: 0.05, falloff: 0.5, mist: [0.5, 0.5, 0.66] };
-const FOG_MAD = { color: [0.19, 0.08, 0.16], density: 0.016, ground: 0.075, falloff: 0.42, mist: [0.48, 0.4, 0.55] };
-const AMBIENT_CALM = [0.2, 0.18, 0.32], AMBIENT_MAD = [0.26, 0.14, 0.24];
-const MOON_CALM = [0.62, 0.7, 1], MOON_MAD = [1, 0.48, 0.42];
+// rises and drifts in banks; the lamps glow into it. Its colours, the ambient and the moonlight are the theme's
+// (calm, and the Monster Madness).
 
 /** Value noise for the ground's moss and earth patches. */
 function noise2(seed) {
@@ -34,7 +35,10 @@ function noise2(seed) {
   };
 }
 
-export function createVillage(app, tex, { lowFx = false } = {}) {
+export function createVillage(app, tex, { lowFx = false, theme = 'classic' } = {}) {
+  const T = THEMES[theme] ?? THEMES.classic;
+  const FOG_CALM = T.fog.calm, FOG_MAD = T.fog.mad;
+  const [AMBIENT_CALM, AMBIENT_MAD] = T.ambient, [MOON_CALM, MOON_MAD] = T.moonLight;
   const root = new Entity('village');
   const heightFog = installHeightFog(app.graphicsDevice); // before any material is built
   const N = tex.normals;
@@ -54,9 +58,18 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
     ground: texturedMaterial(tex.grass, { normal: N.grass, gloss: 0.12, noTile: true }),
     dirt: texturedMaterial(tex.dirt, { normal: N.dirt, gloss: 0.1 }),
     silhouette: texturedMaterial(tex.plain, { gloss: 0 }),
+    // the neighbourhoods' own (themes.js): a model's grass mat, snowfields and snow, ice, asphalt, moon dust, neon
+    plainGround: texturedMaterial(tex.plain, { gloss: 0.15 }),
+    snowfield: texturedMaterial(tex.plain, { gloss: 0.42 }),
+    snow: texturedMaterial(tex.plain, { gloss: 0.5 }),
+    ice: texturedMaterial(tex.plain, { gloss: 0.88, metal: 0.15 }),
+    asphalt: texturedMaterial(tex.dirt, { gloss: 0.3 }),
+    regolith: texturedMaterial(tex.rock, { gloss: 0.05, noTile: true }),
+    neon: texturedMaterial(tex.plain, { emissive: new Color(1, 1, 1) }),
   };
   materials.glow.emissiveIntensity = 1.6; materials.glow.update();
   materials.emit.emissiveIntensity = 2; materials.emit.update();
+  materials.neon.emissiveIntensity = 3.2; materials.neon.update();
   const B = new Batches(materials);
 
   // Ground: a big disc of moss and earth that rises into low mounds beyond the village.
@@ -72,49 +85,72 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       }
     }
     for (let k = 0; k < rings; k++) for (let s = 0; s < segs; s++) { const a = k * (segs + 1) + s, b = a + segs + 1; m.i.push(a, a + 1, b, a + 1, b + 1, b); }
-    B.get('ground').add(m, null, (x, y, z) => {
+    const G = T.ground;
+    B.get(G.key).add(m, null, (x, y, z) => {
       const v = n(x * 0.12, z * 0.12), w = n(x * 0.03 + 9, z * 0.03 + 3), r = Math.hypot(x, z);
-      const moss = [0.36 + 0.1 * v, 0.42 + 0.14 * v, 0.3 + 0.06 * v], violet = [0.4, 0.32, 0.46];
+      const moss = G.a.map((a, i) => a + (G.b[i] - a) * v), violet = G.patch;
       const c = moss.map((cv, i) => cv + (violet[i] - cv) * Math.max(0, w - 0.45) * 1.6);
       const fade = r > MAP_R ? Math.max(0.45, 1 - (r - MAP_R) / 40) : 1;
       return c.map((cv) => cv * fade);
     });
   }
   // Streets: the cobbled ring with a dark kerb, the radial streets and the garden paths.
-  B.get('cobble').add(ribbon(RING, RING_W + 0.7, { closed: true, y: 0.02, uvScale: 0.6 }), null, [0.24, 0.22, 0.28]);
-  B.get('cobble').add(ribbon(RING, RING_W, { closed: true, y: 0.03, uvScale: 0.6 }), null, [0.48, 0.45, 0.54]);
-  STREETS.forEach((s, i) => B.get(i < 5 ? 'cobble' : 'dirt').add(ribbon(s.path, s.w, { y: 0.035 + i * 0.0005, uvScale: i < 5 ? 0.6 : 0.3 }), null, i < 5 ? [0.46, 0.43, 0.52] : [0.55, 0.45, 0.42]));
+  const ST = T.streets;
+  B.get(ST.key).add(ribbon(RING, RING_W + 0.7, { closed: true, y: 0.02, uvScale: 0.6 }), null, ST.kerb);
+  B.get(ST.key).add(ribbon(RING, RING_W, { closed: true, y: 0.03, uvScale: 0.6 }), null, ST.road);
+  STREETS.forEach((s, i) => B.get(i < 5 ? ST.key : (ST.key === 'asphalt' ? 'stone' : 'dirt')).add(ribbon(s.path, s.w, { y: 0.035 + i * 0.0005, uvScale: i < 5 ? 0.6 : 0.3 }), null, i < 5 ? ST.radial : ST.path));
+  if (ST.line) for (let k = 0; k < RING.length; k += 2) { // New York: the yellow line down the middle, dashed
+    const a = RING[k], b = RING[(k + 1) % RING.length];
+    B.get('plain').add(ribbon([a, b], 0.14, { y: 0.04 }), null, ST.line);
+  }
+  if (ST.stripes) for (let k = 0; k < RING.length; k += 2) { // the model town: a black-and-white striped ring road
+    const a = RING[k], b = RING[(k + 1) % RING.length];
+    B.get('plain').add(ribbon([a, b], RING_W, { y: 0.032 }), null, [0.08, 0.08, 0.08]);
+  }
   // Plaza: flagstones in a disc with a darker ring of cobbles round it.
   {
     const disc = { p: [0, 0.045, 0], n: [0, 1, 0], uv: [0, 0], i: [] }, segs = 48;
     for (let s = 0; s <= segs; s++) { const a = (s / segs) * Math.PI * 2; disc.p.push(Math.cos(a) * PLAZA_R, 0.045, Math.sin(a) * PLAZA_R); disc.n.push(0, 1, 0); disc.uv.push(Math.cos(a) * PLAZA_R * 0.4, Math.sin(a) * PLAZA_R * 0.4); }
     for (let s = 0; s < segs; s++) disc.i.push(0, s + 2, s + 1);
-    B.get('stone').add(disc, null, [0.6, 0.56, 0.66]);
+    const P = T.plaza;
+    B.get(P.key).add(disc, null, P.color);
+    if (P.checker) for (let ring = 0; ring < 4; ring++) for (let s = 0; s < 16; s++) { // black squares on a white floor
+      if ((ring + s) % 2) continue;
+      const r0 = 1.9 + ring * (PLAZA_R - 1.9) / 4, r1 = r0 + (PLAZA_R - 1.9) / 4, a0 = (s / 16) * Math.PI * 2, a1 = ((s + 1) / 16) * Math.PI * 2;
+      B.get('plain').add({ p: [Math.cos(a0) * r0, 0.05, Math.sin(a0) * r0, Math.cos(a1) * r0, 0.05, Math.sin(a1) * r0, Math.cos(a1) * r1, 0.05, Math.sin(a1) * r1, Math.cos(a0) * r1, 0.05, Math.sin(a0) * r1], n: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], uv: [0, 0, 1, 0, 1, 1, 0, 1], i: [0, 2, 1, 0, 3, 2] }, null, [0.07, 0.07, 0.07]);
+    }
     const edge = Array.from({ length: 64 }, (_, k) => [Math.cos((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35), Math.sin((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35)]);
-    B.get('cobble').add(ribbon(edge, 0.8, { closed: true, y: 0.05, uvScale: 0.5 }), null, [0.36, 0.32, 0.4]);
+    B.get(ST.key).add(ribbon(edge, 0.8, { closed: true, y: 0.05, uvScale: 0.5 }), null, P.edge);
   }
 
   // Houses.
   const houses = HOUSES.map((h) => {
-    const built = buildHouse(app, h, B);
+    const built = buildHouse(app, h, B, T.house);
     root.addChild(built.root);
     return built;
   });
   // Props.
-  for (const t of TREES) addTree(B, t);
-  for (const t of WOODS) addTree(B, t, { detail: 0.3, key: 'woods' });
+  const tree = (t, style, o) => (style === 'twisted' ? addTree(B, t, o) : style === 'dead' ? addTree(B, { ...t, dead: true }, o) : addHoodTree(B, t, style, o));
+  for (const t of TREES) tree(t, t.dead && T.trees !== 'rock' ? 'dead' : T.trees);
+  for (const t of WOODS) tree(t, T.woods, { detail: 0.3, key: 'woods' });
   const PR = rng(123);
-  for (const p of PUMPKINS) addPumpkin(B, p, PR);
-  for (const f of FENCES) addFence(B, f);
+  for (const p of PUMPKINS) addPumpkin(B, p, PR); // (Halloween everywhere: pumpkins on every porch)
+  const fence = T.house.trims;
+  for (const [k, f] of FENCES.entries()) addFence(B, fence ? { ...f, color: fence[k % fence.length] } : f);
   addCemetery(B, TOMBS);
-  for (const m of MUSHROOMS) addMushrooms(B, m);
-  for (const f of FLOWERS) addFlowers(B, f);
-  for (const b of BUSHES) addBush(B, b);
-  addSilhouettes(B);
+  // The small wonders: the haunted garden's, except in the snow (presents) and on the Moon (none: dust).
+  if (T.name !== 'northpole' && T.name !== 'moon') {
+    for (const m of MUSHROOMS) addMushrooms(B, m);
+    for (const f of FLOWERS) addFlowers(B, f);
+  }
+  if (T.name !== 'moon') for (const b of BUSHES) addBush(B, b);
+  if (T.ground.craters) addCraters(B);
+  if (T.skyline === 'hills') addSilhouettes(B); else addHoodSkyline(B, T.skyline);
   const clockMat = texturedMaterial(tex.clock, { emissive: new Color(0.55, 0.5, 0.4), alphaTest: 0.5 });
-  const clock = addClockTower(app, B, clockMat);
+  const clock = T.landmark === 'clock' ? addClockTower(app, B, clockMat) : addLandmark(app, B, clockMat, T.landmark);
   root.addChild(clock.root);
-  const lampSpots = LAMPS.map((l) => ({ at: addLamp(B, l), real: l.real }));
+  const lampSpots = LAMPS.map((l) => ({ at: (T.lamp === 'crook' ? null : addHoodLamp(B, l, T.lamp, T.lampColor)) ?? addLamp(B, l), real: l.real }));
+  addHoodExtras(B, T);
 
   const statics = B.build(app.graphicsDevice, 'village-static', { castShadows: true });
   for (const r of statics.findComponents('render')) {
@@ -148,20 +184,22 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
   for (const s of lampSpots) {
     if (!s.real || lamps.length >= maxLights) continue;
     const e = new Entity('lamp-light');
-    e.addComponent('light', { type: 'omni', color: new Color(1, 0.68, 0.32), intensity: 1.8, range: 9, castShadows: false });
+    e.addComponent('light', { type: 'omni', color: new Color(...T.lampColor), intensity: 1.8, range: 9, castShadows: false });
     e.setLocalPosition(...s.at);
     root.addChild(e);
     lamps.push({ e, base: 1.8, phase: Math.random() * 10 });
   }
 
-  const sky = createSky(app, tex, MOON_DIR);
+  const sky = createSky(app, tex, MOON_DIR, T.sky);
   root.addChild(sky.root);
+  const snowfall = T.snowfall ? createSnowfall(app, tex.glow) : null;
+  if (snowfall) root.addChild(snowfall.root);
 
   // Every lamp glows into the mist: a warm halo turned to the camera.
   const haloMat = new StandardMaterial();
   haloMat.useLighting = false; haloMat.useSkybox = false; haloMat.useFog = false;
   haloMat.diffuse = new Color(0, 0, 0);
-  haloMat.emissive = new Color(1, 0.62, 0.3);
+  haloMat.emissive = new Color(...T.lampColor);
   haloMat.emissiveMap = tex.glow; haloMat.opacityMap = tex.glow; haloMat.opacityMapChannel = 'a';
   haloMat.opacity = 0.42;
   haloMat.blendType = BLEND_ADDITIVEALPHA; haloMat.depthWrite = false; haloMat.cull = CULLFACE_NONE;
@@ -179,6 +217,7 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
   const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
   return {
     root,
+    theme: T.name,
     houses,
     clock,
     materials,
@@ -223,8 +262,9 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       app.scene.fog.density = FOG_CALM.density + (FOG_MAD.density - FOG_CALM.density) * madness + 0.006 * storm;
       app.scene.ambientLight.set(...lerp(AMBIENT_CALM, AMBIENT_MAD, madness).map((v, i) => v * (1 - 0.3 * storm) + fl * [0.75, 0.8, 0.95][i]));
       moon.light.intensity = 0.95 * (1 - 0.35 * storm) + fl * 2.5;
-      sky.update(camera);
+      sky.update(camera, dt);
       const c = camera.getPosition();
+      snowfall?.update(dt, c);
       const m = madness;
       heightFog.update(time, {
         ground: FOG_CALM.ground + (FOG_MAD.ground - FOG_CALM.ground) * m,
@@ -244,7 +284,7 @@ export function createVillage(app, tex, { lowFx = false } = {}) {
       for (const l of lamps) {
         const flick = madness > 0 ? (Math.sin(time * 23 + l.phase) * 0.5 + Math.sin(time * 7.3 + l.phase * 2) * 0.5) * 0.6 * madness : Math.sin(time * 2 + l.phase) * 0.08;
         l.e.light.intensity = l.base * (1 + 0.7 * madness) + flick;
-        if (madness > 0) l.e.light.color.set(1, 0.68 - 0.25 * madness, 0.32 + 0.1 * madness);
+        if (madness > 0) l.e.light.color.set(T.lampColor[0], T.lampColor[1] * (1 - 0.35 * madness), T.lampColor[2] + 0.1 * madness);
       }
       materials.glow.emissiveIntensity = 1.6 + madness * (0.6 + 0.6 * Math.sin(time * 9));
       materials.glow.update();

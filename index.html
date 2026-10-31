@@ -188,6 +188,7 @@
       .nightTile.on { border-color: var(--gold); box-shadow: 0 3px 0 #120a18, 0 0 14px rgba(240,190,90,.55); transform: scale(1.06) rotate(-2deg); }
       .nightTile.lock { color: rgba(246,231,200,.35); filter: grayscale(.6) brightness(.7); }
       .nightTile.lock::after { content: '🔒'; position: absolute; top: 3px; right: 4px; font-size: 13px; }
+      .nightPlace { text-align: center; font-family: var(--title); font-size: 17px; letter-spacing: 2px; text-transform: uppercase; color: #c9b6ee; text-shadow: 0 0 10px rgba(160,120,230,.6); }
       .nightName { text-align: center; font-family: var(--title); font-size: 24px; color: var(--gold); margin-bottom: 4px; }
       .nightGoals { text-align: center; font-size: 15px; color: #f3e9d8; margin-top: 8px; }
       /* results: up to three stars, lit one by one (the middle one higher) */
@@ -355,6 +356,7 @@
     <div id="nights" class="layer screen hidden">
       <div class="tome"><div class="plate" id="nightsTitle">NIGHTS</div>
         <div class="nightGrid" id="nightGrid"></div>
+        <div class="nightPlace" id="nightPlace"></div>
         <div class="nightName" id="nightName"></div>
         <div class="note" id="nightHow"></div>
         <div class="nightGoals" id="nightGoals"></div>

@@ -5,6 +5,7 @@ import { vampireFace } from './vampire.js';
 import { FLAGS } from './flags.js';
 import { STEPS } from './tutorial.js';
 import { LANGS, t } from './i18n.js';
+import { themeOfNight } from '../world/themes.js';
 
 const $ = (id) => document.getElementById(id);
 const SCREENS = ['loading', 'menu', 'how', 'nights', 'lobby', 'results'];
@@ -186,6 +187,7 @@ export function createUI(on) {
     nights({ tiles, pick, info, note }) {
       $('nightGrid').innerHTML = tiles.map((s) => `<button class="nightTile${s.open ? '' : ' lock'}${s.n === pick ? ' on' : ''}" data-n="${s.n}">${s.n + 1}<span class="st">${[0, 1, 2].map((k) => (k < s.stars ? '<b>★</b>' : '★')).join('')}</span></button>`).join('');
       for (const b of $('nightGrid').children) b.addEventListener('click', (e) => { e.stopPropagation(); on.click?.(); on.night(+b.dataset.n); });
+      $('nightPlace').textContent = info.place ?? '';
       $('nightName').textContent = info.name;
       $('nightHow').textContent = info.how;
       $('nightGoals').textContent = info.goals;
@@ -194,7 +196,7 @@ export function createUI(on) {
     },
 
     lobby({ room, roster, isHost, phase, meInRound, full, level, night }) {
-      $('roomName').textContent = `${t('room')}: ${room} · ${night != null ? t('lens.night', { n: night + 1 }) : t(`levels.${level}`)}`;
+      $('roomName').textContent = `${t('room')}: ${room} · ${night != null ? `${t('lens.night', { n: night + 1 })} · ${t(`hoods.${themeOfNight(night)}`)}` : t(`levels.${level}`)}`;
       const slots = [];
       for (let i = 0; i < 4; i++) {
         const p = roster[i];

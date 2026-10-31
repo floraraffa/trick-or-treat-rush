@@ -54,6 +54,19 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   `spot: -1`, a `land` time and a `gone` time; they don't count towards the street candy. `src/net/session.js` room, host election, routing; `transport.js`.
 - Fog: `src/world/heightfog.js` replaces PlayCanvas's `fogPS` chunk globally (height + drifting-noise density, paler
   mist colour low down; tf_* uniforms set each frame by `village.update`), plus lamp halos. No mist sheets or sprites.
+- Neighbourhoods: each night of the campaign is played in its own neighbourhood, Burton-style crooked houses dressed
+  as `NIGHT_THEMES` (`src/world/themes.js`: italy, france, newyork, buenosaires, modeltown (the striped, neon-signed
+  model town in an attic; the trademark name is never used), northpole (aurora, snowfall), transylvania, moon (the
+  Earth in the sky)); `themeOfNight(n)` (a room plays the host's night, so its neighbourhood); classic for the levels' rounds. A theme is data merged over `CLASSIC` (sky,
+  fog calm/mad, ambient, moonlight, lamp colour, ground/streets/plaza materials and colours, `house` style flags,
+  trees, woods, lamp, landmark, skyline); `src/world/hoods.js` builds the pieces (trees, lamps, landmarks with the
+  clock where it has hands, skylines, roofs, balconies, extras, craters, snowfall). The plan (layout.js) never
+  changes, so neither do the rules or collisions. Code only (painted canvases `earth`, `aurora` in textures.js): no
+  file, ~50 KB of code. main.js `useTheme` rebuilds the village (old root destroyed) on the nights screen (the picked
+  night's, behind the panel) and at a round's start; `hoods.<id>` names in i18n, shown on the nights screen, the
+  lobby and the 3-2-1. Every hood is about as heavy as the classic village or lighter (triangles: moon 67k … transylvania
+  131k, classic 129k; mesh instances 48–73, classic 63) and
+  builds in ~0.2 s in headless Chromium. Spectacles and Quest still use the classic village.
 - `src/world/layout.js` the village plan as pure data (houses, streets, props, colliders, candy/orb spots, patrols,
   spawns), shared by renderer, collisions and authority. `village.js` assembles it (batched by material), `houses.js`
   crooked houses with hinged doors, `props.js`, `sky.js`, `shapes.js` (tube, lathe, roofs, extrude), `collide.js`.

@@ -76,6 +76,7 @@ console.log(`✔ a client turned ghost and called a candy rain; all three see it
 
 // Fast-forward the host to the end: everyone gets the same ranking and winner.
 assert.ok((await all(() => window.__game.view.night === 0 && window.__game.view.seconds === 90)).every(Boolean), "everyone plays the host's night: the first, 1:30");
+assert.ok((await all(() => window.__game.hood)).every((h) => h === 'italy'), "everyone in the first night's neighbourhood, the Italian Quarter");
 await host.evaluate(() => window.__game.skip(Math.max(0, window.__game.view.seconds + 0.3 - window.__game.view.rt())));
 await Promise.all(pages.map((p) => p.waitForFunction(() => window.__game.view.phase === 'over' && window.__game.view.ranking, null, { timeout: 200000 })));
 const ranks = await all(() => JSON.stringify({ r: window.__game.view.ranking.map((r) => [r.name, r.score]), w: window.__game.view.winners }));

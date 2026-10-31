@@ -8,6 +8,18 @@ gótico, golpea puertas (*¡dulce o truco!*), junta caramelos (o hace que llueva
 hasta **3 estrellas** según los caramelos (la primera con cualquier caramelo) y una **destreza nueva**, y jugarla
 abre la siguiente.
 
+**Cada noche es un barrio distinto**, siempre con casas torcidas de cuento gótico: 1 barrio italiano (campanarios,
+balcones con flores, ropa tendida, cipreses, la torre inclinada), 2 barrio francés (techos mansarda, toldos, plátanos,
+faroles, una torre de hierro), 3 Nueva York (brownstones, escaleras de incendio, tanques de agua, el rascacielos con
+reloj, el skyline), 4 Buenos Aires (casas de chapa de colores, fileteado, jacarandás, el obelisco, grúas del puerto),
+5 la maqueta (rayas blanco y negro, carteles de neón, gusanos rayados y las vigas de un altillo gigante en el cielo),
+6 Polo Norte (nieve que cae, auroras boreales, carámbanos, guirnaldas de luces, muñecos de nieve, el poste del polo),
+7 Transilvania (luna roja enorme, almenas, gárgolas, antorchas, el castillo en los Cárpatos) y 8 la Luna (la Tierra en
+el cielo, cráteres, cúpulas con ojos de buey, un cohete, un rover). El plano del pueblo es el mismo (las mismas casas,
+calles y colisiones), así que las reglas no cambian; lo que cambia es todo lo que se ve. Las salas juegan la noche del
+anfitrión, así que también su barrio; las rondas de nivel (3 minutos) siguen en el pueblo clásico. Todo está hecho con código (geometría y texturas pintadas en canvas): **no suma archivos**,
+el build pasó de 5,84 MB a 5,89 MB (límite de My Lenses 8 MB, `npm run pack` exige menos de 7,2 MB).
+
 ## Cómo correrlo
 
 ```bash
@@ -169,6 +181,7 @@ desde adentro y el pueblo con cada parpadeo.
 | `src/actors/monsters.js`, `candy.js`, `effects.js` | monstruos, caramelos y orbes, auras de power-ups (lado visual) |
 | `src/world/layout.js` | plano del pueblo (datos puros compartidos), colisionadores, rutas de patrulla |
 | `src/world/village.js`, `houses.js`, `props.js`, `sky.js`, `shapes.js`, `collide.js` | escenario, iluminación, cielo, geometría, colisiones |
+| `src/world/themes.js`, `hoods.js` | los 8 barrios de las noches: colores, niebla, luz, casas, árboles, faroles, monumento y horizonte de cada uno (`?theme=italy` en `dev/viewer.html`) |
 | `src/ui/ui.js`, `i18n.js`, `tutorial.js`, `flags.js` | UIManager; textos en inglés, español, francés y alemán, con selector de idioma con banderas; el tutorial de tarjetas |
 | `specs.html`, `src/specs/` | la versión para Snap Specs (WebXR): maqueta, manos (`hands.js`), paneles (`panels.js`), visor emulado para desarrollo (`emulate.js`) |
 | `src/lib/` | envoltorio de la API de Snapchat, `bitmoji-anim.js` (MIT), descompresión meshopt (heredados de Cruise Rush) |

@@ -43,8 +43,9 @@ assert.ok(!tiles[0].lock && tiles[0].on && tiles.slice(1).every((x) => x.lock), 
 await page.click('#nightGrid .nightTile[data-n="2"]');
 await page.waitForFunction(() => [...document.querySelectorAll('#popups .popup')].some((p) => /2/.test(p.textContent)), null, { timeout: 5000 }); // ("play night 2 to open this one")
 assert.ok(await G(() => document.querySelector('#nightGrid .nightTile[data-n="0"]').classList.contains('on')), "a locked night can't be picked");
-const info = await G(() => ({ name: document.getElementById('nightName').textContent, goals: document.getElementById('nightGoals').textContent }));
+const info = await G(() => ({ place: document.getElementById('nightPlace').textContent, hood: window.__game.hood, name: document.getElementById('nightName').textContent, goals: document.getElementById('nightGoals').textContent }));
 assert.ok(/1/.test(info.name) && /70/.test(info.goals) && /150/.test(info.goals), `the night's skill and its stars (${info.name} · ${info.goals})`);
+assert.ok(info.hood === 'italy' && info.place === 'Italian Quarter', `the first night's neighbourhood, built behind the panel (${info.hood}, ${info.place})`);
 await page.click('#btnNightPlay');
 await page.waitForFunction(() => window.__game.screen === 'game' && window.__game.view.night === 0, null, { timeout: 30000 });
 await page.waitForFunction(() => /^01:(30|2\d)$/.test(document.getElementById('timer').textContent), null, { timeout: 10000 }); // (the HUD's first frame)
@@ -70,6 +71,7 @@ await page.screenshot({ path: `${out}/p0-night-results.png` });
 await page.click('#btnNext');
 await page.waitForFunction(() => window.__game.screen === 'game' && window.__game.view.night === 1, null, { timeout: 30000 });
 assert.ok(await G(() => window.__game.view.skills.has('powers')), 'the second night: the power-up orbs');
+assert.equal(await G(() => window.__game.hood), 'france', 'the second night: the French Quarter');
 console.log(`✔ nights: eight, the first open; 1:30 with its own skill; ${two} candy = 2 stars, night 2 opens; NEXT NIGHT`);
 
 // The boo night: its button, "Boo!", the monsters near run off; a giant says "Boo!" too.
@@ -97,6 +99,8 @@ await page.waitForFunction(() => window.__game.screen === 'results', null, { tim
 // The shared rules' full round (3 minutes, the levels' rules): started through the session.
 await G(() => { const s = window.__game.session; s.setNight(null); s.startRound(); });
 await page.waitForFunction(() => window.__game.view.night == null && window.__game.view.phase === 'playing', null, { timeout: 60000 });
+assert.equal(await G(() => window.__game.hood), 'classic', "a level's round: the classic village");
+console.log('✔ neighbourhoods: the Italian Quarter on the nights screen and night 1, the French Quarter on night 2, the classic village for a level');
 const p0 = await G(() => [window.__game.player.state.x, window.__game.player.state.z]);
 await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
 await page.waitForFunction(([x, z]) => Math.hypot(window.__game.player.state.x - x, window.__game.player.state.z - z) > 2, p0, { timeout: 30000 });

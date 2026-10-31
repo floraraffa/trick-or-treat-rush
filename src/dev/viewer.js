@@ -1,4 +1,5 @@
-// Dev-only scene viewer: ?view=cx,cy,cz,tx,ty,tz frames the village from a camera position to a target.
+// Dev-only scene viewer: ?view=cx,cy,cz,tx,ty,tz frames the village from a camera position to a target;
+// ?theme=italy (themes.js) dresses it as one of the campaign's neighbourhoods.
 import { Application, CameraFrame, Color, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO, TONEMAP_NEUTRAL } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
@@ -8,8 +9,14 @@ const app = new Application(canvas, { graphicsDeviceOptions: { antialias: false 
 app.setCanvasFillMode(FILLMODE_FILL_WINDOW);
 app.setCanvasResolution(RESOLUTION_AUTO);
 const tex = createTextures(app.graphicsDevice, { base: '../assets/' }); // this page lives in dev/
-const village = createVillage(app, tex);
+const t0 = performance.now();
+const village = createVillage(app, tex, { theme: new URLSearchParams(location.search).get('theme') ?? 'classic' });
 app.root.addChild(village.root);
+// (dev numbers: how long it took to build, its mesh instances (draw calls before culling) and triangles)
+window.__stats = { buildMs: Math.round(performance.now() - t0), ...village.root.findComponents('render').reduce((a, r) => {
+  for (const mi of r.meshInstances) { a.meshes++; a.tris += Math.round((mi.mesh.primitive[0].count ?? 0) / 3); }
+  return a;
+}, { meshes: 0, tris: 0 }) };
 const camera = new Entity('camera');
 camera.addComponent('camera', { fov: 62, nearClip: 0.1, farClip: 700, clearColor: new Color(0.05, 0.05, 0.1) });
 app.root.addChild(camera);

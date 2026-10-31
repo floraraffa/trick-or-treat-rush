@@ -9,6 +9,7 @@ import '@fontsource/mystery-quest/latin-400.css';
 import { diagnostics, has, initSnap, loadSave, portraitUrl, save, showLeaderboard, snapchat, submitScore } from './lib/snap.js';
 import { createTextures } from './textures.js';
 import { createVillage } from './world/village.js';
+import { themeOfNight } from './world/themes.js';
 import { HOUSES, DOOR_RANGE, SPAWNS } from './world/layout.js';
 import { createFx } from './fx.js';
 import { createAvatar } from './actors/avatar.js';
@@ -101,8 +102,19 @@ if (!lowFx) {
 if (!frame) camera.camera.toneMapping = TONEMAP_NEUTRAL;
 
 const tex = createTextures(app.graphicsDevice);
-const village = createVillage(app, tex, { lowFx });
+// The village: the classic one for the menu, the levels and the rooms; each night of the campaign rebuilds it as that
+// night's neighbourhood (themes.js; the same plan, so the same rules). Built from code only: no file adds to the Lens's weight.
+let village = createVillage(app, tex, { lowFx });
 app.root.addChild(village.root);
+/** Dresses the village as `theme` (a no-op if it already is): the old one is freed, doors, porch lamps and clock reset. */
+function useTheme(theme) {
+  if (village.theme === theme) return;
+  village.root.destroy();
+  village = createVillage(app, tex, { lowFx, theme });
+  app.root.addChild(village.root);
+  houseReady.fill(null);
+  village.setClock(0);
+}
 const fx = createFx(app, tex.glow, { max: 260 });
 const sparks = createFx(app, tex.glow, { max: 320, additive: true });
 for (const f of [fx, sparks]) app.root.addChild(f.entity);
@@ -266,10 +278,11 @@ function onPlay() {
 }
 function showNights() {
   const pick = saveData.camp.night, N = NIGHTS[pick], rec = saveData.camp.nights[pick];
+  useTheme(themeOfNight(pick)); // (its neighbourhood behind the panel)
   ui.nights({
     tiles: NIGHTS.map((_, n) => ({ n, stars: saveData.camp.nights[n]?.stars ?? 0, open: nightOpen(n) })),
     pick,
-    info: { name: `${t('lens.night', { n: pick + 1 })} · ${t(`lens.skills.${N.skill}`)}`, how: skillHow(N.skill), goals: t('nights.goals', { a: N.stars[0], b: N.stars[1], c: N.stars[2] }), best: rec ? t('nights.best', { n: rec.best }) : '' },
+    info: { place: t(`hoods.${themeOfNight(pick)}`), name: `${t('lens.night', { n: pick + 1 })} · ${t(`lens.skills.${N.skill}`)}`, how: skillHow(N.skill), goals: t('nights.goals', { a: N.stars[0], b: N.stars[1], c: N.stars[2] }), best: rec ? t('nights.best', { n: rec.best }) : '' },
     note: t('nights.pick'),
   });
 }
@@ -320,7 +333,7 @@ function onEvent(ev) {
   if (screen !== 'game' || ev.round !== view.round) return;
   const mine = playerOf(ev) === me.id;
   switch (ev.e) {
-    case 'count': ui.banner(String(ev.n), '', 800, 'big'); sfx.beep(); break;
+    case 'count': ui.banner(String(ev.n), view.night != null ? t(`hoods.${themeOfNight(view.night)}`) : '', 800, 'big'); sfx.beep(); break;
     case 'go': {
       ui.banner(t('go'), '', 900, 'big good'); sfx.go();
       const n = view.night; // a night: its skill, and how it's played
@@ -406,6 +419,7 @@ function burstAtDoor(i, color, n = 30) {
 
 function startRoundVisuals(ev) {
   endRoundVisuals();
+  useTheme(themeOfNight(view.night)); // a night's neighbourhood (the classic village for a level)
   const mine = ev.players.find((p) => p.id === me.id);
   const sp = mine?.spawn ?? SPAWNS[0];
   player.place(sp.x, sp.z, sp.yaw);
@@ -703,6 +717,7 @@ if (debug) {
     houses: HOUSES,
     lastCry: lastCryName,
     get camp() { return saveData.camp; },
+    get hood() { return village.theme; }, // the neighbourhood the village is dressed as
     /** Test hook: fast-forwards the host's round clock (the authority still simulates every step). */
     skip(seconds) { for (let k = 0; k < seconds * 10; k++) session.authority?.tick(0.1); },
   };

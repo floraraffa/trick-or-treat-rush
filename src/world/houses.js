@@ -2,11 +2,14 @@
 // stacked off-true and twisting, steep spires with curling tips, bent chimneys, uneven glowing
 // windows, an oversized arched door (a separate, hinged entity so it can swing open) and lopsided
 // porch steps. Static parts go into the village batches: one draw call per material for all eight.
+// A neighbourhood (themes.js `house`) dresses them its own way: its colours, walls, roofs, windows and finery
+// (hoods.js), on the same footprint.
 import { Color, Entity, StandardMaterial } from 'playcanvas';
 import { Geo, box, cylinder, trs } from '../geo.js';
 import { rng } from '../rng.js';
 import { archOutline, circleOutline, extrude, flat, gableRoof, lathe, spireRoof, tube } from './shapes.js';
 import { PAL } from './layout.js';
+import { floorFinery, hoodRoof, porchFinery, topFinery } from './hoods.js';
 
 const dark = (c, k) => c.map((v) => v * k);
 const WOOD_UV = 0.45, SHINGLE_UV = 0.55;
@@ -19,12 +22,12 @@ function windowOutline(kind, w, h) {
 }
 
 /** A window on a face whose frame is `M` (local XY = the wall, +Z out of it). */
-function addWindow(B, R, M, cx, cy, w, h, { kind = 'rect', lit = true, roll = 0, trim, shutters = null }) {
+export function addWindow(B, R, M, cx, cy, w, h, { kind = 'rect', lit = true, roll = 0, trim, shutters = null, color = null }) {
   const at = M.clone().mul(trs(cx, cy, 0, 0, 0, roll));
   const outline = windowOutline(kind, w, h);
   const frame = windowOutline(kind, w + 0.22, h + 0.22);
   B.get('plain').add(extrude(frame, 0.12), at, dark(trim, 0.55));
-  const warm = lit ? [1, 0.82 + R() * 0.15, 0.55 + R() * 0.25] : [0.07, 0.06, 0.13];
+  const warm = lit ? (color ? color.map((v) => v * (0.85 + R() * 0.15)) : [1, 0.82 + R() * 0.15, 0.55 + R() * 0.25]) : [0.07, 0.06, 0.13];
   B.get('glow').add(flat(outline), at.clone().mul(trs(0, 0, 0.065)), warm);
   if (kind !== 'round') B.get('plain').add(box(w + 0.34, 0.08, 0.22), at.clone().mul(trs(0, -h / 2 - 0.1, 0.06)), trim); // sill
   if (shutters) {
@@ -52,10 +55,13 @@ function curlTip(B, M, apex, dirX, color, R) {
  * Builds one house into the batches B; returns { root, door, lamp, inside } for animation: the door
  * swings on its hinge, the porch lamp tells everyone whether the house can be visited.
  */
-export function buildHouse(app, h, B) {
+export function buildHouse(app, h, B, S = { style: 'classic' }) {
   const R = rng(h.seed);
   const H = trs(h.x, 0, h.z, 0, h.yaw, 0);
-  const wall = h.wall, trim = h.trim, roofC = h.roofColor;
+  const pick = (list, fallback, k = h.id) => (list ? list[k % list.length] : fallback);
+  const wall = pick(S.walls, h.wall), trim = pick(S.trims, h.trim), roofC = pick(S.roofs, h.roofColor), doorColor = pick(S.doors, h.doorColor);
+  const wallKey = S.wallKey ?? 'wood', winColor = S.windows ?? null;
+  const kinds = S.portholes ? ['round'] : ['rect', 'arch', 'point', 'rect', 'round', 'arch'];
   const doorX = (R() > 0.5 ? 1 : -1) * (0.25 + R() * 0.4);
   const stepTop = 0.45;
 
@@ -66,7 +72,8 @@ export function buildHouse(app, h, B) {
   h.floors.forEach((f, i) => {
     const M = H.clone().mul(trs(f.x, f.y + (i === 0 ? 0.4 : 0), f.z, f.rx, f.yaw, f.rz));
     const fh = f.h - (i === 0 ? 0.4 : 0);
-    B.get('wood').add(box(f.w, fh, f.d, WOOD_UV), M.clone().mul(trs(0, fh / 2, 0)), wall);
+    const fwall = S.floorColors ? pick(S.walls, wall, h.id * 3 + i * 5) : wall; // (La Boca: every floor its own colour)
+    B.get(wallKey).add(box(f.w, fh, f.d, WOOD_UV), M.clone().mul(trs(0, fh / 2, 0)), fwall);
     for (const [cx, cz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
       B.get('plain').add(box(0.18, fh, 0.18), M.clone().mul(trs(cx * f.w / 2, fh / 2, cz * f.d / 2)), trim);
     }
@@ -84,32 +91,36 @@ export function buildHouse(app, h, B) {
       for (let s = 0; s < slots; s++) {
         let cx = (s + 0.5) / slots * face.w - face.w / 2 + (R() - 0.5) * 0.3;
         if (i === 0 && fi === 0) cx = -doorX * 1.0 - Math.sign(doorX) * 0.9; // beside the door
-        const kind = ['rect', 'arch', 'point', 'rect', 'round', 'arch'][Math.floor(R() * 6)];
+        const kind = kinds[Math.floor(R() * 6) % kinds.length];
         const ww = kind === 'round' ? 0.8 + R() * 0.3 : 0.55 + R() * 0.4, hh = kind === 'round' ? ww : 0.9 + R() * 0.65;
         const cy = i === 0 ? fh * 0.6 : fh * (0.48 + R() * 0.1);
         addWindow(B, R, face.M, cx, cy, ww, hh, {
-          kind, lit: R() < 0.72, roll: (R() - 0.5) * 14, trim,
-          shutters: kind !== 'round' && R() < 0.35 ? (R() > 0.5 ? PAL.rose : dark(trim, 0.7)) : null,
+          kind, lit: R() < 0.72, roll: (R() - 0.5) * 14, trim, color: winColor,
+          shutters: kind !== 'round' && R() < (S.shutters ? 0.7 : 0.35) ? (S.shutters ?? (R() > 0.5 ? PAL.rose : dark(trim, 0.7))) : null,
         });
       }
     });
+    floorFinery(B, S, M, f, fh, i, fwall, trim, R);
     top = { M, f, fh };
   });
 
   // Roof on the top floor: a crooked spire or a steep sagging gable facing the street.
   const { M: TM, f: tf, fh: tfh } = top;
   const roofM = TM.clone().mul(trs(0, tfh + 0.08, 0));
-  if (h.roof.type === 'spire') {
-    B.get('shingle').add(spireRoof(tf.w + 0.7, tf.d + 0.7, h.roof.h, h.roof.ax, h.roof.az), roofM, roofC);
-    if (h.roof.curl) curlTip(B, roofM, [h.roof.ax, h.roof.h - 0.05, h.roof.az], h.roof.ax > 0 ? 1 : -1, dark(roofC, 1.2), R);
-    else B.get('glossy').add(tube([[h.roof.ax, h.roof.h - 0.1, h.roof.az], [h.roof.ax, h.roof.h + 0.9, h.roof.az]], 0.035, 6), roofM, PAL.iron); // finial
+  const roofH = h.roof.h * (S.tall ?? 1);
+  if (hoodRoof(B, S, roofM, tf, h, roofC, trim, R, addWindow)) { /* the neighbourhood's own roof */ }
+  else if (h.roof.type === 'spire' || S.roof === 'spire') {
+    B.get('shingle').add(spireRoof(tf.w + 0.7, tf.d + 0.7, roofH, h.roof.ax, h.roof.az), roofM, roofC);
+    if (h.roof.curl) curlTip(B, roofM, [h.roof.ax, roofH - 0.05, h.roof.az], h.roof.ax > 0 ? 1 : -1, dark(roofC, 1.2), R);
+    else B.get('glossy').add(tube([[h.roof.ax, roofH - 0.1, h.roof.az], [h.roof.ax, roofH + 0.9, h.roof.az]], 0.035, 6), roofM, PAL.iron); // finial
   } else {
     const gM = roofM.clone().mul(trs(0, 0, 0, 0, -90, 0));
     B.get('shingle').add(gableRoof(tf.d + 0.8, tf.w + 0.6, h.roof.h, 0.45), gM, roofC);
-    addWindow(B, R, roofM.clone().mul(trs(0, 0, (tf.d + 0.8) / 2 - 0.02)), 0, h.roof.h * 0.36, 0.95, 0.95, { kind: 'round', lit: true, roll: 0, trim });
+    addWindow(B, R, roofM.clone().mul(trs(0, 0, (tf.d + 0.8) / 2 - 0.02)), 0, h.roof.h * 0.36, 0.95, 0.95, { kind: 'round', lit: true, roll: 0, trim, color: winColor });
   }
-  // A bent chimney leaning out of the roof.
-  {
+  topFinery(B, S, TM, tf, tfh, R);
+  // A bent chimney leaning out of the roof (not on a dome on the Moon).
+  if (S.roof !== 'dome') {
     const cx = (R() > 0.5 ? 1 : -1) * tf.w * 0.28, cz = -tf.d * 0.22, lean = (R() - 0.5) * 1.6;
     const pts = [];
     for (let k = 0; k <= 5; k++) { const t = k / 5; pts.push([cx + lean * t * t, tfh + 0.3 + t * (h.roof.h * 0.55 + 1.6), cz + Math.sin(t * 2.5) * 0.3]); }
@@ -121,20 +132,35 @@ export function buildHouse(app, h, B) {
   if (h.tower) {
     const t = h.tower, tx = t.side * (h.w / 2 + 0.2), tz = h.d / 2 - 0.6;
     const TMt = H.clone().mul(trs(tx, 0, tz));
-    B.get('wood').add(cylinder(t.r, t.r * 0.92, t.h, 14, { uvScale: WOOD_UV }), TMt, dark(wall, 0.85));
+    B.get(wallKey).add(cylinder(t.r, t.r * 0.92, t.h, 14, { uvScale: WOOD_UV }), TMt, dark(wall, 0.85));
     B.get('plain').add(cylinder(t.r + 0.14, t.r + 0.14, 0.22, 14), TMt.clone().mul(trs(0, t.h - 0.1, 0)), dark(roofC, 1.4));
     for (let k = 0; k < 3; k++) {
       const y = 1.6 + k * (t.h - 2.2) / 2.5;
       if (y > t.h - 0.8) break;
       const a = (R() - 0.5) * 50;
       const fM = TMt.clone().mul(trs(0, 0, 0, 0, a, 0)).mul(trs(0, 0, t.r * 0.94));
-      addWindow(B, R, fM, 0, y, 0.5, 0.8, { kind: k % 2 ? 'round' : 'point', lit: R() < 0.8, roll: (R() - 0.5) * 10, trim });
+      addWindow(B, R, fM, 0, y, 0.5, 0.8, { kind: S.portholes || k % 2 ? 'round' : 'point', lit: R() < 0.8, roll: (R() - 0.5) * 10, trim, color: winColor });
     }
-    const hatH = 3.2 + R() * 1.4, brim = t.r + 0.35;
-    const prof = [[brim, 0], [brim * 0.82, 0.25]];
-    for (let k = 1; k <= 8; k++) { const s = k / 8; prof.push([brim * 0.82 * Math.pow(1 - s, 1.6) + 0.02, 0.25 + s * hatH]); }
-    B.get('shingle').add(lathe(prof, 14, { uvScale: SHINGLE_UV }), TMt.clone().mul(trs(0, t.h, 0)), roofC);
-    curlTip(B, TMt, [0, t.h + hatH + 0.2, 0], -t.side, dark(roofC, 1.2), R);
+    const TT = TMt.clone().mul(trs(0, t.h, 0));
+    if (S.towerRoof === 'campanile') { // a little bell tower: an open belfry and a low terracotta pyramid
+      for (let k = 0; k < 4; k++) B.get('plain').add(box(0.14, 1.1, 0.14), TT.clone().mul(trs(Math.cos(k * Math.PI / 2 + 0.78) * t.r * 0.8, 0.55, Math.sin(k * Math.PI / 2 + 0.78) * t.r * 0.8)), trim);
+      B.get('emit').add(lathe([[0, 0], [0.18, 0.04], [0.24, 0.36], [0, 0.48]], 8), TT.clone().mul(trs(0, 0.3, 0)), [0.9, 0.7, 0.35]);
+      B.get('shingle').add(spireRoof(t.r * 2.1, t.r * 2.1, 1.4), TT.clone().mul(trs(0, 1.1, 0, 0, 45, 0)), roofC);
+    } else if (S.towerRoof === 'dome') {
+      const prof = [];
+      for (let k = 0; k <= 8; k++) { const a = (k / 8) * Math.PI / 2; prof.push([Math.cos(a) * (t.r + 0.1), Math.sin(a) * (t.r + 0.1) * (S.style === 'moon' ? 1 : 1.3)]); }
+      B.get(S.style === 'moon' ? 'glossy' : 'shingle').add(lathe(prof, 14), TT, roofC);
+      B.get('glossy').add(tube([[0, t.r * 1.2, 0], [0, t.r * 1.2 + 0.9, 0]], 0.04, 4), TT, S.style === 'moon' ? [0.75, 0.76, 0.8] : PAL.gold);
+    } else if (S.towerRoof === 'flat') {
+      B.get('stone').add(cylinder(t.r + 0.18, t.r + 0.18, 0.4, 14), TT, trim);
+    } else {
+      const hatH = (3.2 + R() * 1.4) * (S.tall ?? 1), brim = t.r + 0.35;
+      const prof = [[brim, 0], [brim * 0.82, 0.25]];
+      for (let k = 1; k <= 8; k++) { const s = k / 8; prof.push([brim * 0.82 * Math.pow(1 - s, 1.6) + 0.02, 0.25 + s * hatH]); }
+      B.get('shingle').add(lathe(prof, 14, { uvScale: SHINGLE_UV }), TT, roofC);
+      if (S.snow) B.get('snow').add(lathe(prof.slice(0, 6).map(([r2, y2]) => [r2 + 0.06, y2 + 0.08]), 14), TT, [0.92, 0.95, 1]);
+      curlTip(B, TMt, [0, t.h + hatH + 0.2, 0], -t.side, dark(roofC, 1.2), R);
+    }
   }
 
   // Porch: lopsided steps, a crooked little canopy on two posts, the door frame and the warm hall behind.
@@ -146,7 +172,8 @@ export function buildHouse(app, h, B) {
   const dw = h.door.w, dh = Math.min(h.door.h, h.floors[0].h - stepTop - 0.3);
   const DM = H.clone().mul(trs(doorX, stepTop, front));
   B.get('plain').add(extrude(archOutline(dw + 0.42, dh + 0.24, { point: 0.25 }), 0.16), DM.clone().mul(trs(0, -0.02, 0.02)), dark(trim, 0.8));
-  B.get('glow').add(flat(archOutline(dw, dh, { point: 0.25 })), DM.clone().mul(trs(0, 0, 0.105)), [1, 0.62, 0.3]); // lit hall seen through the open door
+  B.get('glow').add(flat(archOutline(dw, dh, { point: 0.25 })), DM.clone().mul(trs(0, 0, 0.105)), winColor ?? [1, 0.62, 0.3]); // lit hall seen through the open door
+  porchFinery(B, S, H, doorX, dw, dh, stepTop, front, R);
   const canopy = H.clone().mul(trs(doorX, stepTop + dh + 0.35, front + 0.55, 18, 0, (R() - 0.5) * 8));
   B.get('shingle').add(box(dw + 1.1, 0.12, 1.3, SHINGLE_UV), canopy, roofC);
   for (const s of [-1, 1]) {
@@ -162,7 +189,7 @@ export function buildHouse(app, h, B) {
   root.addChild(hinge);
   const doorMat = makeDoorMaterial(app);
   const panel = new Geo();
-  panel.add(extrude(archOutline(dw, dh, { point: 0.25 }), 0.09), trs(dw / 2, 0, 0), h.doorColor);
+  panel.add(extrude(archOutline(dw, dh, { point: 0.25 }), 0.09), trs(dw / 2, 0, 0), doorColor);
   for (const y of [0.55, dh * 0.62]) panel.add(box(dw * 0.96, 0.08, 0.11), trs(dw / 2, y, 0), [0.12, 0.1, 0.1]); // iron straps
   panel.add(tube(circleOutline(0.11, 10).concat([[0.11, 0]]).map(([x, y]) => [dw * 0.5 + x, dh * 0.5 + y, 0.09]), 0.022, 5, { caps: false }), null, PAL.gold); // knocker ring
   panel.add(cylinder(0.05, 0.05, 0.08, 8), trs(dw * 0.85, dh * 0.42, 0.04, 90, 0, 0), PAL.gold); // knob
