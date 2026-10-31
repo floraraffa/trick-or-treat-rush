@@ -18,7 +18,8 @@
     "creatures": "node tools/make-creatures.mjs",
     "build:specs": "vite build --config vite.specs.config.js",
     "lens": "node tools/lens-studio/export.mjs",
-    "quest": "node tools/quest/export.mjs"
+    "quest": "node tools/quest/export.mjs",
+    "quest:bundle": "node tools/quest/bundle.mjs"
   },
   "dependencies": {
     "@snap/web-lens-api": "^0.1.2",

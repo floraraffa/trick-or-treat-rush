@@ -13,7 +13,10 @@
 //   modeltown     the model town in the attic: black-and-white stripes, neon signs, giant rafters, striped worms
 //   northpole     the North Pole: snow, chalets with icicles and lights, firs, candy canes, the northern lights
 //   transylvania  Transylvania: stone, red windows, very tall spires, torches, a castle keep, a blood-red sky
-//   moon          the Moon: domes and portholes, antennas, craters, a rocket, the Earth in a black sky
+//   moon          the Moon: domes and portholes, antennas, craters, a rocket, the Earth in a black sky (night 8 until the
+//                 cyberpunk city took its place; kept for the Specs WebXR picker)
+//   cyberpunk     a neon megacity: crooked houses stacked into towers, neon and holo signs, skyscrapers all round,
+//                 a mega-spire with a clock, and flying traffic (cars, taxis, police) in lanes in the air (traffic.js)
 const C = (r, g, b) => [r, g, b];
 
 const CLASSIC = {
@@ -171,14 +174,35 @@ export const THEMES = {
     },
     trees: 'rock', woods: 'rock', lamp: 'mast', landmark: 'rocket', skyline: 'craters',
   }),
+  cyberpunk: theme('cyberpunk', {
+    sky: { horizon: C(0.5, 0.15, 0.42), mid: C(0.14, 0.06, 0.22), zenith: C(0.02, 0.02, 0.07), stars: 80, moonSize: 16, halo: C(0.85, 0.35, 0.8) },
+    fog: {
+      calm: { color: C(0.14, 0.06, 0.19), density: 0.009, ground: 0.03, falloff: 0.5, mist: C(0.3, 0.22, 0.46) },
+      mad: { color: C(0.24, 0.05, 0.12), ground: 0.05, mist: C(0.5, 0.2, 0.32) },
+    },
+    ambient: [C(0.25, 0.19, 0.34), C(0.32, 0.12, 0.22)],
+    moonLight: [C(0.76, 0.64, 1), C(1, 0.35, 0.42)],
+    lampColor: C(0.35, 0.9, 1),
+    ground: { key: 'asphalt', a: C(0.2, 0.2, 0.25), b: C(0.26, 0.25, 0.31), patch: C(0.26, 0.18, 0.32) },
+    streets: { key: 'asphalt', kerb: C(0.1, 0.1, 0.13), road: C(0.24, 0.24, 0.29), radial: C(0.25, 0.25, 0.3), path: C(0.3, 0.28, 0.35), neon: [C(0.2, 0.9, 1), C(1, 0.25, 0.75)] },
+    plaza: { key: 'glossy', color: C(0.2, 0.2, 0.26), edge: C(0.1, 0.1, 0.14), neon: C(1, 0.25, 0.75) },
+    house: {
+      style: 'cyberpunk', wallKey: 'masonry', roof: 'flat', towerRoof: 'flat', extraFloors: 3, neon: true, billboards: true, antennas: true,
+      neonColors: [C(0.2, 0.9, 1), C(1, 0.25, 0.75), C(1, 0.8, 0.2), C(0.5, 1, 0.4)],
+      walls: [C(0.34, 0.33, 0.38), C(0.42, 0.37, 0.35), C(0.3, 0.32, 0.38), C(0.46, 0.42, 0.4), C(0.36, 0.33, 0.4)],
+      trims: [C(0.12, 0.12, 0.15)], roofs: [C(0.18, 0.18, 0.22)], doors: [C(0.85, 0.2, 0.6), C(0.2, 0.75, 0.9), C(0.95, 0.7, 0.15)],
+      windows: [C(0.45, 0.9, 1), C(1, 0.45, 0.85), C(1, 0.85, 0.5), C(0.7, 0.6, 1)],
+    },
+    trees: 'holo', woods: 'tower', lamp: 'neonpost', landmark: 'spire', skyline: 'megacity', traffic: true,
+  }),
 };
 
 /**
  * The Spectacles Lens: its neighbourhood models carry no images (their budget); their meshes wear the base
  * village's textured materials, matched by the key in the mesh's name, these keys through the material they take.
  */
-export const HOOD_MATERIAL = { plainGround: 'plain', snowfield: 'plain', snow: 'plain', ice: 'glossy', asphalt: 'dirt', regolith: 'rock', neon: 'emit' };
+export const HOOD_MATERIAL = { plainGround: 'plain', snowfield: 'plain', snow: 'plain', ice: 'glossy', asphalt: 'dirt', regolith: 'rock', neon: 'emit', tower: 'plain' };
 
 /** The neighbourhood of night n (0-based) of the campaign, in its order; the classic village without a night. */
-export const NIGHT_THEMES = ['italy', 'france', 'newyork', 'buenosaires', 'modeltown', 'northpole', 'transylvania', 'moon'];
+export const NIGHT_THEMES = ['italy', 'france', 'newyork', 'buenosaires', 'modeltown', 'northpole', 'transylvania', 'cyberpunk'];
 export const themeOfNight = (n) => (Number.isInteger(n) && NIGHT_THEMES[n]) || 'classic';

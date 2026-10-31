@@ -16,7 +16,7 @@ import '@fontsource/mystery-quest/latin-400.css';
 import { Application, Color, Entity, FILLMODE_FILL_WINDOW, Mesh, MeshInstance, Quat, RESOLUTION_AUTO, StandardMaterial, TONEMAP_NEUTRAL, TorusGeometry, Vec3, XRSPACE_LOCAL, XRTYPE_AR } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
-import { NIGHT_THEMES, THEMES } from '../world/themes.js';
+import { THEMES } from '../world/themes.js';
 import { DOOR_RANGE, HOUSES } from '../world/layout.js';
 import { createFx } from '../fx.js';
 import { createAvatar } from '../actors/avatar.js';
@@ -49,7 +49,7 @@ try { save = { ...save, ...JSON.parse(localStorage.getItem(SAVE_KEY) ?? '{}') };
 const store = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* keep playing */ } };
 if (!LEVELS.includes(save.level)) save.level = DEFAULT_LEVEL;
 if (!THEMES[save.hood]) save.hood = 'classic';
-const HOODS = ['classic', ...NIGHT_THEMES]; // (the glasses' browser plays the levels: the neighbourhood is picked on the page)
+const HOODS = Object.keys(THEMES); // (the glasses' browser plays the levels: the neighbourhood is picked on the page; the Moon too)
 setLang(detectLang(params.get('lang') ?? save.lang));
 
 // --- engine ---------------------------------------------------------------------------------

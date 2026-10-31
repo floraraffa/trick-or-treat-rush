@@ -13,7 +13,7 @@ import { buildHouse } from './houses.js';
 import { addBush, addCemetery, addClockTower, addFence, addFlowers, addLamp, addMushrooms, addPumpkin, addTree } from './props.js';
 import { addSilhouettes, createSky } from './sky.js';
 import { THEMES } from './themes.js';
-import { addCraters, addHoodExtras, addHoodLamp, addHoodSkyline, addHoodTree, addLandmark, createSnowfall } from './hoods.js';
+import { addCraters, addHoodExtras, addHoodLamp, addHoodSkyline, addHoodTree, addLandmark, createSnowfall, createTraffic } from './hoods.js';
 import { ribbon } from './shapes.js';
 import { BUSHES, FENCES, FLOWERS, HOUSES, LAMPS, MAP_R, MUSHROOMS, PLAZA_R, PUMPKINS, RING, RING_W, STREETS, TOMBS, TREES, WOODS } from './layout.js';
 
@@ -69,6 +69,8 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
     asphalt: texturedMaterial(tex.dirt, { gloss: 0.3 }),
     regolith: texturedMaterial(tex.rock, { gloss: 0.05, noTile: true }),
     neon: texturedMaterial(tex.plain, { emissive: new Color(1, 1, 1) }),
+    tower: texturedMaterial(tex.plain, { gloss: 0.55 }), // (the cyberpunk city's skyscrapers: no shadows, they'd darken the village)
+    paint: texturedMaterial(tex.plain, { gloss: 0.85, metal: 0.25, emissive: new Color(0.32, 0.32, 0.32) }), // (the flying cars' bodies: their colour reads at night)
   };
   materials.glow.emissiveIntensity = 1.6; materials.glow.update();
   materials.emit.emissiveIntensity = 2; materials.emit.update();
@@ -107,6 +109,10 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
     const a = RING[k], b = RING[(k + 1) % RING.length];
     B.get('plain').add(ribbon([a, b], 0.14, { y: 0.04 }), null, ST.line);
   }
+  if (ST.neon) for (const [k, side] of [[0, -1], [1, 1]]) { // the cyberpunk city: neon along both kerbs of the ring
+    const edge = RING.map(([x, z]) => { const r = Math.hypot(x, z), k2 = (r + side * (RING_W / 2 + 0.15)) / r; return [x * k2, z * k2]; });
+    B.get('neon').add(ribbon(edge, 0.12, { closed: true, y: 0.045 }), null, ST.neon[k]);
+  }
   if (ST.stripes) for (let k = 0; k < RING.length; k += 2) { // the model town: a black-and-white striped ring road
     const a = RING[k], b = RING[(k + 1) % RING.length];
     B.get('plain').add(ribbon([a, b], RING_W, { y: 0.032 }), null, [0.08, 0.08, 0.08]);
@@ -125,6 +131,7 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
     }
     const edge = Array.from({ length: 64 }, (_, k) => [Math.cos((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35), Math.sin((k / 64) * Math.PI * 2) * (PLAZA_R + 0.35)]);
     B.get(ST.key).add(ribbon(edge, 0.8, { closed: true, y: 0.05, uvScale: 0.5 }), null, PZ.edge);
+    if (PZ.neon) B.get('neon').add(ribbon(edge.map(([x, z]) => [x * (PLAZA_R + 0.8) / (PLAZA_R + 0.35), z * (PLAZA_R + 0.8) / (PLAZA_R + 0.35)]), 0.14, { closed: true, y: 0.055 }), null, PZ.neon);
   }
 
   // Houses.
@@ -165,7 +172,7 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
   } else statics = B.build(app.graphicsDevice, 'village-static');
   for (const r of statics.findComponents('render')) {
     const key = r.entity.name.replace(/^village-(static|ground|props|dress)-/, '');
-    r.castShadows = !['ground', 'cobble', 'dirt', 'silhouette', 'stone', 'glow', 'emit', 'woods'].includes(key);
+    r.castShadows = !['ground', 'cobble', 'dirt', 'silhouette', 'stone', 'glow', 'emit', 'woods', 'tower', 'neon'].includes(key);
     r.receiveShadows = key !== 'silhouette';
   }
   root.addChild(statics);
@@ -204,6 +211,8 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
   root.addChild(sky.root);
   const snowfall = T.snowfall ? createSnowfall(app, tex.glow) : null;
   if (snowfall) root.addChild(snowfall.root);
+  const traffic = T.traffic ? createTraffic(app, materials, { lite: lowFx }) : null; // (the cyberpunk city's flying cars)
+  if (traffic) root.addChild(traffic.root);
 
   // Every lamp glows into the mist: a warm halo turned to the camera.
   const haloMat = new StandardMaterial();
@@ -276,6 +285,7 @@ export function createVillage(app, tex, { lowFx = false, theme = 'classic', spli
       sky.update(camera, dt);
       const c = camera.getPosition();
       snowfall?.update(dt, c);
+      traffic?.update(time);
       const m = madness;
       heightFog.update(time, {
         ground: FOG_CALM.ground + (FOG_MAD.ground - FOG_CALM.ground) * m,

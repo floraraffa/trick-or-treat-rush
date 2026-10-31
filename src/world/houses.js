@@ -61,6 +61,7 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
   const pick = (list, fallback, k = h.id) => (list ? list[k % list.length] : fallback);
   const wall = pick(S.walls, h.wall), trim = pick(S.trims, h.trim), roofC = pick(S.roofs, h.roofColor), doorColor = pick(S.doors, h.doorColor);
   const wallKey = S.wallKey ?? 'wood', winColor = S.windows ?? null;
+  const winOf = () => (Array.isArray(winColor?.[0]) ? winColor[Math.floor(R() * winColor.length)] : winColor); // (one colour, or a choice of them)
   const kinds = S.portholes ? ['round'] : ['rect', 'arch', 'point', 'rect', 'round', 'arch'];
   const doorX = (R() > 0.5 ? 1 : -1) * (0.25 + R() * 0.4);
   const stepTop = 0.45;
@@ -69,7 +70,17 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
   B.get('masonry').add(box(h.w + 0.3, 0.5, h.d + 0.3, 0.6), H.clone().mul(trs(0, 0.2, 0)), [0.42, 0.38, 0.46]);
 
   let top = null;
-  h.floors.forEach((f, i) => {
+  // A neighbourhood may stack more floors on the plan's (the cyberpunk city's towers): each a little narrower,
+  // shifted and turned, crooked as the rest (the footprint, so the collider, stays the plan's).
+  const floors = [...h.floors];
+  if (S.extraFloors) {
+    const RF = rng(h.seed + 101);
+    for (let k = 0; k < S.extraFloors + (h.id % 2) - (DETAIL.k < 1 ? 1 : 0); k++) { // (one fewer on the glasses: their 25 MB)
+      const p = floors[floors.length - 1], s = 0.9 - RF() * 0.06;
+      floors.push({ ...p, w: p.w * s, d: p.d * s, h: 2.7 + RF() * 0.5, y: p.y + p.h, x: p.x + (RF() - 0.5) * 0.5, z: p.z + (RF() - 0.5) * 0.4, yaw: p.yaw + (RF() - 0.5) * 8, rx: (RF() - 0.5) * 2.5, rz: (RF() - 0.5) * 3 });
+    }
+  }
+  floors.forEach((f, i) => {
     const M = H.clone().mul(trs(f.x, f.y + (i === 0 ? 0.4 : 0), f.z, f.rx, f.yaw, f.rz));
     const fh = f.h - (i === 0 ? 0.4 : 0);
     const fwall = S.floorColors ? pick(S.walls, wall, h.id * 3 + i * 5) : wall; // (La Boca: every floor its own colour)
@@ -95,7 +106,7 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
         const ww = kind === 'round' ? 0.8 + R() * 0.3 : 0.55 + R() * 0.4, hh = kind === 'round' ? ww : 0.9 + R() * 0.65;
         const cy = i === 0 ? fh * 0.6 : fh * (0.48 + R() * 0.1);
         addWindow(B, R, face.M, cx, cy, ww, hh, {
-          kind, lit: R() < 0.72, roll: (R() - 0.5) * 14, trim, color: winColor,
+          kind, lit: R() < 0.72, roll: (R() - 0.5) * 14, trim, color: winOf(),
           shutters: kind !== 'round' && R() < (S.shutters ? 0.7 : 0.35) ? (S.shutters ?? (R() > 0.5 ? PAL.rose : dark(trim, 0.7))) : null,
         });
       }
@@ -116,7 +127,7 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
   } else {
     const gM = roofM.clone().mul(trs(0, 0, 0, 0, -90, 0));
     B.get('shingle').add(gableRoof(tf.d + 0.8, tf.w + 0.6, h.roof.h, 0.45), gM, roofC);
-    addWindow(B, R, roofM.clone().mul(trs(0, 0, (tf.d + 0.8) / 2 - 0.02)), 0, h.roof.h * 0.36, 0.95, 0.95, { kind: 'round', lit: true, roll: 0, trim, color: winColor });
+    addWindow(B, R, roofM.clone().mul(trs(0, 0, (tf.d + 0.8) / 2 - 0.02)), 0, h.roof.h * 0.36, 0.95, 0.95, { kind: 'round', lit: true, roll: 0, trim, color: winOf() });
   }
   topFinery(B, S, TM, tf, tfh, R);
   // A bent chimney leaning out of the roof (not on a dome on the Moon).
@@ -139,7 +150,7 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
       if (y > t.h - 0.8) break;
       const a = (R() - 0.5) * 50;
       const fM = TMt.clone().mul(trs(0, 0, 0, 0, a, 0)).mul(trs(0, 0, t.r * 0.94));
-      addWindow(B, R, fM, 0, y, 0.5, 0.8, { kind: S.portholes || k % 2 ? 'round' : 'point', lit: R() < 0.8, roll: (R() - 0.5) * 10, trim, color: winColor });
+      addWindow(B, R, fM, 0, y, 0.5, 0.8, { kind: S.portholes || k % 2 ? 'round' : 'point', lit: R() < 0.8, roll: (R() - 0.5) * 10, trim, color: winOf() });
     }
     const TT = TMt.clone().mul(trs(0, t.h, 0));
     if (S.towerRoof === 'campanile') { // a little bell tower: an open belfry and a low terracotta pyramid
@@ -172,7 +183,7 @@ export function buildHouse(app, h, B, S = { style: 'classic' }) {
   const dw = h.door.w, dh = Math.min(h.door.h, h.floors[0].h - stepTop - 0.3);
   const DM = H.clone().mul(trs(doorX, stepTop, front));
   B.get('plain').add(extrude(archOutline(dw + 0.42, dh + 0.24, { point: 0.25 }), 0.16), DM.clone().mul(trs(0, -0.02, 0.02)), dark(trim, 0.8));
-  B.get('glow').add(flat(archOutline(dw, dh, { point: 0.25 })), DM.clone().mul(trs(0, 0, 0.105)), winColor ?? [1, 0.62, 0.3]); // lit hall seen through the open door
+  B.get('glow').add(flat(archOutline(dw, dh, { point: 0.25 })), DM.clone().mul(trs(0, 0, 0.105)), winOf() ?? [1, 0.62, 0.3]); // lit hall seen through the open door
   porchFinery(B, S, H, doorX, dw, dh, stepTop, front, R);
   const canopy = H.clone().mul(trs(doorX, stepTop + dh + 0.35, front + 0.55, 18, 0, (R() - 0.5) * 8));
   B.get('shingle').add(box(dw + 1.1, 0.12, 1.3, SHINGLE_UV), canopy, roofC);

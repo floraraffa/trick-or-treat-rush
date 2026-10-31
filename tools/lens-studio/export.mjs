@@ -31,6 +31,7 @@ const MODULES = {
   authority: 'src/game/authority.js', view: 'src/game/view.js', player: 'src/actors/player.js', i18n: 'src/ui/i18n.js',
   lensUi: 'src/dev/lens-ui.js', // (the Lens's panels: the same boxes the export draws)
   themes: 'src/world/themes.js', // (the nights' neighbourhoods: which one each night, their colours, the Lens's material map)
+  traffic: 'src/world/traffic.js', // (the cyberpunk city's flying cars: lanes, fleet, poses)
 };
 const byFile = Object.fromEntries(Object.entries(MODULES).map(([name, file]) => [file.split('/').pop(), name]));
 function convert(name, file) {

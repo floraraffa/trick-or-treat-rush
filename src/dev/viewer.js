@@ -3,6 +3,7 @@
 import { Application, CameraFrame, Color, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO, TONEMAP_NEUTRAL } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
+import { buildVehicle } from '../world/hoods.js';
 import { DETAIL, Geo } from '../geo.js';
 
 const canvas = document.getElementById('app');
@@ -35,6 +36,15 @@ const m = Number(new URLSearchParams(location.search).get('madness') ?? 0);
 village.setMadness(m);
 app.on('update', (dt) => village.update(dt, camera));
 window.__build = (opts) => createVillage(app, tex, opts); // (dev: build another village, e.g. to measure it)
+// ?vehicles: the cyberpunk city's flying cars side by side in front of the camera (dev: to look at them)
+if (new URLSearchParams(location.search).has('vehicles')) {
+  [['car', 0], ['car', 1], ['car', 2], ['taxi'], ['police']].forEach(([kind, paint], i) => {
+    const e = buildVehicle(app, village.materials, kind, paint ?? 0);
+    e.setLocalPosition(-8 + i * 4, 4, 14);
+    e.setLocalEulerAngles(0, 35, 0);
+    app.root.addChild(e);
+  });
+}
 window.__Geo = Geo; window.__DETAIL = DETAIL;
 app.start();
 if (!new URLSearchParams(location.search).has("avatars")) tex.ready.then(() => setTimeout(() => { window.__ready = true; }, 1500));

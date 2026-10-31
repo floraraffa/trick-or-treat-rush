@@ -56,8 +56,15 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   mist colour low down; tf_* uniforms set each frame by `village.update`), plus lamp halos. No mist sheets or sprites.
 - Neighbourhoods: each night of the campaign is played in its own neighbourhood, Burton-style crooked houses dressed
   as `NIGHT_THEMES` (`src/world/themes.js`: italy, france, newyork, buenosaires, modeltown (the striped, neon-signed
-  model town in an attic; the trademark name is never used), northpole (aurora, snowfall), transylvania, moon (the
-  Earth in the sky)); `themeOfNight(n)` (a room plays the host's night, so its neighbourhood); classic for the levels' rounds. A theme is data merged over `CLASSIC` (sky,
+  model town in an attic; the trademark name is never used), northpole (aurora, snowfall), transylvania, cyberpunk
+  (night 8 since the team asked: crooked houses stacked into towers (`extraFloors`), neon trims and hung lit signs
+  with dark glyph strokes (`billboards`), rooftop billboards and antennas, `tower` skyscrapers as its woods (material
+  `tower`: no shadows), a `spire` landmark with a clock, holo trees, neon posts, neon kerbs and plaza ring, floating
+  screens, a `megacity` skyline, and flying traffic: `src/world/traffic.js` (pure data + `vehiclePose(v, t)`, LANES
+  in the air clear of the houses, a FLEET of cars, taxis and police cars, `policeRed` flashing; exported to the Lens
+  as Generated/traffic.ts) drawn by hoods.js `vehicleParts` / `buildVehicle` / `createTraffic` (material `paint`: a
+  little emissive so the colours read at night; 2 meshes a car, `FLEET_LITE` with lowFx); no film's name is used)
+  — the Moon (`moon`, the Earth in the sky) stays defined for the Specs WebXR picker; `themeOfNight(n)` (a room plays the host's night, so its neighbourhood); classic for the levels' rounds. A theme is data merged over `CLASSIC` (sky,
   fog calm/mad, ambient, moonlight, lamp colour, ground/streets/plaza materials and colours, `house` style flags,
   trees, woods, lamp, landmark, skyline); `src/world/hoods.js` builds the pieces (trees, lamps, landmarks with the
   clock where it has hands, skylines, roofs, balconies, extras, craters, snowfall). The plan (layout.js) never
@@ -66,8 +73,9 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   night's, behind the panel) and at a round's start; `hoods.<id>` names in i18n, shown on the nights screen, the
   lobby and the 3-2-1. Every hood is about as heavy as the classic village or lighter (triangles: moon 67k … transylvania
   131k, classic 129k; mesh instances 48–73, classic 63) and
-  builds in ~0.2 s in headless Chromium. The Specs WebXR version (levels, no nights) has a neighbourhood picker on
-  its 2D page (`save.hood`, `hoods.classic` named too); the Spectacles Lens has them per night (below, round 9);
+  builds in ~0.2 s in headless Chromium (the cyberpunk city 136k triangles, 99 mesh instances with its 15 cars). The
+  Specs WebXR version (levels, no nights) has a neighbourhood picker on its 2D page listing every theme (`save.hood`,
+  `hoods.classic` named too); the Spectacles Lens has them per night (below, round 9);
   the Quest version is the team's own now (not touched from here).
   For the Lens export only: `createVillage(…, { split: true })` builds three groups (`parts`: ground, props, dress)
   instead of one merged set, and geo.js `DETAIL.k` < 1 (lens-export.js sets 0.5 while it builds a neighbourhood)
@@ -195,8 +203,15 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   (`skyFor`): fx.glb `moon-earth` (the Moon), `moon-bulb` + no stars (the model town), `moon-mad` ×1.5 calm
   (Transylvania), `northern-lights` curtains (the North Pole); the classic moon turns red in the madness, the others
   stay. The panel's name line is "Night n · <hood>", the skill moves to the start of its line; the 3-2-1 says the
-  hood. Weight: the Lens's files ~23.2 MB (was 18.6; not counting the template's unused Echopark.hdr), the base
-  textures 1536 px (were 2048). `Scripts/Generated/themes.ts` is converted from themes.js (export.mjs MODULES).
+  hood. Weight: the Lens's files ~23.8 MB (was 18.6; not counting the template's unused Echopark.hdr), the base
+  textures 1536 px (were 2048). Night 8 is the cyberpunk city (`hood-cyberpunk.glb`, no hood-moon): its model also
+  holds a `fleet` (vehicle-car-0..2, vehicle-taxi, vehicle-police with police-red / police-blue), hidden; `trafficFor`
+  copies one per FLEET_LITE entry (8 cars) into the board's `Traffic` holder and `moveTraffic` poses them every frame
+  from Generated/traffic.ts. For the glasses the city loses its glyph strokes and one stacked floor (DETAIL < 1), the
+  cars' paint has no glow of its own. Glow colours: glTF tints only the base colour by vertex colour, so lens-export
+  `splitByColour` / `glowColours` split each neon / emit mesh by its colours (3 shades a channel for the Lens, 6 for
+  the Quest bundle, which also splits the windows' `glow` keeping its panes), each piece (`<name>-<k>`) with its own
+  emissive material; dressHoods leaves those alone (no shelf key matches). `Scripts/Generated/themes.ts` is converted from themes.js (export.mjs MODULES).
   Round 8: the campaign. PLAY opens the `nights` panel (8 `night` tiles: number written over, `lock` look and
   padlock until the night before has been played (however it went), 3 `star` plates each; the picked night's skill, `goal` stars and
   best); the HUD clock counts 1:30 (first 5:00, then shortened); the night's skill is announced after GO and its line is the first hint; boo =
@@ -224,6 +239,14 @@ The team talks in Spanish (and French); code, comments and commits are in Englis
   fixed 3.5 m, not ×the giant's size; Lens: `Avatar.headTop()` from the rig's head joint + HEAD_TOP / HAT_TOP,
   over the head, rising instead of standing back so the eyes still see the head): a giant's stood far off before.
 
+- Quest bundle for the team's own Quest project (`npm run quest:bundle -- <out> [--keep-assets]`,
+  `tools/quest/bundle.mjs` + `LEEME-bundle.md`): three ZIPs. `…-quest-chat.zip` (text only, for another chat:
+  LEEME, Data/*.json (rules, layout, neighbourhoods, traffic, texts), CSharp/ (Rules/: the hand port from the sibling
+  `trick-or-treat-rush-quest` repo + Generated data; Look/: NeighbourhoodsData.cs, TrafficData.cs with glTFast's X
+  flip; Examples/FlyingTraffic.cs), Reference/src (the game's sources), Previews/ (PREVIEWS env)); `…-unity-1-barrios`
+  (Models/QuestVillages: every theme whole and textured, 1024 px, cut to 39 m, lens-export step `questVillages`, +
+  vehicles.glb); `…-unity-2-resto` (ghost, creatures, pickups, fx, ui, costumes, WAVs, voice MP3s, fonts, the moves
+  FBX, + the text). No Bitmoji (Snap's). The C# compiles against Unity 6 (Rules as pure C#).
 - Meta Quest version (Unity 6000.0.66f2+, Meta XR Core 207, Platform 201 (the Avatars SDK 40.0.1's samples don't compile
   with Platform 203+), Avatars SDK 40.0.1 (EOF), OpenXR, glTFast, Built-in pipeline): its own repo
   `trick-or-treat-rush-quest`. `npm run quest -- <that folder> [--rules]` (`tools/quest/export.mjs`): `rules-cs.mjs`

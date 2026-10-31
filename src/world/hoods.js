@@ -4,7 +4,8 @@
 // village plan: a tree stands where the plan's tree is (its collider is the plan's), a landmark within the clock
 // tower's footprint, and a house's finery on its walls.
 import { BLEND_ADDITIVEALPHA, Color, CULLFACE_NONE, Entity, StandardMaterial } from 'playcanvas';
-import { DETAIL, Geo, blob, box, cylinder, trs } from '../geo.js';
+import { Batches, DETAIL, Geo, blob, box, cylinder, trs } from '../geo.js';
+import { FLEET, FLEET_LITE, policeRed, vehiclePose } from './traffic.js';
 import { rng } from '../rng.js';
 import { archOutline, circleOutline, extrude, flat, gableRoof, lathe, spireRoof, tube } from './shapes.js';
 import { CANDY_SPOTS, CEMETERY, HOUSES, MAP_R, PLAZA_R, RING, TOWER_R, ringR } from './layout.js';
@@ -14,6 +15,25 @@ const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const dark = (c, k) => c.map((v) => v * k);
 const IRON = [0.08, 0.07, 0.1], GOLD = [0.78, 0.6, 0.3], WHITE = [0.92, 0.92, 0.9], BLACK = [0.06, 0.06, 0.06];
 const SNOW = [0.92, 0.95, 1];
+const NEON = [[0.2, 0.9, 1], [1, 0.25, 0.75], [1, 0.8, 0.2], [0.5, 1, 0.4]]; // the cyberpunk city's neon
+/** A squashed sphere (a hull, a canopy): `sx` × `sy` × `sz` m, its normals right for the squash. */
+function ellipsoid(sx, sy, sz, segs = 10) {
+  const m = blob(0.5, segs);
+  for (let k = 0; k < m.p.length; k += 3) {
+    m.p[k] *= sx; m.p[k + 1] *= sy; m.p[k + 2] *= sz;
+    const nx = m.n[k] / sx, ny = m.n[k + 1] / sy, nz = m.n[k + 2] / sz, l = Math.hypot(nx, ny, nz) || 1;
+    m.n[k] = nx / l; m.n[k + 1] = ny / l; m.n[k + 2] = nz / l;
+  }
+  return m;
+}
+/** Dark bars on a lit sign, like the strokes of letters (no real words: they read as signs from any language). */
+function glyphs(B, M, w, h, R, n = 4) {
+  if (DETAIL.k < 1) return; // (too small for the table: not on the glasses)
+  for (let k = 0; k < n; k++) {
+    const gy = h * (0.35 - (k / Math.max(1, n - 1)) * 0.7), gw = w * (0.3 + R() * 0.4);
+    B.get('plain').add(box(gw, h * 0.07, 0.02), M.clone().mul(trs((R() - 0.5) * (w - gw) * 0.6, gy, 0)), [0.05, 0.04, 0.08]);
+  }
+}
 
 /** A tube striped in two colours, `bands` long (along its points), into batch `key`. */
 function stripedTube(B, key, pts, r, colors, bands, segs = 6) {
@@ -95,6 +115,32 @@ export function addHoodTree(B, t, style, { detail = 1, key = 'bark' } = {}) {
     }
     return;
   }
+  if (style === 'holo') { // the cyberpunk city: a slim lit pole and a crown of glowing rings, a hologram of a tree
+    const h = t.h * 0.75, C1 = NEON[Math.floor(R() * 2) * 3 % 4], C2 = NEON[0];
+    B.get('glossy').add(cylinder(0.14, 0.08, h * 0.62, 6), trs(t.x, 0, t.z), [0.16, 0.16, 0.2]);
+    B.get('glossy').add(cylinder(0.6, 0.5, 0.35, 8), trs(t.x, 0, t.z), [0.14, 0.14, 0.18]);
+    const rings = detail > 0.5 ? 4 : 2;
+    for (let k = 0; k < rings; k++) {
+      const y = h * (0.58 + k * 0.1), r = 1.5 * Math.sin(((k + 0.7) / (rings + 0.4)) * Math.PI) + 0.25;
+      B.get('neon').add(tube(circleOutline(r, 14).concat([[r, 0]]).map(([x, z]) => [x, 0, z]), 0.04, 4, { caps: false }), trs(t.x, y, t.z, (R() - 0.5) * 16, 0, (R() - 0.5) * 16), k % 2 ? C1 : C2);
+    }
+    B.get('neon').add(blob(0.3, 6), trs(t.x, h * 0.72, t.z), mixc(C2, WHITE, 0.4));
+    return;
+  }
+  if (style === 'tower') { // round the city: dark skyscrapers with strips of lit windows and a red light on top
+    const w = 3.5 + R() * 2.5, h = 16 + R() * R() * 26, c = [0.1, 0.1, 0.13];
+    const M = trs(t.x, 0, t.z, 0, R() * 90, 0);
+    B.get('tower').add(box(w, h, w), M.clone().mul(trs(0, h / 2, 0)), c);
+    if (R() < 0.5) B.get('tower').add(box(w * 0.6, h * 0.25, w * 0.6), M.clone().mul(trs(0, h + h * 0.125, 0)), c); // a setback
+    const top = h * (1 + (R() < 0.5 ? 0.25 : 0));
+    for (let f = 0; f < 4; f++) for (let k = 0; k < (detail > 0.2 ? 5 : 3); k++) { // floors of lit windows, here and there
+      const col = mixc(NEON[(f + k + Math.floor(R() * 4)) % 4], [1, 0.88, 0.65], 0.6), bw = w * (0.35 + R() * 0.45);
+      B.get('glow').add(box(bw, 0.32, 0.04), M.clone().mul(trs(0, 0, 0, 0, f * 90, 0)).mul(trs((R() - 0.5) * (w - bw), 1.5 + R() * (h - 3), w / 2 + 0.03)), col);
+    }
+    if (R() < 0.6) B.get('neon').add(box(w + 0.1, 0.2, w + 0.1), M.clone().mul(trs(0, h * (0.4 + R() * 0.4), 0)), NEON[Math.floor(R() * 4)]);
+    B.get('emit').add(blob(0.25, 5), M.clone().mul(trs(0, top + 0.3, 0)), [1, 0.15, 0.1]);
+    return;
+  }
   if (style === 'rock') { // the Moon: a crooked pinnacle of rock and a few boulders round it
     const h = t.h * 0.55;
     B.get('rock').add(cylinder(0.75, 0.15, h, 6, { uvScale: 0.5 }), trs(t.x, 0, t.z, lean[0] * 6, R() * 360, lean[1] * 6), [0.5, 0.5, 0.52]);
@@ -159,6 +205,14 @@ export function addHoodLamp(B, l, style, light) {
     B.get('emit').add(lathe([[0.22, 0.18], [0.16, 0.36], [0.06, 0.62], [0, 0.72]], 7, { shape: (a) => 1 + 0.3 * Math.sin(5 * a) }), L, [0.9, 0.32, 0.06]);
     B.get('emit').add(lathe([[0.12, 0.18], [0.08, 0.3], [0, 0.46]], 6), L, [1, 0.7, 0.2]); // (its hot heart)
     return at(L, 0.5);
+  }
+  if (style === 'neonpost') { // the cyberpunk city: a dark post with a tube of neon down it and a lit head
+    B.get('glossy').add(box(0.16, 4.3, 0.16), M.clone().mul(trs(0, 2.15, 0)), [0.12, 0.12, 0.16]);
+    B.get('neon').add(box(0.07, 1.9, 0.07), M.clone().mul(trs(0.12, 2.9, 0)), mixc(light, WHITE, 0.2));
+    const L = M.clone().mul(trs(0.35, 4.3, 0));
+    B.get('glossy').add(box(0.8, 0.12, 0.32), L, [0.12, 0.12, 0.16]);
+    B.get('emit').add(box(0.66, 0.04, 0.24), L.clone().mul(trs(0, -0.07, 0)), light);
+    return at(L, -0.3);
   }
   if (style === 'mast') { // the Moon: a thin mast, a blue beacon, a little solar panel
     B.get('glossy').add(cylinder(0.08, 0.05, 3.6, 6), M, [0.7, 0.72, 0.76]);
@@ -324,6 +378,26 @@ export function addLandmark(app, B, clockMat, kind) {
       B.get('glossy').add(tube([[Math.cos(a) * 1.85, 0.5, Math.sin(a) * 1.85], [Math.cos(a) * 1.5, 7, Math.sin(a) * 1.5]], 0.07, 4), null, [0.55, 0.56, 0.6]);
     }
     top = 14;
+  } else if (kind === 'spire') { // the cyberpunk city: a mega-tower in tiers edged with neon, a clock, a halo of light
+    B.get('glossy').add(cylinder(TOWER_R + 0.35, TOWER_R + 0.45, 0.45, 16), null, [0.14, 0.14, 0.18]);
+    let y = 0.45;
+    const c = [0.16, 0.16, 0.21];
+    [[3.0, 5.2], [2.5, 4.2], [2.1, 4], [1.7, 3.6], [1.25, 3.2]].forEach(([w, h], k) => {
+      B.get('tower').add(box(w, h, w), trs(0, y + h / 2, 0, 0, k * 6, 0), c);
+      const col = NEON[k % 2];
+      for (let f = 0; f < 4; f++) {
+        const F = trs(0, y, 0, 0, k * 6 + f * 90, 0);
+        B.get('neon').add(box(w + 0.08, 0.1, 0.1), F.clone().mul(trs(0, h - 0.05, w / 2)), col); // its edge
+        for (const cx of [-0.3, 0.3]) B.get('glow').add(box(0.14, h * 0.7, 0.03), F.clone().mul(trs(cx * w, h * 0.45, w / 2 + 0.02)), mixc(NEON[(f + k) % 4], [1, 0.95, 0.85], 0.55));
+      }
+      if (k === 1) clockFaces(app, B, clockMat, trs(0, y + h * 0.55, 0, 0, k * 6, 0), w + 0.02, root, hands, 4, 0.62);
+      y += h;
+    });
+    B.get('neon').add(tube(circleOutline(2.7, 24).concat([[2.7, 0]]).map(([x, z]) => [x, 0, z]), 0.07, 5, { caps: false }), trs(0, y - 3, 0, 9, 0, 6), NEON[1]); // its halo
+    B.get('neon').add(tube(circleOutline(2.1, 24).concat([[2.1, 0]]).map(([x, z]) => [x, 0, z]), 0.05, 5, { caps: false }), trs(0, y - 6.5, 0, -7, 0, 4), NEON[0]);
+    B.get('glossy').add(tube([[0, y, 0], [0, y + 5, 0]], [0.18, 0.03], 5), null, [0.6, 0.62, 0.68]); // the needle
+    B.get('emit').add(blob(0.16, 6), trs(0, y + 5.1, 0), [1, 0.15, 0.1]);
+    top = y + 5.3;
   }
   return { root, hands, top };
 }
@@ -385,6 +459,16 @@ export function addHoodSkyline(B, kind) {
     }
   } else if (kind === 'craters') {
     ridge(9, 1, [0.12, 0.12, 0.14], 7);
+  } else if (kind === 'megacity') { // skyscrapers as far as the eye goes, lit windows and neon strips in the smog
+    ridge(0.5, 1, col);
+    around(95, 118, 150, (x, z, a) => {
+      const w = 6 + R() * 10, h = 26 + R() * R() * 95, yaw = R() * 90;
+      B.get(S).add(box(w, h, w), trs(x, h / 2, z, 0, yaw, 0), [0.035, 0.03, 0.06]);
+      if (R() < 0.35) B.get(S).add(cylinder(w * 0.35, 0.2, h * 0.3, 4), trs(x, h, z, 0, yaw + 45, 0), [0.035, 0.03, 0.06]);
+      const face = trs(x, 0, z, 0, (-a / D2R) + 90, 0);
+      for (let k = 0; k < 5; k++) B.get('emit').add(box(0.8, 0.5, 0.2), face.clone().mul(trs((R() - 0.5) * w * 0.8, R() * h, w / 2 + 0.3)), mixc(NEON[Math.floor(R() * 4)], [1, 0.85, 0.6], 0.6));
+      if (R() < 0.45) B.get('emit').add(box(0.5, h * (0.3 + R() * 0.4), 0.2), face.clone().mul(trs((R() - 0.5) * w * 0.6, h * 0.45, w / 2 + 0.35)), NEON[Math.floor(R() * 2)]);
+    });
   }
 }
 
@@ -413,8 +497,16 @@ export function floorFinery(B, S, M, f, fh, i, wall, trim, R) {
   if (S.stripes) { // black and white stripes down the walls (the model town's)
     for (let k = 0; k < 5; k++) B.get('plain').add(box(f.w * 0.1, fh * 0.98, 0.02), front.clone().mul(trs(-f.w * 0.4 + k * f.w * 0.2, fh / 2, 0.01)), BLACK);
   }
+  if (S.billboards && i > 0 && R() < 0.5) { // a tall lit sign hung off the side, its letters dark strokes
+    const s = R() < 0.5 ? -1 : 1, sh = fh * 0.85, col = (S.neonColors ?? NEON)[Math.floor(R() * 4) % (S.neonColors ?? NEON).length];
+    const SG = M.clone().mul(trs(s * (f.w / 2 + 0.6), fh * 0.5, f.d * 0.25, 0, 90, 0));
+    B.get('glossy').add(box(1.05, sh + 0.12, 0.14), SG, [0.08, 0.08, 0.1]);
+    B.get('neon').add(box(0.9, sh, 0.16), SG, col);
+    for (const side of [1, -1]) glyphs(B, SG.clone().mul(trs(0, 0, side * 0.09, 0, side > 0 ? 0 : 180, 0)), 0.9, sh, R);
+    B.get('glossy').add(box(0.6, 0.06, 0.06), M.clone().mul(trs(s * (f.w / 2 + 0.3), fh * 0.5 + sh / 2, f.d * 0.25)), IRON); // its bracket
+  }
   if (S.neon) { // neon along the floor's edges
-    const c = [[0.5, 1, 0.35], [0.85, 0.35, 1], [1, 0.55, 0.15]][i % 3];
+    const c = (S.neonColors ?? [[0.5, 1, 0.35], [0.85, 0.35, 1], [1, 0.55, 0.15]])[i % (S.neonColors?.length ?? 3)];
     B.get('neon').add(box(f.w + 0.1, 0.06, 0.06), front.clone().mul(trs(0, fh - 0.12, 0.08)), c);
     for (const s of [-1, 1]) B.get('neon').add(box(0.06, fh * 0.9, 0.06), front.clone().mul(trs(s * (f.w / 2 + 0.05), fh / 2, 0.08)), c);
   }
@@ -456,6 +548,19 @@ export function hoodRoof(B, S, roofM, tf, h, roofC, trim, R, addWindow) {
         for (let k = 0; k < 4; k++) { const a = (k / 4) * Math.PI * 2 + 0.78; B.get('glossy').add(tube([[Math.cos(a) * 0.7, 0, Math.sin(a) * 0.7], [Math.cos(a) * 0.6, 1.4, Math.sin(a) * 0.6]], 0.05, 4), TM, IRON); }
         B.get('wood').add(cylinder(0.8, 0.75, 1.8, 12, { uvScale: 0.5 }), TM.clone().mul(trs(0, 1.4, 0)), [0.42, 0.3, 0.22]);
         B.get('shingle').add(cylinder(0.9, 0.05, 0.8, 12), TM.clone().mul(trs(0, 3.2, 0)), [0.25, 0.2, 0.18]);
+      } else if (S.billboards) { // a big lit billboard on a frame, an antenna mast with a red light, a dish
+        const BM = roofM.clone().mul(trs((R() - 0.5) * w * 0.3, 0.75, -d * 0.15, 0, (R() - 0.5) * 30, 0)), bw = w * 0.8, bh = 1.8 + R() * 0.8;
+        for (const sx of [-1, 1]) B.get('glossy').add(box(0.12, bh + 0.8, 0.12), BM.clone().mul(trs(sx * bw * 0.4, (bh + 0.8) / 2, 0)), IRON);
+        const P = BM.clone().mul(trs(0, 0.8 + bh / 2, 0.08)), col = (S.neonColors ?? NEON)[Math.floor(R() * 4) % (S.neonColors ?? NEON).length];
+        B.get('neon').add(box(bw, bh, 0.1), P, col);
+        glyphs(B, P.clone().mul(trs(0, 0, 0.06)), bw, bh, R, 3);
+        B.get('glossy').add(box(bw + 0.15, bh + 0.15, 0.06), P.clone().mul(trs(0, 0, -0.08)), [0.08, 0.08, 0.1]);
+        if (S.antennas) {
+          const ax = w * 0.32 * (R() < 0.5 ? -1 : 1);
+          B.get('glossy').add(tube([[ax, 0.8, d * 0.25], [ax, 4.6, d * 0.25]], [0.06, 0.02], 4), roofM, [0.55, 0.56, 0.6]);
+          B.get('emit').add(blob(0.1, 5), roofM.clone().mul(trs(ax, 4.7, d * 0.25)), [1, 0.15, 0.1]);
+          B.get('glossy').add(lathe([[0, 0], [0.5, 0.16], [0.55, 0.2]], 10), roofM.clone().mul(trs(-ax * 0.6, 1.3, d * 0.3, -35, 0, 15)), [0.75, 0.76, 0.8]);
+        }
       } else if (!S.waterTowers) { // a rooftop terrace's rail and a water tank (Buenos Aires)
         B.get('glossy').add(cylinder(0.45, 0.45, 0.9, 10), roofM.clone().mul(trs(w * 0.25, 0.8, -d * 0.2)), [0.85, 0.85, 0.85]);
         for (let k = 0; k <= 8; k++) B.get('glossy').add(cylinder(0.02, 0.02, 0.6, 4), roofM.clone().mul(trs(-w / 2 + (k / 8) * w, 0.85, d / 2)), IRON);
@@ -624,6 +729,16 @@ export function addHoodExtras(B, T) {
       }
     }
   }
+  if (T.name === 'cyberpunk') { // holo screens floating over the outer side of the ring street, under the air lanes
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2 + 0.9, r = ringR(a) + 3, x = Math.cos(a) * r, z = Math.sin(a) * r, col = NEON[k % 4];
+      const SM = trs(x, 5.3, z, 0, -a / D2R, (R() - 0.5) * 6);
+      B.get('glossy').add(box(0.12, 1.9, 3.2), SM, [0.07, 0.07, 0.09]);
+      B.get('neon').add(box(0.16, 1.7, 3.0), SM, col);
+      for (const side of [1, -1]) glyphs(B, SM.clone().mul(trs(side * 0.09, 0, 0, 0, side * 90, 0)), 3.0, 1.7, R);
+      B.get('emit').add(blob(0.12, 5), SM.clone().mul(trs(0, -1.1, 0)), [0.4, 0.9, 1]); // its little hover light
+    }
+  }
   if (T.name === 'moon') { // craters drawn in village.js; a pumpkin flag, a little rover
     const fx = 6.5, fz = -6.5;
     B.get('glossy').add(cylinder(0.04, 0.04, 3, 5), trs(fx, 0, fz), [0.8, 0.8, 0.82]);
@@ -676,6 +791,76 @@ export function createSnowfall(app, glow) {
       root.setPosition(cam.x + sway, cam.y - 5, cam.z);
       sheets[0].setLocalPosition(0, -fall, 0);
       sheets[1].setLocalPosition(0, H - fall, 0);
+    },
+  };
+}
+
+// --- the cyberpunk city's flying traffic ----------------------------------------------------------------------
+const PAINT = [[0.8, 0.08, 0.14], [0.08, 0.62, 0.72], [0.78, 0.8, 0.88]];
+/**
+ * A flying car (its nose +Z, its middle at the origin, ~4.3 m long) into B: a rounded body and a dark cabin, head
+ * and tail lights, glowing thrusters under it. A taxi is yellow with a lit roof sign and a chequered band; a police
+ * car dark blue with white sides and a light bar, its red and blue halves into `bar.red` / `bar.blue` (Geo) to flash.
+ */
+export function vehicleParts(B, kind, paint = 0, bar = null) {
+  const body = kind === 'taxi' ? [1, 0.74, 0.02] : kind === 'police' ? [0.1, 0.14, 0.36] : PAINT[paint % PAINT.length];
+  // (the body in `paint`: a glossy finish with a little light of its own, so its colour reads in the night)
+  B.get('paint').add(box(1.7, 0.44, 3.0), null, body); // the chassis, its nose and tail rounded
+  B.get('paint').add(ellipsoid(1.7, 0.44, 1.5, 10), trs(0, 0, 1.5), body);
+  B.get('paint').add(ellipsoid(1.7, 0.44, 1.1, 10), trs(0, 0, -1.5), body);
+  B.get('paint').add(ellipsoid(1.3, 0.72, 1.9, 10), trs(0, 0.22, -0.2), [0.04, 0.05, 0.08]); // the cabin's dark glass (one material less to draw)
+  for (const sx of [-1, 1]) {
+    B.get('paint').add(box(0.1, 0.36, 0.9), trs(sx * 0.86, 0.22, -1.45, 0, 0, sx * 14), mixc(body, BLACK, 0.35)); // fins
+    B.get('emit').add(box(0.38, 0.12, 0.08), trs(sx * 0.5, 0.06, 2.24), [1, 0.95, 0.82]); // headlights
+    for (const sz of [-1, 1]) B.get('emit').add(cylinder(0.18, 0.14, 0.06, 8), trs(sx * 0.55, -0.25, sz * 1.1), kind === 'taxi' ? [1, 0.55, 0.15] : [0.25, 0.75, 1]); // thrusters
+  }
+  B.get('emit').add(box(1.3, 0.1, 0.08), trs(0, 0.1, -2.04), [1, 0.08, 0.1]); // tail light
+  if (kind === 'taxi') {
+    B.get('emit').add(box(0.72, 0.2, 0.32), trs(0, 0.66, -0.15), [1, 0.85, 0.3]);
+    for (const sx of [-1, 1]) for (let k = 0; k < 9; k++) B.get('paint').add(box(0.04, 0.12, 0.3), trs(sx * 0.86, -0.02 + (k % 2) * 0.12, -1.3 + k * 0.3, 0, 0, 0), k % 2 ? BLACK : [0.98, 0.95, 0.85]);
+    for (const sx of [-1, 1]) B.get('emit').add(box(0.03, 0.04, 2.4), trs(sx * 0.87, -0.2, 0), [1, 0.78, 0.1]); // a yellow underglow
+  } else if (kind === 'police') {
+    for (const sx of [-1, 1]) B.get('paint').add(box(0.04, 0.16, 2.6), trs(sx * 0.86, 0.02, 0.1), WHITE);
+    for (const sx of [-1, 1]) B.get('emit').add(box(0.03, 0.04, 2.4), trs(sx * 0.87, -0.2, 0), [0.25, 0.4, 1]); // a blue underglow
+    B.get('paint').add(box(0.9, 0.08, 0.26), trs(0, 0.6, -0.2), [0.1, 0.1, 0.12]);
+    if (bar) { bar.red.add(box(0.4, 0.14, 0.22), trs(-0.22, 0.7, -0.2), [1, 0.08, 0.08]); bar.blue.add(box(0.4, 0.14, 0.22), trs(0.22, 0.7, -0.2), [0.15, 0.35, 1]); }
+  } else {
+    for (const sx of [-1, 1]) B.get('emit').add(box(0.03, 0.04, 2.4), trs(sx * 0.87, -0.2, 0), [0.3, 0.9, 1]); // an underglow line
+  }
+}
+
+/** One vehicle as an entity (`vehicle-<kind>`; a police car's lights as `police-red` / `police-blue` children). */
+export function buildVehicle(app, materials, kind, paint = 0) {
+  const B = new Batches(materials), bar = kind === 'police' ? { red: new Geo(), blue: new Geo() } : null;
+  vehicleParts(B, kind, paint, bar);
+  const e = B.build(app.graphicsDevice, 'village-dress'); // (its meshes named as the village's: the Lens dresses them alike)
+  e.name = kind === 'car' ? `vehicle-car-${paint}` : `vehicle-${kind}`;
+  if (bar) for (const [n, g] of [['police-red', bar.red], ['police-blue', bar.blue]]) {
+    const holder = new Entity(n);
+    holder.addChild(g.build(app.graphicsDevice, materials.emit, 'village-dress-emit'));
+    e.addChild(holder);
+  }
+  for (const r of e.findComponents('render')) r.castShadows = false;
+  return e;
+}
+
+/** The flying traffic (traffic.js's lanes and fleet), moved by `update(t)`; fewer cars with `lite`. */
+export function createTraffic(app, materials, { lite = false } = {}) {
+  const root = new Entity('traffic');
+  const cars = (lite ? FLEET_LITE : FLEET).map((v) => {
+    const e = buildVehicle(app, materials, v.kind, v.paint ?? 0);
+    root.addChild(e);
+    return { v, e, red: e.findByName('police-red'), blue: e.findByName('police-blue') };
+  });
+  return {
+    root,
+    update(t) {
+      for (const c of cars) {
+        const p = vehiclePose(c.v, t);
+        c.e.setLocalPosition(p.x, p.y, p.z);
+        c.e.setLocalEulerAngles(0, p.yaw, p.bank);
+        if (c.red) { const r = policeRed(t, c.v); c.red.enabled = r; c.blue.enabled = !r; }
+      }
     },
   };
 }

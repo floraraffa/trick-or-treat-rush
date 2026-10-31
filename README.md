@@ -14,8 +14,10 @@ faroles, una torre de hierro), 3 Nueva York (brownstones, escaleras de incendio,
 reloj, el skyline), 4 Buenos Aires (casas de chapa de colores, fileteado, jacarandás, el obelisco, grúas del puerto),
 5 la maqueta (rayas blanco y negro, carteles de neón, gusanos rayados y las vigas de un altillo gigante en el cielo),
 6 Polo Norte (nieve que cae, auroras boreales, carámbanos, guirnaldas de luces, muñecos de nieve, el poste del polo),
-7 Transilvania (luna roja enorme, almenas, gárgolas, antorchas, el castillo en los Cárpatos) y 8 la Luna (la Tierra en
-el cielo, cráteres, cúpulas con ojos de buey, un cohete, un rover). El plano del pueblo es el mismo (las mismas casas,
+7 Transilvania (luna roja enorme, almenas, gárgolas, antorchas, el castillo en los Cárpatos) y 8 la ciudad
+cyberpunk (las casas torcidas apiladas en torres con neón y carteles luminosos, rascacielos alrededor, una mega-torre
+con reloj, árboles holográficos y **tránsito volador**: autos, taxis amarillos y patrulleros con balizas, por carriles
+en el aire). La Luna (la Tierra en el cielo, cráteres, cúpulas, un cohete) quedó como extra en la versión WebXR. El plano del pueblo es el mismo (las mismas casas,
 calles y colisiones), así que las reglas no cambian; lo que cambia es todo lo que se ve. Las salas juegan la noche del
 anfitrión, así que también su barrio; las rondas de nivel (3 minutos) siguen en el pueblo clásico. Todo está hecho con código (geometría y texturas pintadas en canvas): **no suma archivos**,
 el build pasó de 5,84 MB a 5,89 MB (límite de My Lenses 8 MB, `npm run pack` exige menos de 7,2 MB).
@@ -44,6 +46,10 @@ Parámetros de desarrollo: `?room=NOMBRE` (sala multijugador, ver abajo), `?name
 `?inset=120` (simula los controles de Snapchat arriba), `?lowfx` (sin post-procesado ni sombras, para celulares lentos),
 `?debug` (panel de diagnóstico y ganchos de prueba), `?autostart`, `?bitmoji=./otro.glb`, `?camdist=6`.
 Diagnóstico en el teléfono: tocar el título 5 veces.
+
+**Para un proyecto de Meta Quest:** `npm run quest:bundle -- <carpeta>` arma los ZIP con los modelos de cada barrio
+completos y con texturas, los autos voladores, los monstruos, los sonidos, las fuentes, las animaciones (FBX
+Humanoid), las reglas en C# (el puerto comprobado contra el juego) y en JSON, y un `LEEME.md` que explica todo.
 
 ## Multijugador: qué permite la plataforma y qué hace el juego
 

@@ -11,7 +11,8 @@
 import { ADDRESS_CLAMP_TO_EDGE, ADDRESS_REPEAT, BLEND_NORMAL, Color, CULLFACE_NONE, Entity, GltfExporter, Mat4, Mesh, MeshInstance, PIXELFORMAT_SRGBA8, Quat, StandardMaterial, Texture, Vec2, Vec3, Application } from 'playcanvas';
 import { createTextures } from '../textures.js';
 import { createVillage } from '../world/village.js';
-import { NIGHT_THEMES } from '../world/themes.js';
+import { NIGHT_THEMES, THEMES } from '../world/themes.js';
+import { buildVehicle } from '../world/hoods.js';
 import { flat } from '../world/shapes.js';
 import { HOUSES } from '../world/layout.js';
 import { CANDY_GLOW, GEM_COLOR, ORB_COLOR, createCandy } from '../actors/candy.js';
@@ -126,6 +127,44 @@ function simplify(root, cell, min = 400) {
     if (mi.mesh.primitive[0].count / 3 <= min) continue;
     mi.mesh = rebuild(decimate(read(mi.mesh), cell)).mesh;
   }
+}
+
+/**
+ * A glowing mesh (neon, lamps, a car's paint, windows) split by its colours. glTF tints only the base colour by
+ * vertex colour, never the glow, so a neon sign would come out white in Lens Studio or Unity: each colour (to
+ * `levels` steps) gets its own copy of the material whose emissive is that colour (× the material's own), as
+ * `<name>-<k>` beside it. `keepMaps`: its textures stay (the windows' panes); else they go (flat colour).
+ */
+function splitByColour(e, { keepMaps = false, levels = 6 } = {}) {
+  const mi = e.render?.meshInstances[0];
+  if (!mi) return 0;
+  const src = mi.material, d = read(mi.mesh);
+  if (!d.c.length || !d.i.length) return 0;
+  const big = d.c.some((v) => v > 1.001), q = (v) => Math.round((big ? v / 255 : v) * levels) / levels;
+  const groups = new Map();
+  for (let t = 0; t < d.i.length; t += 3) {
+    const v = d.i[t], k = `${q(d.c[v * 4])},${q(d.c[v * 4 + 1])},${q(d.c[v * 4 + 2])}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(d.i[t], d.i[t + 1], d.i[t + 2]);
+  }
+  let n = 0;
+  for (const [k, idx] of groups) {
+    const [r, g, b] = k.split(',').map(Number), m = src.clone();
+    m.emissive = new Color(r * src.emissive.r, g * src.emissive.g, b * src.emissive.b);
+    m.emissiveVertexColor = false;
+    if (!keepMaps) for (const map of ['diffuseMap', 'normalMap', 'emissiveMap', 'opacityMap', 'glossMap', 'metalnessMap', 'aoMap']) m[map] = null;
+    m.update();
+    const c = new Entity(`${e.name}-${n++}`);
+    c.addComponent('render', { meshInstances: [new MeshInstance(rebuild({ ...d, i: idx }).mesh, m)] });
+    c.render.castShadows = e.render.castShadows;
+    e.parent.addChild(c);
+  }
+  e.destroy();
+  return n;
+}
+/** Every glowing mesh under `root` split by colour (splitByColour); `keys`: which materials (the meshes' names end in -<key>). */
+function glowColours(root, keys, opts) {
+  for (const e of root.find((x) => !!x.render && keys.some((k) => x.name.endsWith(`-${k}`)))) splitByColour(e, opts);
 }
 
 /** Groups of triangles that share vertices (a tree, a tomb...), as a label per vertex. */
@@ -424,6 +463,8 @@ async function boardVillage(tex, theme, { base = false } = {}) {
     else if (['plain', 'bark', 'emit', 'glossy', 'woods', 'rock'].includes(key)) simplify(e, SIMPLIFY);
     else if (key === 'wood') simplify(e, 0.03);
   }
+  // The neon, lamps and car paint keep their colours (splitByColour); the windows wear the shelf's warm glow.
+  for (const part of Object.values(v.parts)) glowColours(part, ['neon', 'emit'], { levels: 3 }); // (few shades: few draws on the glasses)
   // Clock hands: named so the Lens can turn them (minute and hour on each of the four faces).
   v.clock.hands.forEach((h, f) => { h.minute.name = `clock-${f}-minute`; h.hour.name = `clock-${f}-hour`; });
   // Porch lamps: a violet twin beside each gold one (the Lens shows one or the other: ready / cooling down).
@@ -471,6 +512,17 @@ async function boardVillage(tex, theme, { base = false } = {}) {
     rim.add(m, null, [1, 1, 1]);
     out.addChild(rim.build(device, rimMat, 'board-rim'));
   }
+  if (!base && THEMES[theme].traffic) { // the flying cars, one of each (the Lens copies them along traffic.js's lanes)
+    const fleet = new Entity('fleet');
+    DETAIL.k = HOOD_DETAIL;
+    for (const [kind, paint] of [['car', 0], ['car', 1], ['car', 2], ['taxi', 0], ['police', 0]]) fleet.addChild(buildVehicle(app, v.materials, kind, paint));
+    DETAIL.k = 1;
+    // (on the glasses: the paint lit by the night alone, one mesh; the lights in few colours: each car a handful of draws)
+    v.materials.paint.emissive = new Color(0, 0, 0); v.materials.paint.update();
+    glowColours(fleet, ['emit'], { levels: 2 });
+    fleet.setLocalPosition(0, -40, 0); // (out of sight under the board: the Lens hides them anyway)
+    out.addChild(fleet);
+  }
   out.addChild(unitMarker());
   root.destroy(); // (what's left: nothing the glasses draw)
   bakeTiling(out.find((n) => !!n.render));
@@ -489,6 +541,56 @@ async function village(tex) {
   report.villageCutTris = cut;
   await glb('village', out, 1536, { rough: WET, normalScale: 1.4 }); // (1536: the ground and streets were 2048, before the neighbourhoods)
   return v;
+}
+
+/**
+ * For a Meta Quest project (tools/quest/bundle.mjs; never in the Lens): every neighbourhood whole and on its own,
+ * `Models/QuestVillages/village-<theme>.glb`, at the game's own detail with its textures (1024 px, normal maps
+ * kept), cut to the board's 39 m like the Lens's; the doors (`door-<id>`), porch lamps (`porch-lamp-<id>`, their
+ * violet `porch-cool-<id>` hidden), clock hands (`clock-<f>-minute/hour`) and lamp heads (`halo-<i>`) named as in the
+ * Lens; no sky, lights or traffic (the flying cars are `vehicles.glb`, moved by traffic.js's lanes).
+ */
+async function questVillages(tex) {
+  for (const theme of Object.keys(THEMES)) {
+    const v = createVillage(app, tex, { lowFx: true, theme }), root = v.root;
+    v.sky.root.destroy();
+    for (const e of root.find((n) => n.light || n.name === 'snowfall' || n.name === 'traffic')) e.destroy();
+    root.find((n) => n.name === 'lamp-halo').forEach((h, i) => {
+      const p = h.getLocalPosition(), spot = new Entity(`halo-${i}`);
+      spot.setLocalPosition(p.x, p.y, p.z);
+      root.addChild(spot);
+      h.destroy();
+    });
+    for (const e of [...root.findByName('village-static').children]) {
+      const key = e.name.replace('village-static-', '');
+      if (key === 'silhouette') { e.destroy(); continue; }
+      cutToBoard(e, key);
+    }
+    glowColours(root.findByName('village-static'), ['neon', 'emit']);
+    glowColours(root.findByName('village-static'), ['glow'], { keepMaps: true }); // (coloured windows, their panes kept)
+    v.clock.hands.forEach((h, f) => { h.minute.name = `clock-${f}-minute`; h.hour.name = `clock-${f}-hour`; });
+    v.houses.forEach((h, i) => {
+      const cool = h.lamp.clone();
+      cool.name = `porch-cool-${HOUSES[i].id}`;
+      const m = new StandardMaterial();
+      m.diffuse = new Color(0.1, 0.08, 0.06); m.emissive = new Color(0.45, 0.25, 0.78); m.update();
+      cool.render.meshInstances[0].material = m;
+      cool.enabled = false;
+      h.lamp.parent.addChild(cool);
+    });
+    root.name = `village-${theme}`;
+    root.addChild(unitMarker());
+    bakeTiling(root.find((n) => !!n.render));
+    await glb(`QuestVillages/village-${theme}`, root, 1024, { normalScale: 1.2 });
+    root.destroy();
+  }
+  // the flying cars, one of each, side by side (5 m apart along +X), noses to +Z
+  const fleet = new Entity('vehicles'), city = createVillage(app, tex, { lowFx: true, theme: 'cyberpunk' });
+  [['car', 0], ['car', 1], ['car', 2], ['taxi', 0], ['police', 0]].forEach(([kind, paint], i) => { const e = buildVehicle(app, city.materials, kind, paint); e.setLocalPosition(i * 5, 0, 0); fleet.addChild(e); });
+  glowColours(fleet, ['emit', 'paint']);
+  fleet.addChild(unitMarker());
+  await glb('QuestVillages/vehicles', fleet, 512);
+  city.root.destroy();
 }
 
 /** The campaign's eight neighbourhoods (themes.js NIGHT_THEMES), each `Models/hood-<theme>.glb`: geometry only. */
@@ -626,7 +728,7 @@ async function fx(tex) {
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [0.5, 0.56, 0.85], 0.55), 'moon-halo');
   // The neighbourhoods' own lights in the sky: the Earth over the Moon, a bare warm bulb over the model town, and
   // the North Pole's northern lights (curtains round the northern sky, in game metres, as the game's sky.js).
-  add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 1, 1], 1, tex.earth), 'moon-earth');
+  if (NIGHT_THEMES.some((id) => THEMES[id].sky.moon === 'earth')) add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 1, 1], 1, tex.earth), 'moon-earth'); // (only if a night has it)
   add(new Geo().add(card, null, [1, 1, 1]), glowMat(tex, [1, 0.9, 0.62], 1), 'moon-bulb');
   {
     const AR = rng(5), g = new Geo();
@@ -864,8 +966,9 @@ window.__export = async (only = null, { uiImages = null } = {}) => {
   await tex.ready;
   const steps = { village: () => village(tex), hoods: () => hoods(tex), ghost, creatures, pickups: () => pickups(tex), fx: () => fx(tex), ui: () => ui(uiImages ?? {}), costumes: () => costumes(tex), clips, sounds };
   const errors = [];
+  steps.questVillages = () => questVillages(tex); // (only when asked for: tools/quest/bundle.mjs)
   for (const [name, step] of Object.entries(steps)) {
-    if (only && !only.includes(name)) continue;
+    if (only ? !only.includes(name) : name === 'questVillages') continue;
     try { await step(); } catch (e) { errors.push(`${name}: ${e.stack ?? e}`); }
   }
   return { files, report, errors };
